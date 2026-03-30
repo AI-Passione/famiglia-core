@@ -12,8 +12,8 @@ Members of the Famiglia are expected to uphold the following standards:
 
 * **Respect for the Family**: Demonstrate empathy and kindness toward all members. We are here to build, not to break.
 * **Open Dialogue**: Be respectful of differing opinions, viewpoints, and experiences. A true Consigliere listens before they speak.
-* **Constructive Feedback**: Give and gracefully accepting constructive feedback. We grow together or not at all.
-* **Accountability**: Taking responsibility and apologizing to those affected by our mistakes, and learning from the experience. Integrity is our currency.
+* **Constructive Feedback**: Give and gracefully accept constructive feedback. We grow together or not at all.
+* **Accountability**: Take responsibility and apologize to those affected by our mistakes, and learn from the experience. Integrity is our currency.
 * **Focus on the Core**: Focus on what is best not just for us as individuals, but for the overall Famiglia core.
 
 Unacceptable behavior includes:
@@ -37,7 +37,7 @@ This Code of Conduct applies within all community spaces connected to **"La Pass
 ## Enforcement: Resolution through The Core
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the Core at:
-**[INSERT CONTACT METHOD]**
+**conduct@aipassione.com**
 
 All complaints will be reviewed and investigated promptly and fairly. The Core is obligated to respect the privacy and security of the reporter.
 

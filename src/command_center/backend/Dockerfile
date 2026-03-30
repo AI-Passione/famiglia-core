@@ -17,17 +17,15 @@ WORKDIR /app
 # Set uv environment to avoid masking by host volumes
 ENV UV_PROJECT_ENVIRONMENT="/venv"
 
-# Copy dependency files
-COPY pyproject.toml uv.lock ./
-
-RUN uv sync --no-install-project --no-dev --no-cache
-
-# Copy the rest of the application
+# Copy the entire project to allow importing from src
 COPY . .
+
+RUN uv sync --no-dev --no-cache --frozen
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PATH="/venv/bin:$PATH"
+ENV PYTHONPATH="/app"
 
-# Run the application
-CMD ["python", "main.py"]
+# Run the API
+CMD ["python", "src/command_center/backend/main.py"]

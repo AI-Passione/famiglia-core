@@ -6,7 +6,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Add project root to sys.path to allow imports from src
-project_root = Path(__file__).resolve().parent.parent
+# For src/db/agents/migrate_souls_to_db.py: 
+# .parent(agents) -> .parent(db) -> .parent(src) -> .parent(root)
+project_root = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.append(str(project_root))
 
 from src.agents.souls.soul_registry import SOUL_REGISTRY

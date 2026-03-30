@@ -1,15 +1,6 @@
 # Security Policy: The Shield of the Famiglia
 
-In the **Famiglia Core**, we protect our own. Loyalty to the "La Passione" vision means ensuring the integrity and security of the engine that powers our house. If you discover a vulnerability, handle it with the respect and discretion it deserves.
-
-## 🛡 Supported Versions
-
-We currently provide security updates for the following versions of the Core:
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.0.1   | :white_check_mark: |
-| < 0.0.1 | :x:                |
+In the **Famiglia Core**, we protect our own. Loyalty to the "AI Passione" vision means ensuring the integrity and security of the engine that powers our house. If you discover a vulnerability, handle it with the respect and discretion it deserves.
 
 ---
 
@@ -28,7 +19,7 @@ If you prefer a direct line, you may contact the security team at:
 
 ## 🤝 The Core’s Promise
 
-When you report a vulnerability with "La Passione":
+When you report a vulnerability with "AI Passione":
 
 1.  **Acknowledgement**: We will acknowledge your report within **48 hours**.
 2.  **Assessment**: The Consigliere will assess the impact and provide an estimated timeline for a fix.

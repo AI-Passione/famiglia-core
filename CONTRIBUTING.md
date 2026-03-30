@@ -57,6 +57,23 @@ A member of the Core (a Consigliere) will review your work. Be prepared for feed
 
 ---
 
+## 🚀 Releases & Docker Images
+
+The **Famiglia Core** uses a structured release process based on the `release` branch.
+
+### 1. Staging (the `main` branch)
+- Every merge into `main` automatically triggers a Docker build.
+- The image is pushed to GHCR with the `:staging` tag.
+
+### 2. Production (the `release` branch)
+- Production releases are manually triggered from the `release` branch.
+- This process uses **Semantic Release** to automate versioning and changelog updates.
+- A versioned Docker image (e.g., `:1.2.3`) is pushed to GHCR.
+
+For more details on the release process and how to trigger it, see [RELEASE.md](RELEASE.md).
+
+---
+
 ## 🎨 Development Standards: "AI Passione" Code
 
 To maintain the elite status of the Famiglia, we adhere to strict standards.

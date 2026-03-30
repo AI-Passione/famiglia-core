@@ -1,0 +1,23 @@
+{
+  "name": "famiglia-core",
+  "version": "0.0.0-semantically-released",
+  "description": "The engine of Don Jimmy's AI Famiglia.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "semantic-release": "^24.0.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^10.0.0",
+    "@semantic-release/commit-analyzer": "^12.0.0",
+    "@semantic-release/release-notes-generator": "^13.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aipassione/famiglia-core.git"
+  },
+  "author": "AI Passione",
+  "license": "Apache-2.0"
+}

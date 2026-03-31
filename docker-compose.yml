@@ -1,5 +1,6 @@
 services:
   app:
+    platform: linux/amd64
     build: .
     env_file:
       - .env
@@ -77,7 +78,6 @@ services:
       mattermost:
         condition: service_started
 
-
   frontend:
     build:
       context: src/command_center/frontend
@@ -150,7 +150,7 @@ services:
 
   loki:
     image: grafana/loki:3.0.0
-    profiles: ["observability"]
+    profiles: [ "observability" ]
     command: -config.file=/etc/loki/local-config.yaml
     ports:
       - "3100:3100"
@@ -160,7 +160,7 @@ services:
 
   promtail:
     image: grafana/promtail:3.0.0
-    profiles: ["observability"]
+    profiles: [ "observability" ]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - promtail_positions:/tmp
@@ -171,7 +171,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.0.0
-    profiles: ["observability"]
+    profiles: [ "observability" ]
     ports:
       - "${GRAFANA_BIND_ADDRESS:-127.0.0.1}:3000:3000"
     environment:
@@ -191,7 +191,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.52.0
-    profiles: ["observability"]
+    profiles: [ "observability" ]
     volumes:
       - ./src/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -203,7 +203,7 @@ services:
 
   docker-stats-exporter:
     image: wywywywy/docker_stats_exporter:latest
-    profiles: ["observability"]
+    profiles: [ "observability" ]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
@@ -211,7 +211,7 @@ services:
 
   langfuse-db:
     image: postgres:15-alpine
-    profiles: ["observability"]
+    profiles: [ "observability" ]
     environment:
       - POSTGRES_USER=langfuse
       - POSTGRES_PASSWORD=langfuse-password
@@ -232,7 +232,7 @@ services:
 
   langfuse:
     image: langfuse/langfuse:2
-    profiles: ["observability"]
+    profiles: [ "observability" ]
     depends_on:
       postgres:
         condition: service_healthy
@@ -293,5 +293,4 @@ volumes:
   mattermost_data:
   mattermost_logs:
   mattermost_config:
-  mattermost_plugins:
-#  duckdb_dwh_data:
+  mattermost_plugins: #  duckdb_dwh_data:

@@ -40,9 +40,9 @@ function App() {
     const fetchData = async () => {
       try {
         const [agentsRes, actionsRes, tasksRes] = await Promise.all([
-          fetch(`${BACKEND_BASE}/agents`),
-          fetch(`${BACKEND_BASE}/actions?limit=10`),
-          fetch(`${BACKEND_BASE}/tasks?limit=3`)
+          fetch(`${BACKEND_BASE}/api/v1/agents`),
+          fetch(`${BACKEND_BASE}/api/v1/actions?limit=10`),
+          fetch(`${BACKEND_BASE}/api/v1/tasks?limit=3`)
         ]);
         
         if (agentsRes.ok) setAgents(await agentsRes.json());

@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Paperclip, X, Minimize2, Maximize2, Bot, Loader2 } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -26,6 +25,10 @@ export function DirectivesTerminal() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  useEffect(() => {
+    console.log("DirectivesTerminal mounted. isOpen:", isOpen);
+  }, [isOpen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -121,10 +124,11 @@ export function DirectivesTerminal() {
 
   return (
     <div className="fixed bottom-8 right-8 z-[60] flex flex-col items-end gap-4">
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            key="directives-terminal-window"
+            initial={{ opacity: 0, y: 20, scale: 0.95, width: '400px', height: '600px' }}
             animate={{ 
               opacity: 1, 
               y: 0, 
@@ -134,13 +138,13 @@ export function DirectivesTerminal() {
             }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="glass-module border border-outline/20 rounded-xl shadow-[0px_32px_64px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col"
+            className="glass-module border border-outline/20 rounded-xl shadow-[0px_32px_64px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col mb-4 bg-surface/90 backdrop-blur-xl"
           >
             {/* Header */}
-            <div className="px-5 py-4 bg-surface-container/80 border-b border-outline/10 flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-outline/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
-                  <Bot size={18} className="text-primary" />
+                  <span className="material-symbols-outlined text-primary text-sm">smart_toy</span>
                 </div>
                 <div>
                   <h3 className="font-headline text-sm uppercase tracking-widest text-on-surface">Directives Terminal</h3>
@@ -155,13 +159,13 @@ export function DirectivesTerminal() {
                   onClick={() => setIsMaximized(!isMaximized)}
                   className="p-1.5 hover:bg-white/5 rounded-full transition-colors text-outline-variant hover:text-on-surface"
                 >
-                  {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                  {isMaximized ? <span className="material-symbols-outlined text-[16px]">close_fullscreen</span> : <span className="material-symbols-outlined text-[16px]">open_in_full</span>}
                 </button>
                 <button 
                   onClick={() => setIsOpen(false)}
                   className="p-1.5 hover:bg-white/5 rounded-full transition-colors text-outline-variant hover:text-on-surface"
                 >
-                  <X size={16} />
+                  <span className="material-symbols-outlined text-[16px]">close</span>
                 </button>
               </div>
             </div>
@@ -221,7 +225,7 @@ export function DirectivesTerminal() {
                 />
                 <div className="flex items-center gap-1.5 pb-1">
                   <button className="p-1.5 text-outline-variant hover:text-primary transition-colors rounded-lg hover:bg-primary/5">
-                    <Paperclip size={18} />
+                    <span className="material-symbols-outlined text-[18px]">attach_file</span>
                   </button>
                   <button 
                     disabled={!input.trim() || isTyping}
@@ -232,7 +236,7 @@ export function DirectivesTerminal() {
                         : 'bg-white/5 text-outline-variant cursor-not-allowed'
                     }`}
                   >
-                    {isTyping ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                    {isTyping ? <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[18px]">send</span>}
                   </button>
                 </div>
               </div>
@@ -254,7 +258,7 @@ export function DirectivesTerminal() {
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.4 }}
         >
-          {isOpen ? <X size={24} /> : <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>}
+          {isOpen ? <span className="material-symbols-outlined">close</span> : <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>}
         </motion.div>
         {!isOpen && (
           <span className="font-label text-[10px] uppercase tracking-widest font-bold pr-2">Directives Terminal</span>

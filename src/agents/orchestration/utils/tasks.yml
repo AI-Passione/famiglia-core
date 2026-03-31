@@ -1,0 +1,52 @@
+task_types:
+  reminder:
+    id: "reminder"
+    expected_agent: "alfredo"
+    priority: "high"
+  market_research:
+    id: "market_research"
+    expected_agent: "rossini"
+    priority: "medium"
+    output_channel_id: "C0AGQPGNP09"
+  prd_drafting:
+    id: "prd_drafting"
+    expected_agent: "rossini"
+    priority: "high"
+    output_channel_id: "C0AL8GW2VAL"
+    completion_status: "drafted"
+  feature_request:
+    id: "feature_request"
+    expected_agent: "rossini"
+    priority: "high"
+    output_channel_id: "C0AGFEBPBJ8"
+  coding_code_analysis:
+    id: "coding_code_analysis"
+    expected_agent: "riccado"
+    priority: "medium"
+    output_channel_id: "C0AH64QTG2U"
+  coding_implementation:
+    id: "coding_implementation"
+    expected_agent: "riccado"
+    priority: "high"
+    output_channel_id: "C0AH64QTG2U"
+  alfredo_greeting:
+    id: "alfredo_greeting"
+    expected_agent: "alfredo"
+    priority: "high"
+    output_channel_id: "C0AGFEBPBJ8"
+  prd_review_autoscan:
+    id: "prd_review_autoscan"
+    expected_agent: "rossini"
+    priority: "medium"
+    output_channel_id: "C0AL8GW2VAL"
+
+scheduled_task_types:
+  - "reminder"
+  - "market_research"
+  - "prd_drafting"
+  - "feature_request"
+  - "coding_code_analysis"
+  - "coding_implementation"
+  - "alfredo_greeting"
+  - "prd_review_autoscan"
+

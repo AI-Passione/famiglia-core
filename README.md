@@ -120,6 +120,8 @@ To ensure scalability and clean separation of concerns, the system is split into
 - **Observability:** [Grafana](https://grafana.com/) & [Loki](https://grafana.com/oss/loki/) (Container observability)
 - **AI Observability & Tracing:** [Langfuse](https://langfuse.com/) (Full-lifecycle agent observability)
 
+Please refer to the `README.md` files in the respective directories for more details.
+
 ---
 
 ## Technical Guides

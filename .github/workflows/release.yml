@@ -2,11 +2,6 @@ name: Manual Production Release
 
 on:
   workflow_dispatch:
-    inputs:
-      release-type:
-        description: 'Type of release (optional, semantic-release will decide if not provided)'
-        required: false
-        default: ''
 
 jobs:
   release:

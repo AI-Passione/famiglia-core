@@ -1,0 +1,42 @@
+name: "🛠 Refactoring"
+description: "Cleaning up the soul of the Family's codebase."
+title: "[REFACTOR] "
+labels: ["refactor"]
+body:
+  - type: textarea
+    id: current_state
+    attributes:
+      label: "Current State"
+      description: "What part of the system needs cleaning? Be specific about the files or logic."
+      placeholder: |
+        File: src/command_center/backend/...
+        Logic: The current caching layer is inefficient.
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical_debt
+    attributes:
+      label: "Why Now?"
+      description: "Why is this refactor necessary? How does it improve the 'soul' of the repository?"
+      placeholder: "This code is blocking the implementation of Agent X's new memory system."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_improvement
+    attributes:
+      label: "Proposed Solution"
+      description: "How do you plan to reimagine this part of the core?"
+      placeholder: "Modernize using more efficient Python 3.14 features..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: risk_assessment
+    attributes:
+      label: "Risk Assessment"
+      description: "Any potential breaking changes? Impact on other agents?"
+      placeholder: "This will require a minor API version bump."
+    validations:
+      required: true

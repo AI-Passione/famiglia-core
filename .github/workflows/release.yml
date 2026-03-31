@@ -60,6 +60,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:${{ steps.semantic.outputs.new_release_version }}
+            ghcr.io/${{ github.repository }}:production
             ghcr.io/${{ github.repository }}:latest
           labels: |
             org.opencontainers.image.version=${{ steps.semantic.outputs.new_release_version }}

@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aipassione/famiglia-core.git"
+    "url": "git+https://github.com/AI-Passione/famiglia-core.git"
   },
   "author": "AI Passione",
   "license": "Apache-2.0"

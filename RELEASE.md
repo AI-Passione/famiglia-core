@@ -9,7 +9,7 @@ Our release process is built around two primary branches:
 ### 1. `main` (Staging)
 - **Purpose**: All development features and bug fixes are merged into `main` after review.
 - **Automation**: Every push to `main` triggers an automatic Docker build.
-- **Output**: A Docker image tagged with `staging` and the short git SHA is pushed to the [GitHub Container Registry (GHCR)](https://github.com/aipassione/famiglia-core/pkgs/container/famiglia-core).
+- **Output**: A Docker image tagged with `staging` and the short git SHA is pushed to the [GitHub Container Registry (GHCR)](https://github.com/AI-Passione/famiglia-core/pkgs/container/famiglia-core).
 - **Usage**: Use the `:staging` tag for testing and integration environments.
 
 ### 2. `release` (Production)
@@ -22,7 +22,7 @@ Our release process is built around two primary branches:
 - **Output**: 
   - A new GitHub Release and Tag (e.g., `v1.2.3`).
   - An updated `CHANGELOG.md`.
-  - A production Docker image tagged with the version number (e.g., `:1.2.3`) and `:latest`.
+  - A production Docker image tagged with the version number (e.g., `:1.2.3`), `:production`, and `:latest`.
 
 ---
 
@@ -38,16 +38,16 @@ We use `semantic-release` to automate versioning based on [Conventional Commits]
 
 ## 📦 Docker Container Registry
 
-All images are hosted on GHCR: `ghcr.io/aipassione/famiglia-core`.
+All images are hosted on GHCR: `ghcr.io/AI-Passione/famiglia-core`.
 
 To pull the latest production image:
 ```bash
-docker pull ghcr.io/aipassione/famiglia-core:latest
+docker pull ghcr.io/AI-Passione/famiglia-core:latest
 ```
 
 To pull the latest staging image:
 ```bash
-docker pull ghcr.io/aipassione/famiglia-core:staging
+docker pull ghcr.io/AI-Passione/famiglia-core:staging
 ```
 
 ---

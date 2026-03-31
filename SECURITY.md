@@ -9,11 +9,11 @@ In the **Famiglia Core**, we protect our own. Loyalty to the "AI Passione" visio
 The Core does not like public spectacles for sensitive matters. If you find a security flaw, report it privately using one of the following methods:
 
 ### 1. GitHub Private Vulnerability Reporting (Recommended)
-For the fastest response and integrated tracking, use GitHub's **[Private Vulnerability Reporting](https://github.com/aipassione/famiglia-core/security/advisories/new)** feature. This allows the Consigliere to review and fix the issue before it is disclosed to the public.
+For the fastest response and integrated tracking, use GitHub's **[Private Vulnerability Reporting](https://github.com/AI-Passione/famiglia-core/security/advisories/new)** feature. This allows the Consigliere to review and fix the issue before it is disclosed to the public.
 
 ### 2. Email the Consigliere
 If you prefer a direct line, you may contact the security team at:
-**[security@aipassione.com](mailto:security@aipassione.com)**
+**[security@ai-passione.com](mailto:security@ai-passione.com)**
 
 ---
 

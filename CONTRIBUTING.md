@@ -8,8 +8,8 @@ In this house, we value loyalty, precision, and a "Vibe First" approach to codin
 
 Before you lift a finger to code, we must be in agreement. The Core does not like surprises.
 
-1.  **GitHub Discussions**: If you have a new idea, a "Vision," or just want to discuss a potential feature, start a thread in the [Discussions](https://github.com/aipassione/famiglia-core/discussions) tab.
-2.  **GitHub Issues**: For bug reports or specific, actionable tasks, please open an [Issue](https://github.com/aipassione/famiglia-core/issues). 
+1.  **GitHub Discussions**: If you have a new idea, a "Vision," or just want to discuss a potential feature, start a thread in the [Discussions](https://github.com/AI-Passione/famiglia-core/discussions) tab.
+2.  **GitHub Issues**: For bug reports or specific, actionable tasks, please open an [Issue](https://github.com/AI-Passione/famiglia-core/issues). 
 
 **Do not open a Pull Request without an associated Issue or a Discussion that has been blessed by the Core.**
 
@@ -35,7 +35,7 @@ The Famiglia is always looking for better ways to operate.
 The Core moves with purpose. To ensure your contribution is accepted, follow this path:
 
 ### 1. The Fork
-**Mandatory**: You must [fork](https://github.com/aipassione/famiglia-core/fork) the repository to your own GitHub account. We do not work directly on the core branches.
+**Mandatory**: You must [fork](https://github.com/AI-Passione/famiglia-core/fork) the repository to your own GitHub account. We do not work directly on the core branches.
 
 ### 2. The Branch
 Create a branch for your work using the following naming convention:

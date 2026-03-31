@@ -1,0 +1,545 @@
+import time
+import json
+import os
+import re
+import redis
+import requests
+import threading
+from collections import defaultdict
+from typing import Dict, Any, List, Optional
+
+from dotenv import load_dotenv
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+
+# Queue Priorities
+PRIORITY_CRITICAL = 0
+PRIORITY_HIGH = 1
+PRIORITY_MEDIUM = 2
+PRIORITY_LOW = 3
+
+# Batching Intervals (seconds)
+BATCH_INTERVALS = {
+    PRIORITY_MEDIUM: 30,
+    PRIORITY_LOW: 300  # 5 minutes
+}
+
+SLACK_CHANNEL_ID_RE = re.compile(r"^[CGD][A-Z0-9]{8,}$")
+SLACK_CHANNEL_MENTION_RE = re.compile(r"^<#(?P<id>[CGD][A-Z0-9]{8,})(?:\|[^>]+)?>$")
+SLACK_ARCHIVES_URL_RE = re.compile(r"/archives/(?P<id>[CGD][A-Z0-9]{8,})")
+INCOMING_QUEUE_KEY = "slack:incoming:queue"
+
+
+class SlackQueueClient:
+    def __init__(self, redis_url: Optional[str] = None):
+        # Ensure dot‑env file is read as early as possible. The module is imported
+        # by `main` before load_dotenv() is called there, so having the class
+        # itself load environment variables prevents the infamous bug where the
+        # singleton is constructed with empty credentials and later never
+        # updated. Calling load_dotenv multiple times is harmless.
+        load_dotenv()
+        if not redis_url:
+            host = os.getenv("REDIS_HOST", "localhost")
+            port = os.getenv("REDIS_PORT", "6379")
+            redis_url = f"redis://{host}:{port}"
+            
+        self.redis = redis.from_url(redis_url)
+        
+        # Multi-bot support
+        self.agent_tokens = {
+            "alfredo": os.getenv("SLACK_BOT_TOKEN_ALFREDO"),
+            "vito": os.getenv("SLACK_BOT_TOKEN_VITO"),
+            "riccado": os.getenv("SLACK_BOT_TOKEN_RICCADO"),
+            "rossini": os.getenv("SLACK_BOT_TOKEN_ROSSINI"),
+            "tommy": os.getenv("SLACK_BOT_TOKEN_TOMMY"),
+            "bella": os.getenv("SLACK_BOT_TOKEN_BELLA"),
+            "kowalski": os.getenv("SLACK_BOT_TOKEN_KOWALSKI"),
+        }
+        
+        # Fallback to general SLACK_BOT_TOKEN if specific ones aren't set
+        default_token = os.getenv("SLACK_BOT_TOKEN")
+        self.clients = {}
+        self.bot_ids = {} # {agent_name: bot_user_id}
+        self.bot_id_to_name = {} # {bot_user_id: agent_name}
+        
+        seen_tokens: dict[str, str] = {}
+        seen_user_ids: dict[str, str] = {}
+        for agent, token in self.agent_tokens.items():
+            if not token and not default_token:
+                # no specific or global token available for this agent
+                print(f"[{agent}] No bot token configured; Slack features for this agent will be disabled.")
+                continue
+
+            active_token = token or default_token
+            if token and default_token and token == default_token:
+                # explicit token matches the global one; warn the operator
+                print(f"[{agent}] WARNING: using the global SLACK_BOT_TOKEN as the agent-specific token.")
+
+            if not active_token:
+                # should have been caught above, but guard anyway
+                continue
+
+            # detect duplicate tokens to avoid cross-agent impersonation
+            if active_token in seen_tokens:
+                other = seen_tokens[active_token]
+                raise RuntimeError(
+                    f"Slack bot token for '{agent}' is identical to token for '{other}'. "
+                    "Each agent must have a unique bot token; fix your environment."
+                )
+            seen_tokens[active_token] = agent
+
+            client = WebClient(token=active_token)
+            try:
+                auth = client.auth_test()
+                user_id = auth.get("user_id")
+
+                # ensure tokens map to distinct Slack users as well
+                if user_id in seen_user_ids:
+                    other_agent = seen_user_ids[user_id]
+                    raise RuntimeError(
+                        f"Token for '{agent}' authenticates as the same Slack user "
+                        f"({user_id}) as token for '{other_agent}'. "
+                        "Each agent must be a separate Slack bot/app."
+                    )
+                seen_user_ids[user_id] = agent
+
+                self.clients[agent] = client
+                self.bot_ids[agent] = user_id
+                self.bot_id_to_name[user_id] = agent
+                print(f"[{agent}] Authenticated as {user_id}")
+            except SlackApiError as e:
+                print(f"[{agent}] Auth failed: {e.response['error']}")
+        
+        self.user_id = os.getenv("USER_SLACK_ID")
+        self.user_name_cache: Dict[str, str] = {}
+        if self.user_id:
+            configured_user_name = self._lookup_slack_user_name(self.user_id)
+            if configured_user_name:
+                self.user_name_cache[self.user_id] = configured_user_name
+        
+        # Multi-bot app tokens
+        self.agent_app_tokens = {
+            "alfredo": os.getenv("SLACK_APP_TOKEN_ALFREDO"),
+            "vito": os.getenv("SLACK_APP_TOKEN_VITO"),
+            "riccado": os.getenv("SLACK_APP_TOKEN_RICCADO"),
+            "rossini": os.getenv("SLACK_APP_TOKEN_ROSSINI"),
+            "tommy": os.getenv("SLACK_APP_TOKEN_TOMMY"),
+            "bella": os.getenv("SLACK_APP_TOKEN_BELLA"),
+            "kowalski": os.getenv("SLACK_APP_TOKEN_KOWALSKI"),
+        }
+        # Global app token (optional if per-agent tokens are provided)
+        self.app_token = os.getenv("SLACK_APP_TOKEN")
+        
+        # Rate limiting state
+        self.last_sent: Dict[str, float] = {}
+        self.MIN_INTERVAL = 1.0  # Max 1 message/second/channel
+        
+        # Batching state: {(channel, priority, thread_ts): [messages]}
+        self.batches: Dict[tuple[str, int, Optional[str]], List[dict]] = defaultdict(list)
+        self.last_batch_time: Dict[tuple[str, int, Optional[str]], float] = {}
+        
+        self.worker_thread = None
+        self.running = False
+        self.app_env = os.getenv("APP_ENV", "production").lower()
+        self.channel_name_cache: Dict[str, str] = {}
+        self.dev_channel_name = os.getenv("DEV_CHANNEL_NAME", "_dev").strip().lstrip("#").lower()
+        self.dev_channel_raw = os.getenv("DEV_CHANNEL_ID")
+        normalized_dev_ref = self._normalize_channel_reference(self.dev_channel_raw)
+        if normalized_dev_ref and not self._is_channel_id(normalized_dev_ref):
+            self.dev_channel_name = normalized_dev_ref.lstrip("#").lower()
+        self.dev_channel_id = self.resolve_channel_id(self.dev_channel_raw)
+        if not self.dev_channel_id and self.clients and self.dev_channel_name:
+            self.dev_channel_id = self.resolve_channel_id(f"#{self.dev_channel_name}")
+            if self.dev_channel_id:
+                print(f"[SlackQueue] Auto-resolved dev channel #{self.dev_channel_name} -> {self.dev_channel_id}")
+        if self.dev_channel_raw and not self.dev_channel_id:
+            print(
+                f"[SlackQueue] WARNING: could not resolve DEV_CHANNEL_ID={self.dev_channel_raw!r}. "
+                "Use a Slack channel ID like C0123456789."
+            )
+
+    @staticmethod
+    def _normalize_channel_reference(channel_ref: Optional[str]) -> Optional[str]:
+        """Normalize configured channel references into a canonical candidate string."""
+        if not channel_ref:
+            return None
+
+        value = channel_ref.strip().strip("\"'")
+        if not value:
+            return None
+
+        mention_match = SLACK_CHANNEL_MENTION_RE.match(value)
+        if mention_match:
+            return mention_match.group("id")
+
+        archives_match = SLACK_ARCHIVES_URL_RE.search(value)
+        if archives_match:
+            return archives_match.group("id")
+
+        return value
+
+    @staticmethod
+    def _is_channel_id(value: str) -> bool:
+        return bool(SLACK_CHANNEL_ID_RE.match(value))
+
+    def _channel_name_for_id(self, channel_id: str) -> Optional[str]:
+        """Resolve a channel name by ID and cache results (including misses)."""
+        if channel_id in self.channel_name_cache:
+            cached = self.channel_name_cache[channel_id]
+            return cached or None
+
+        if not self._is_channel_id(channel_id):
+            return None
+
+        for client in self.clients.values():
+            try:
+                info = client.conversations_info(channel=channel_id)
+            except SlackApiError:
+                continue
+
+            name = (info.get("channel") or {}).get("name")
+            if name:
+                self.channel_name_cache[channel_id] = name
+                return name
+
+        self.channel_name_cache[channel_id] = ""
+        return None
+
+    def resolve_channel_id(self, channel_ref: Optional[str]) -> Optional[str]:
+        """
+        Resolve a configured channel reference to a Slack channel ID.
+        Accepts raw IDs, <#ID|name>, Slack archive URLs, or #channel-name.
+        """
+        normalized = self._normalize_channel_reference(channel_ref)
+        if not normalized:
+            return None
+
+        if self._is_channel_id(normalized):
+            return normalized
+
+        # Name-based lookup requires authenticated clients.
+        lookup_name = normalized[1:] if normalized.startswith("#") else normalized
+        if not lookup_name or not self.clients:
+            return None
+
+        for client in self.clients.values():
+            cursor: Optional[str] = None
+            while True:
+                try:
+                    resp = client.conversations_list(
+                        types="public_channel,private_channel",
+                        exclude_archived=True,
+                        limit=1000,
+                        cursor=cursor,
+                    )
+                except SlackApiError:
+                    break
+
+                for chan in resp.get("channels", []):
+                    if chan.get("name") == lookup_name and chan.get("id"):
+                        return chan["id"]
+
+                cursor = (resp.get("response_metadata") or {}).get("next_cursor")
+                if not cursor:
+                    break
+
+        return None
+
+    def is_dev_channel(self, channel_ref: Optional[str]) -> bool:
+        """Return True if this channel reference maps to the configured dev channel."""
+        normalized = self._normalize_channel_reference(channel_ref)
+        if not normalized:
+            return False
+
+        if self._is_channel_id(normalized):
+            if self.dev_channel_id and normalized == self.dev_channel_id:
+                return True
+            channel_name = self._channel_name_for_id(normalized)
+            return bool(channel_name and channel_name.lower() == self.dev_channel_name)
+
+        normalized_name = normalized.lstrip("#").lower()
+        return normalized_name == self.dev_channel_name
+
+    def resolve_sender_name(self, user_id: Optional[str], event: Optional[Dict[str, Any]] = None) -> str:
+        """Resolve a readable sender name for prompts/logging."""
+        if not user_id:
+            return "Unknown"
+
+        if user_id in self.bot_id_to_name:
+            return self.bot_id_to_name[user_id]
+
+        # Prefer names that may be present directly in the event payload.
+        if event:
+            profile = event.get("user_profile") or {}
+            name_from_event = (
+                profile.get("display_name")
+                or profile.get("real_name")
+                or profile.get("name")
+                or event.get("username")
+            )
+            if name_from_event:
+                self.user_name_cache[user_id] = name_from_event
+                return name_from_event
+
+        if user_id in self.user_name_cache:
+            return self.user_name_cache[user_id]
+
+        resolved_name = self._lookup_slack_user_name(user_id)
+        if resolved_name:
+            self.user_name_cache[user_id] = resolved_name
+            return resolved_name
+
+        # Do not expose raw Slack IDs to the model in normal conversation.
+        fallback_name = "Slack member"
+        self.user_name_cache[user_id] = fallback_name
+        return fallback_name
+
+    def _lookup_slack_user_name(self, user_id: str) -> Optional[str]:
+        """Try to resolve a Slack user's display/real name via users.info."""
+        for client in self.clients.values():
+            try:
+                info = client.users_info(user=user_id)
+                user = info.get("user", {})
+                profile = user.get("profile", {})
+                resolved_name = (
+                    profile.get("display_name")
+                    or profile.get("real_name")
+                    or user.get("real_name")
+                    or user.get("name")
+                )
+                if resolved_name:
+                    return resolved_name
+            except SlackApiError:
+                continue
+        return None
+
+    def download_file(self, file_info: Dict[str, Any], agent_name: str) -> Optional[str]:
+        """Download a file from Slack and return the local path."""
+        url = file_info.get("url_private_download") or file_info.get("url_private")
+        filename = file_info.get("name")
+        if not url or not filename:
+            print(f"[SlackQueue 📂] WARNING: No download URL found for file: {file_info.get('id')}")
+            return None
+
+        # Get the token directly instead of from the client object
+        token = self.agent_tokens.get(agent_name) or self.agent_tokens.get("alfredo") or os.getenv("SLACK_BOT_TOKEN")
+        if not token:
+            print(f"[SlackQueue 📂] WARNING: No token found for {agent_name}. Cannot download.")
+            return None
+
+        # Mask token for logging: xoxb-123...456
+        token_mask = f"{token[:9]}...{token[-4:]}" if len(token) > 10 else "invalid-token"
+        print(f"[SlackQueue 📂] Using token ({token_mask}) for {agent_name} to download {filename}.", flush=True)
+
+        save_dir = "/app/data/incoming_files"
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Ensure unique filename to avoid collisions
+        unique_filename = f"{int(time.time())}_{filename}"
+        file_path = os.path.join(save_dir, unique_filename)
+
+        try:
+            # 1. Try URL with Authorization Header (Modern)
+            print(f"[SlackQueue 📂] Attempting Header Auth for {filename}...", flush=True)
+            response = requests.get(url, headers={"Authorization": f"Bearer {token}"}, stream=True, timeout=30)
+            
+            # Check for success and not HTML
+            first_chunk = next(response.iter_content(chunk_size=512), b"")
+            is_html = b"<!DOCTYPE html>" in first_chunk or b"<html" in first_chunk
+
+            if response.status_code == 200 and not is_html:
+                with open(file_path, "wb") as f:
+                    f.write(first_chunk)
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                print(f"[SlackQueue 📂] SUCCESS: {filename} downloaded via Header Auth.", flush=True)
+                return file_path
+            
+            # 2. Try Fallback: Query Parameter Auth (Older/Alternative)
+            print(f"[SlackQueue 📂] Header Auth failed or returned HTML. Attempting Query Param Auth...", flush=True)
+            fallback_url = f"{url}?token={token}" if "?" not in url else f"{url}&token={token}"
+            response = requests.get(fallback_url, stream=True, timeout=30)
+            
+            first_chunk = next(response.iter_content(chunk_size=512), b"")
+            is_html = b"<!DOCTYPE html>" in first_chunk or b"<html" in first_chunk
+            
+            if response.status_code == 200 and not is_html:
+                with open(file_path, "wb") as f:
+                    f.write(first_chunk)
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                print(f"[SlackQueue 📂] SUCCESS: {filename} downloaded via Query Param Auth.", flush=True)
+                return file_path
+            
+            print(f"[SlackQueue 📂] FATAL: Authentication failed with both patterns for {filename}. Response status: {response.status_code}. Content-Type: {response.headers.get('Content-Type')}", flush=True)
+            return None
+        except Exception as e:
+            print(f"[SlackQueue 📂] WARNING: Error downloading file {filename}: {e}", flush=True)
+            return None
+
+    def post_message(self, agent: str, channel: str, message: str, thread_ts: Optional[str] = None) -> Optional[str]:
+        """
+        Sends a message to Slack immediately and synchronously.
+        Returns the Slack message 'ts' (timestamp) on success, or None on failure.
+        """
+        payload = {
+            "agent": agent,
+            "channel": channel,
+            "message": message,
+            "priority": PRIORITY_CRITICAL, # Treat as immediate
+            "thread_ts": thread_ts,
+            "timestamp": time.time()
+        }
+        return self._send_to_slack(payload, thread_ts=thread_ts)
+
+    def enqueue_message(self, agent: str, channel: str, message: str, priority: int = PRIORITY_MEDIUM, thread_ts: Optional[str] = None):
+        """Puts a message in the priority queue"""
+        # Block production interaction with dev channel
+        if self.app_env == "production" and self.is_dev_channel(channel):
+            print(f"[SlackQueue] DROPPING message to dev channel {channel} in production mode.")
+            return
+            
+        payload = {
+            "agent": agent,
+            "channel": channel,
+            "message": message,
+            "priority": priority,
+            "thread_ts": thread_ts,
+            "timestamp": time.time()
+        }
+        
+        queue_key = f"slack:queue:{priority}"
+        self.redis.rpush(queue_key, json.dumps(payload))
+        
+    def enqueue_incoming(self, payload: dict):
+        """Puts an incoming Slack event in the queue for background processing"""
+        self.redis.rpush(INCOMING_QUEUE_KEY, json.dumps(payload))
+        
+    def dequeue_incoming(self) -> Optional[dict]:
+        """Pops an incoming Slack event from the queue"""
+        data = self.redis.lpop(INCOMING_QUEUE_KEY)
+        if data:
+            return json.loads(data)
+        return None
+        
+    def start_worker(self):
+        """Starts the background worker to process the queue"""
+        if self.running: return
+        self.running = True
+        self.worker_thread = threading.Thread(target=self._process_queue, daemon=True)
+        self.worker_thread.start()
+        
+    def stop_worker(self):
+        self.running = False
+        if self.worker_thread:
+            self.worker_thread.join(timeout=2.0)
+            
+    def _dequeue_next(self) -> Optional[tuple[str, dict]]:
+        """Pops the highest priority message available"""
+        for priority in [PRIORITY_CRITICAL, PRIORITY_HIGH, PRIORITY_MEDIUM, PRIORITY_LOW]:
+            queue_key = f"slack:queue:{priority}"
+            data = self.redis.lpop(queue_key)
+            if data:
+                return queue_key, json.loads(data)
+        return None
+        
+    def _process_queue(self):
+        while self.running:
+            item = self._dequeue_next()
+            
+            # Process any pending batches if interval reached
+            self._flush_batches()
+
+            if not item:
+                time.sleep(0.5)
+                continue
+                
+            queue_key, payload = item
+            priority = payload["priority"]
+            channel = payload["channel"]
+            
+            if priority in [PRIORITY_CRITICAL, PRIORITY_HIGH]:
+                self._send_immediately(payload)
+            else:
+                # Add to batch (Threading is disabled for batches currently as they aggregate messages)
+                thread_ts = payload.get("thread_ts")
+                batch_key = (channel, priority, thread_ts)
+                if not self.batches[batch_key]:
+                    self.last_batch_time[batch_key] = time.time()
+                self.batches[batch_key].append(payload)
+
+    def _flush_batches(self):
+        """Checks if any batches are ready to be sent"""
+        now = time.time()
+        for batch_key, messages in list(self.batches.items()):
+            if not messages: continue
+            
+            channel, priority, thread_ts = batch_key
+            interval = BATCH_INTERVALS.get(priority, 30)
+            
+            if now - self.last_batch_time.get(batch_key, 0) >= interval:
+                self._send_batch(channel, priority, messages, thread_ts=thread_ts)
+                self.batches[batch_key] = []
+                self.last_batch_time[batch_key] = now
+
+    def _send_immediately(self, payload: dict):
+        channel = payload["channel"]
+        thread_ts = payload.get("thread_ts")
+        self._rate_limit(channel)
+        self._send_to_slack(payload, thread_ts=thread_ts)
+
+    def _send_batch(self, channel: str, priority: int, messages: List[dict], thread_ts: Optional[str] = None):
+        if not messages: return
+        
+        # Send messages directly without technical header
+        ts = thread_ts
+        for msg in messages:
+            self._rate_limit(channel)
+            ts = self._send_to_slack(msg, thread_ts=ts)
+
+    def _rate_limit(self, channel: str):
+        now = time.time()
+        last = self.last_sent.get(channel, 0.0)
+        wait_time = self.MIN_INTERVAL - (now - last)
+        
+        if wait_time > 0:
+            time.sleep(wait_time)
+        self.last_sent[channel] = time.time()
+
+    def _send_to_slack(self, payload: dict, thread_ts: Optional[str] = None) -> Optional[str]:
+        agent_name = payload.get("agent", "system").lower()
+        channel = payload.get("channel")
+        message = payload.get("message")
+        
+        # Determine client (fallback to alfredo for system messages or if agent client missing)
+        client = self.clients.get(agent_name)
+        if not client and agent_name != "system":
+            print(f"[SlackQueue] WARNING: No client for agent '{agent_name}'. Falling back to 'alfredo'.")
+            client = self.clients.get("alfredo")
+        elif not client:
+            client = self.clients.get("alfredo")
+        
+        if channel != "system":
+            # Direct message or channel post, just send the message content
+            formatted_message = message
+        else:
+            # For system/mock logs, we can keep the prefix for clarity in logs
+            formatted_message = f"[{agent_name.capitalize()}]: {message}"
+        
+        if client:
+            try:
+                response = client.chat_postMessage(
+                    channel=channel,
+                    text=formatted_message,
+                    thread_ts=thread_ts
+                )
+                return response["ts"]
+            except SlackApiError as e:
+                print(f"[{agent_name}] Slack API error: {e.response['error']}")
+                return None
+        else:
+            print(f"MOCK SLACK SEND [{agent_name}] -> {channel} (Thread: {thread_ts}): {formatted_message}")
+            return str(time.time())
+
+# Singleton instance
+slack_queue = SlackQueueClient()

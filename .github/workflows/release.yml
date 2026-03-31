@@ -26,12 +26,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run Semantic Release
+      - name: Semantic Release
         id: semantic
+        uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Debug Release Status
         run: |
-          npx semantic-release
+          echo "New release published: ${{ steps.semantic.outputs.new_release_published }}"
+          echo "New release version: ${{ steps.semantic.outputs.new_release_version }}"
+          echo "Last release version: ${{ steps.semantic.outputs.last_release_version }}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

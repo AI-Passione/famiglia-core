@@ -1,4 +1,4 @@
-from src.agents.llm.client import client
+from famiglia_core.agents.llm.client import client
 from unittest.mock import MagicMock
 
 def test_dynamic_swap():

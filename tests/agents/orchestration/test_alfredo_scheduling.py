@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
-from src.agents.alfredo import Alfredo
+from famiglia_core.agents.alfredo import Alfredo
 
 
-@patch("src.agents.alfredo.context_store.create_scheduled_task")
-@patch("src.agents.alfredo.context_store.log_message")
-@patch("src.agents.alfredo.context_store.enabled", new=True)
+@patch("famiglia_core.agents.alfredo.context_store.create_scheduled_task")
+@patch("famiglia_core.agents.alfredo.context_store.log_message")
+@patch("famiglia_core.agents.alfredo.context_store.enabled", new=True)
 def test_alfredo_creates_scheduled_reminder_from_slack_request(_mock_log, mock_create_task):
     mock_create_task.return_value = {
         "id": 321,
@@ -33,17 +33,17 @@ def test_alfredo_creates_scheduled_reminder_from_slack_request(_mock_log, mock_c
     assert kwargs["metadata"]["slack_channel"] == "CDEV12345"
 
 
-@patch("src.agents.alfredo.context_store.log_message")
-@patch("src.agents.alfredo.context_store.enabled", new=True)
+@patch("famiglia_core.agents.alfredo.context_store.log_message")
+@patch("famiglia_core.agents.alfredo.context_store.enabled", new=True)
 def test_alfredo_asks_for_explicit_delay_when_missing(_mock_log):
     alfredo = Alfredo()
     response = alfredo.complete_task("Please schedule a reminder for me")
     assert "need a concrete time delay" in response
 
 
-@patch("src.agents.alfredo.context_store.create_scheduled_task")
-@patch("src.agents.alfredo.context_store.log_message")
-@patch("src.agents.alfredo.context_store.enabled", new=True)
+@patch("famiglia_core.agents.alfredo.context_store.create_scheduled_task")
+@patch("famiglia_core.agents.alfredo.context_store.log_message")
+@patch("famiglia_core.agents.alfredo.context_store.enabled", new=True)
 def test_alfredo_creates_market_research_task_for_rossini(_mock_log, mock_create_task):
     mock_create_task.return_value = {
         "id": 808,
@@ -66,8 +66,8 @@ def test_alfredo_creates_market_research_task_for_rossini(_mock_log, mock_create
     assert kwargs["metadata"]["target_user_id"] == "U0AG886GJCV"
 
 
-@patch("src.agents.alfredo.context_store.log_message")
-@patch("src.agents.alfredo.context_store.enabled", new=True)
+@patch("famiglia_core.agents.alfredo.context_store.log_message")
+@patch("famiglia_core.agents.alfredo.context_store.enabled", new=True)
 def test_alfredo_feature_request_requires_prd_reference(_mock_log):
     alfredo = Alfredo()
     response = alfredo.complete_task(
@@ -76,10 +76,10 @@ def test_alfredo_feature_request_requires_prd_reference(_mock_log):
     assert "need a PRD reference" in response
 
 
-@patch("src.agents.alfredo.context_store.create_scheduled_task")
-@patch("src.agents.alfredo.context_store.get_recent_messages")
-@patch("src.agents.alfredo.context_store.log_message")
-@patch("src.agents.alfredo.context_store.enabled", new=True)
+@patch("famiglia_core.agents.alfredo.context_store.create_scheduled_task")
+@patch("famiglia_core.agents.alfredo.context_store.get_recent_messages")
+@patch("famiglia_core.agents.alfredo.context_store.log_message")
+@patch("famiglia_core.agents.alfredo.context_store.enabled", new=True)
 def test_alfredo_uses_thread_context_for_followup_scheduling(
     _mock_log,
     mock_get_recent_messages,

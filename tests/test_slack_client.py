@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # load_dotenv to a no‑op before the client module is loaded.
 load_dotenv = lambda *args, **kwargs: None
 
-from src.command_center.backend.slack.client import SlackQueueClient, PRIORITY_CRITICAL, PRIORITY_HIGH, PRIORITY_MEDIUM, PRIORITY_LOW
+from famiglia_core.command_center.backend.slack.client import SlackQueueClient, PRIORITY_CRITICAL, PRIORITY_HIGH, PRIORITY_MEDIUM, PRIORITY_LOW
 
 def test_slack_queue_priorities(mocker):
     # Mock redis
@@ -324,7 +324,7 @@ def test_tokens_for_same_slack_user_raise(monkeypatch, mocker):
         def auth_test(self):
             # both tokens yield same user id
             return {"user_id": "U777"}
-    mocker.patch("src.command_center.backend.slack.client.WebClient", side_effect=lambda token: FakeClient(token))
+    mocker.patch("famiglia_core.command_center.backend.slack.client.WebClient", side_effect=lambda token: FakeClient(token))
 
     monkeypatch.setenv("SLACK_BOT_TOKEN_ALFREDO", "xoxb-1")
     monkeypatch.setenv("SLACK_BOT_TOKEN_RICCADO", "xoxb-2")
@@ -353,7 +353,7 @@ def test_loads_env_file(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     # reload module to trigger new instance creation
     import importlib
-    import src.command_center.backend.slack.client as client_mod
+    import famiglia_core.command_center.backend.slack.client as client_mod
     importlib.reload(client_mod)
 
     # after reload the singleton should have read the .env file

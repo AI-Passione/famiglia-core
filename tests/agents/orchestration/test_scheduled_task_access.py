@@ -1,5 +1,5 @@
-from src.agents.alfredo import Alfredo
-from src.agents.vito import Vito
+from famiglia_core.agents.alfredo import Alfredo
+from famiglia_core.agents.vito import Vito
 
 
 def test_all_agents_can_create_scheduled_tasks():

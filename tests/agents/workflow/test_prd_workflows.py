@@ -6,9 +6,9 @@ import json
 # Add src to path
 sys.path.append(os.getcwd())
 
-from src.agents.rossini import Rossini
-from src.agents.orchestration.features.prd_review import PRDReviewState
-from src.agents.orchestration.features.milestone_creation import MilestoneCreationState
+from famiglia_core.agents.rossini import Rossini
+from famiglia_core.agents.orchestration.features.prd_review import PRDReviewState
+from famiglia_core.agents.orchestration.features.milestone_creation import MilestoneCreationState
 import langgraph
 
 def test_prd_review_logic():
@@ -16,7 +16,7 @@ def test_prd_review_logic():
     workflow = rossini.prd_review_graph
     
     # Mock Notion tools
-    with patch("src.agents.orchestration.features.prd_review.notion_client") as mock_notion:
+    with patch("famiglia_core.agents.orchestration.features.prd_review.notion_client") as mock_notion:
         mock_notion.read_page.return_value = {
             "blocks": ["# PRD: Test", "Status: Unverified"],
             "page_properties": {"title": "Test PRD"}
@@ -63,11 +63,11 @@ def test_milestone_creation_logic():
         }
     ]
 
-    with patch("src.agents.orchestration.features.milestone_creation.notion_client") as mock_notion, \
-         patch("src.agents.orchestration.features.milestone_creation.github_client") as mock_github, \
-         patch("src.agents.orchestration.features.milestone_creation.github_store") as mock_store, \
-         patch("src.agents.orchestration.features.milestone_creation.client") as mock_llm, \
-         patch("src.agents.orchestration.features.milestone_creation.slack_queue"), \
+    with patch("famiglia_core.agents.orchestration.features.milestone_creation.notion_client") as mock_notion, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.github_client") as mock_github, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.github_store") as mock_store, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.client") as mock_llm, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.slack_queue"), \
          patch.object(rossini, "list_accessible_repos", return_value="la-passione-inc/test"):
 
         mock_notion.read_page.return_value = {

@@ -1,6 +1,6 @@
 import pytest
 
-from src.agents.llm.client import LLMClient
+from famiglia_core.agents.llm.client import LLMClient
 
 
 # ---------------------------------------------------------------------------
@@ -201,7 +201,7 @@ def test_ollama_complete_retries_once_on_empty_response(monkeypatch):
 
     monkeypatch.setattr(client, "_ensure_model_pulled", lambda model, host=None: None)
     monkeypatch.setattr(client, "_ensure_offloaded", lambda target_model=None, timeout_secs=30.0, host=None: True)
-    monkeypatch.setattr("src.agents.llm.client.time.sleep", lambda _seconds: None)
+    monkeypatch.setattr("famiglia_core.agents.llm.client.time.sleep", lambda _seconds: None)
     monkeypatch.setenv("OLLAMA_EMPTY_RESPONSE_RETRIES", "1")
 
     class FakeResponse:
@@ -225,7 +225,7 @@ def test_ollama_complete_retries_once_on_empty_response(monkeypatch):
             return FakeResponse([b'{"done": true}\n'])
         return FakeResponse([b'{"response": "ok", "done": true}\n'])
 
-    monkeypatch.setattr("src.agents.llm.client.urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setattr("famiglia_core.agents.llm.client.urllib.request.urlopen", fake_urlopen)
 
     response = client._ollama_complete(
         prompt="hi",

@@ -1,0 +1,26 @@
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: var(--text-primary) !important;
+}
+
+.nav-item.active {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: var(--accent) !important;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.card {
+  overflow: hidden;
+  position: relative;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.3;
+}

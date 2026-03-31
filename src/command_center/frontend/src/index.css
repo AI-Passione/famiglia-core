@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-background text-on-background font-body selection:bg-primary/30;
+  margin: 0;
+  min-height: 100vh;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.noir-bg-map {
+  background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuAJJx9YyLdpzL_NJpnA82CxBNOhD8t30bngs1mPvSmn9Rk9-fL-fILkIZ7E6FiomDdVmk8YwJfI-V456EPaMdYyO__5Efr9FPN9kLvGVfS1CQNeH_jfqhVMFc3H-M1s92URapNZDedCILeXnPD8dWDNntUc_i-NZ336QYyt-0ppsVBA9OU76cd9FnPe4jY6PYWzyy0GE2_DWGnRbaNAMykBz0fd3EZgVXj_ItGTfq_9dfJWhQJ8f21Og0ZYox3UcETgup56WCQcfFo);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.07;
+}
+
+.glass-module {
+  background: rgba(53, 53, 52, 0.6);
+  backdrop-filter: blur(20px);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 179, 181, 0.1);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 179, 181, 0.3);
+}

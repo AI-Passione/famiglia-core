@@ -82,11 +82,18 @@ To maintain the elite status of the Famiglia, we adhere to strict standards.
 - **Style**: Follow PEP 8. Use `ruff` for linting and formatting.
 - **Documentation**: All public functions and classes must have clear, professional docstrings.
 
-### Frontend Dashboard
-- **Manager**: Use `npm`.
-- **Framework**: React with Vite.
-- **The Vibe**: Stick to the "Vibe Coding Manifesto" (Glassmorphism, gradients, micro-animations).
-- **CSS**: Vanilla CSS or Tailwind (if specifically requested). No messy, ad-hoc styling.
+### 🌊 Vibe Compliance: The "Silent Concierge" Standards
+
+The Famiglia Core is not just a tool; it is a premium, cinematic experience. All UI contributions must adhere to the **Modern Italian Noir** aesthetic.
+
+*   **Tonal Layering**: Avoid 1px solid borders. Use background color shifts and "stacking" to define boundaries.
+*   **Glassmorphism**: Use floating modules with `60%` opacity and `20px` backdrop-blur for agent-specific data.
+*   **Typography**: 
+    *   **Noto Serif** for high-level storytelling and headers.
+    *   **Manrope** for status reports and logs.
+    *   **Space Grotesk** for technical metadata and timestamps.
+*   **Colors**: Use the Charcoal and Burgundy palette (`#131313`, `#1c1b1b`, `#4c000f`) with Gold (`#eac34a`) accents for high-tech precision.
+*   **Micro-Animations**: Every interactive element must have a smooth transition and a hover state that feels responsive and alive.
 
 ---
 

@@ -39,6 +39,8 @@ dev = [
 
 [project.scripts]
 truncate-db = "famiglia_core.db.truncate:truncate_db"
+start-backend = "uvicorn famiglia_core.command_center.backend.main:app --reload --host 0.0.0.0 --port 8000"
+smoke-test = "pytest tests/test_llm.py -m smoke"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

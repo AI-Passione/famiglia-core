@@ -194,7 +194,7 @@ Detailed personality and behavioral guidelines can be found here: [**rossini.md*
 - **Personal Finance:** Budget tracking, expense analysis, savings optimization, subscription audits
 - **Investment Strategy:** Portfolio allocation, stock analysis, ETF recommendations, rebalancing
 - **Trading Advice:** EUR/USD, crypto, commodities—daily market monitoring and alerts
-- **Tax Management:** German tax deadlines, deductions, optimization strategies, quarterly estimates
+- **Tax Management:** General tax deadlines, deductions, optimization strategies, quarterly estimates
 - **Risk Management:** Insurance evaluation, emergency fund monitoring, diversification analysis
 - **Expense Scrutiny:** Question purchases, identify waste, enforce budgets
 - **Financial Protection:** Block unnecessary spending, challenge bad investment decisions
@@ -298,28 +298,11 @@ Detailed personality and behavioral guidelines can be found here: [**kowalski.md
 
 ---
 
-# **Revised Cost Breakdown**
+# **Operational Efficiency**
 
-## **Local Development (Stages 1-2)**
+The Famiglia is designed to minimize overhead while maximizing output. By utilizing efficient, lightweight models (like Gemini Flash) and high-performance local/cloud orchestration, the ecosystem provides massive leverage.
 
-| **Item** | **Monthly Cost** |
-| --- | --- |
-| **Perplexity Pro** (existing subscription) | $20 (already paid) |
-| **Gemini API** (30M tokens for 5 agents) | $2.25 |
-| **Electricity** (HP laptop 24/7) | ~$5 |
-| **Total** | **$7.25/month** |
-
-## **Cloud Production (Stages 3-4)**
-
-| **Item** | **Monthly Cost** |
-| --- | --- |
-| **DigitalOcean Droplet** (8GB for 6 agents) | $48 (free for 8 months with credits) |
-| **Perplexity Pro** | $20 |
-| **Gemini API** (80M tokens) | $6.00 |
-| **Backups** (optional) | $1.20 |
-| **Total** | **$75.20/month** (after free credits expire) |
-
-**ROI:** Saves 60+ hrs/month = ~$12,000 value at $200/hr rate
+**ROI:** Saves 60+ hrs/month of manual operations and management, providing a significant multiplier on human creativity and strategic focus.
 
 ---
 
@@ -347,10 +330,10 @@ Don Jimmy (Boss)
 
 - Don Jimmy → Direct orders to any agent
 - Alfredo → Coordinates multi-agent workflows
-- Specialists → Work independently, report to Don Jimmy
+- Specialists → Work independently, report to Lead
 - Tommy → Executes operations, consults Bella on logistics
 - Kowalski → Provides data-driven insights and analytics
-- All agents → Address Don Jimmy as "Don Jimmy" or "Boss"
+- All agents → Address Lead as "Boss"
 
 # Appendix
 

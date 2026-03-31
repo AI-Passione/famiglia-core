@@ -1,0 +1,49 @@
+name: "🐛 Bug Report"
+description: "Is something interfering with the Core's operations? Report it here."
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚨 1. The Disturbance
+        Provide a clear and concise description of the glitch in the Matrix. What is interfering with the Core's operations?
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "2. Evidence of Failure"
+      description: "Steps to reproduce the behavior: How can we replicate this disturbance?"
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Error '....'
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "3. The Expected Standard"
+      description: "What should have happened if the system were operating flawlessly?"
+      placeholder: "e.g., The agent should have responded with a summary, not a timeout."
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "4. Logs & Intel"
+      description: "If applicable, add screenshots, error logs, or traces to help us identify the leak."
+      placeholder: "Paste logs or drag-and-drop images here."
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: "5. Environment Stats"
+      description: "Which setup are you using? (e.g., macOS, Docker, Python version)"
+      placeholder: "macOS / Docker / UV 0.1.0"
+    validations:
+      required: true

@@ -1,0 +1,49 @@
+name: "🔍 Discovery"
+description: "Research, investigation, or proof-of-concept before implementation."
+title: "[DISCOVERY] "
+labels: ["spike", "research"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🧠 Research Question
+        What specific problem are we trying to solve? Clarify the unknown.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: "Mission Goal"
+      description: "Describe the purpose of this discovery mission."
+      placeholder: "e.g., Investigate the feasibility of integrating Agent X with Service Y."
+    validations:
+      required: true
+
+  - type: input
+    id: timebox
+    attributes:
+      label: "⌛️ Timebox"
+      description: "How many hours/days should be allocated for this mission?"
+      placeholder: "e.g., 2 Days"
+    validations:
+      required: true
+
+  - type: textarea
+    id: success_criteria
+    attributes:
+      label: "Success Criteria"
+      description: "What information must we have to conclude this spike?"
+      placeholder: |
+        - [ ] Feasibility study completed.
+        - [ ] POC available at branch...
+        - [ ] Decision made on technology choice.
+    validations:
+      required: true
+
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: "Expected Artifacts"
+      description: "What will be the output of this discovery mission? (e.g., research document, demo script, implementation plan)."
+      placeholder: "A new implementation_plan.md."
+    validations:
+      required: true

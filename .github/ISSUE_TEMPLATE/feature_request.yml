@@ -1,0 +1,58 @@
+name: "✨ Vision Proposal / Feature Request"
+description: "Pitch a new feature, agent, or tool for the Famiglia."
+title: "[VISION] "
+labels: ["enhancement", "vision"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🏛 The Vision
+        Provide a clear and concise description of the enhancement you propose. How does this make the Famiglia more autonomous or elite?
+
+  - type: textarea
+    id: user_story
+    attributes:
+      label: "User Story"
+      description: "Explain the need in a classic format."
+      placeholder: |
+        As a [role], 
+        I want [action], 
+        so that [value].
+    validations:
+      required: true
+
+  - type: textarea
+    id: agentic_soul
+    attributes:
+      label: "🎭 The Agentic Soul"
+      description: "If this involves a new agent, describe its personality and role. If it's a tool, which agent will master it first?"
+      placeholder: "e.g., The Archivist Agent will use this to index long-term memories."
+    validations:
+      required: false
+
+  - type: textarea
+    id: vibe
+    attributes:
+      label: "🌊 The Vibe"
+      description: "Describe the visual or interaction component. Does this adhere to our 'Aesthetics First' directive?"
+      placeholder: "Glassmorphism, Noir depth, linear-gradient(135deg, #6366f1 0%, #a855f7 100%)..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: "🛠 Strategic Implementation"
+      description: "How should the Core adapt? Describe the logic, dependencies, or API integrations required."
+      placeholder: "New FastAPI endpoint in /src/command_center/backend/..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: "⚖️ The Impact"
+      description: "Why should the Core prioritize this? What drudgery does it eliminate for the human Lead?"
+      placeholder: "Reduces manual Slack monitoring by 40%."
+    validations:
+      required: true

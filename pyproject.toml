@@ -1,0 +1,30 @@
+[project]
+name = "famiglia-core"
+version = "0.1.0"
+description = "The engine of Don Jimmy's AI Famiglia."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "slack-sdk>=3.21.3",
+    "slack-bolt>=1.18.0",
+    "python-dotenv>=1.0.0",
+    "redis>=4.6.0",
+    "mattermostdriver>=7.3.2",
+    "psycopg2-binary>=2.9.6",
+    "requests>=2.31.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0.1",
+    "openai>=1.0.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "pytest-mock>=3.11.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

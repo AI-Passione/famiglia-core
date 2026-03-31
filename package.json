@@ -4,7 +4,7 @@
   "description": "The engine of Don Jimmy's AI Famiglia.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "uv run pytest tests/"
   },
   "devDependencies": {
     "semantic-release": "^24.0.0",

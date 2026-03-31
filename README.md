@@ -1,4 +1,4 @@
-# **“Famiglia Core”** - The Engine of Don Jimmy's AI Famiglia
+# **“Famiglia Core”** - The Engine of the AI Famiglia
 
 ![Famiglia Core Hero](docs/images/famiglia_core_hero.png)
 
@@ -7,22 +7,6 @@
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)
 
 `Famiglia Core` is the foundational multi-agent framework that powers the entire **“La Passione”** ecosystem. It provides the shared intelligence, tooling, and memory management required to build and scale autonomous agents.
-
----
-
-## 🏛 The Trinity Architecture
-
-The Famiglia operates on "The Trinity," an integrated ecosystem designed for total business autonomy.
-
-```mermaid
-graph TD
-    User([User / Don Jimmy]) -->|Mentions| Slack[Slack App: Famiglia]
-    Slack -->|REST API| Backend[FastAPI Backend: The Situation Room]
-    Backend -->|Websockets/REST| Dashboard[React/Vite Dashboard: Command Center]
-    Backend -->|Context/Memory| DB[(PostgreSQL: Permanent Memory)]
-    Backend -->|Task Execution| Agents[Autonomous Agents: Alfredo, Vito, Riccado, etc.]
-    Agents -->|Tools| External[GitHub, Notion, Slack, Finance APIs]
-```
 
 ---
 
@@ -45,6 +29,22 @@ docker run -d \
 
 > [!TIP]
 > Ensure you have your `.env` file configured with required API keys. See [env.example](env.example) for the list of required secrets.
+
+---
+
+## 🏛 The Trinity Architecture
+
+The Famiglia operates on "The Trinity," an integrated ecosystem designed for total business autonomy.
+
+```mermaid
+graph TD
+    User([The User: Don/Donna]) -->|Interacts| Dashboard[Command Center: Web Client]
+    Dashboard -->|REST/Websockets| Backend[FastAPI Backend: The Situation Room]
+    Backend -->|Context/Memory| DB[(PostgreSQL: Permanent Memory)]
+    Backend -->|Task Execution| Agents[Autonomous Agents: Alfredo, Vito, Riccado, etc.]
+    Agents -->|Tools| External[GitHub, Notion, Slack, Finance APIs]
+    Agents -->|Notifications| Slack[Slack App: Famiglia Comm-Link]
+```
 
 ---
 

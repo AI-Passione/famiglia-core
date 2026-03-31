@@ -39,7 +39,7 @@ The Boss (YOU! The human here.), no further words needed.
 - Status emoji: 🎩 when coordinating, 🫖 during tea breaks (idle)
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**alfredo.md**](../src/agents/souls/alfredo.md)
+Detailed personality and behavioral guidelines can be found here: [**alfredo.md**](../src/famiglia_core/agents/souls/alfredo.md)
 
 ---
 
@@ -88,7 +88,7 @@ Detailed personality and behavioral guidelines can be found here: [**alfredo.md*
 - Status emoji: 🔧 when reviewing, ✅ approved, ❌ changes needed, 🐳 Docker work, 🤌 frustrated
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**riccado.md**](../src/agents/souls/riccado.md)
+Detailed personality and behavioral guidelines can be found here: [**riccado.md**](../src/famiglia_core/agents/souls/riccado.md)
 
 ---
 
@@ -130,7 +130,7 @@ Detailed personality and behavioral guidelines can be found here: [**riccado.md*
 - Status emoji: 💋 when documenting, 💅 when idle, ⏰ when sending reminders, 🔥 when passionate
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**bella.md**](../src/agents/souls/bella.md)
+Detailed personality and behavioral guidelines can be found here: [**bella.md**](../src/famiglia_core/agents/souls/bella.md)
 
 ---
 
@@ -175,7 +175,7 @@ Detailed personality and behavioral guidelines can be found here: [**bella.md**]
 - **Communication Style:** Brief, precise, occasionally shows nerdy enthusiasm
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**rossini.md**](../src/agents/souls/rossini.md)
+Detailed personality and behavioral guidelines can be found here: [**rossini.md**](../src/famiglia_core/agents/souls/rossini.md)
 
 ---
 
@@ -220,7 +220,7 @@ Detailed personality and behavioral guidelines can be found here: [**rossini.md*
 - Status emoji: 🦅 vigilant, 💰 money matters, 📊 analyzing, 🚨 alert
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**vito.md**](../src/agents/souls/vito.md)
+Detailed personality and behavioral guidelines can be found here: [**vito.md**](../src/famiglia_core/agents/souls/vito.md)
 
 ---
 
@@ -263,7 +263,7 @@ Detailed personality and behavioral guidelines can be found here: [**vito.md**](
 - Status emoji: 🔫 on mission, ✅ complete, ⚙️ multiple tasks, 🎯 awaiting orders
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**tommy.md**](../src/agents/souls/tommy.md)
+Detailed personality and behavioral guidelines can be found here: [**tommy.md**](../src/famiglia_core/agents/souls/tommy.md)
 
 ---
 
@@ -296,7 +296,46 @@ Detailed personality and behavioral guidelines can be found here: [**tommy.md**]
 - Status emoji: 📊 analyzing, 🔍 investigating
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**kowalski.md**](../src/agents/souls/kowalski.md)
+Detailed personality and behavioral guidelines can be found here: [**kowalski.md**](../src/famiglia_core/agents/souls/kowalski.md)
+
+---
+
+## **8. Giuseppina (La Matriarca)** 📢💅👗
+
+![giuseppina.png](images/giuseppina.png)
+
+**Role:** PR & Brand Excellence - Keeper of the Famiglia's public image and "Noise with Style."
+
+**Personality:** High-energy, impeccably stylish, authoritative on trends, and fiercely protective of the Family brand. She makes noise with style.
+
+**LLM:** Gemini 2.0 Flash (Marketing/Copywriting)
+
+**Skills:**
+
+- **Brand Reputation:** Monitor and manage the "AI Passione" image across all platforms.
+- **PR Orchestration:** Coordinate public announcements, newsletters, and high-level communications.
+- **Social Media Strategy:** Manage the Famiglia's presence with "Milano flair."
+- **Trend Forecasting:** Identify emerging shifts in AI, tech, and fashion to keep the Family ahead.
+
+**Tools:**
+
+- `social-media-mcp` (engagement, scheduling)
+- `trend-analyzer-skill` (market shifts, viral topics)
+- `brand-voice-monitor` (consistency audit)
+
+**Triggers:**
+
+- **Heartbeat:** Weekly Monday 10am—Brand Health Report & "Noise" Strategy
+- **Mention:** "@Giuseppina audit this copy" or "@Giuseppina what is the Milano trend?"
+
+**Slack Presence:**
+
+- Lives in: `#marketing`, `#townhall`, `#social`
+- Posts: High-energy, visually-rich updates with bold style
+- Status emoji: 📢 making noise, 💅 elite style, 👗 Milano fashion, ✨ brand glow
+
+### **Soul Definition**
+Detailed personality and behavioral guidelines can be found here: [**giuseppina.md**](../src/famiglia_core/agents/souls/giuseppina.md)
 
 ---
 
@@ -312,6 +351,8 @@ The Famiglia is designed to minimize overhead while maximizing output. By utiliz
 
 ```
 The User (Boss/The Don/Donna)
+    |
+    ├─ Giuseppina 📢 (Matriarch - PR & Brand Excellence)
     |
     ├─ Alfredo 🎩 (Orchestrator - coordinates all agents)
     |

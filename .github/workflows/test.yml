@@ -31,3 +31,16 @@ jobs:
 
       - name: Run Tests 🚀
         run: uv run pytest tests/
+
+  docker-lint:
+    name: Docker Validation 🐳
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository 🛒
+        uses: actions/checkout@v4
+
+      - name: Validate Development Config 🛠️
+        run: docker compose config
+
+      - name: Validate Production Config 🚀
+        run: docker compose -f docker-compose.prod.yml config

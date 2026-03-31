@@ -15,7 +15,7 @@ python main.py &
 ENGINE_PID=$!
 
 echo "🛰️ Starting Command Center API..."
-python src/command_center/backend/main.py &
+python src/famiglia_core/command_center/backend/main.py &
 API_PID=$!
 
 # Wait for any process to exit

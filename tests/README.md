@@ -1,7 +1,7 @@
 # 🏛 The Famiglia Testing Suite
 > "In this family, we trust but verify." — *The Don*
 
-Welcome to the central intelligence validation hub. This directory contains the automated test suite for the `famiglia-core` engine, ensuring every agent, endpoint, and tool performs with the precision expected of an elite organization.
+Welcome to the central intelligence validation hub. This directory contains the automated test suite for the `famiglia-core` engine, restructured to mirror the source code for maximum scalability.
 
 ## 🚀 Quick Start
 Run all tests using the `uv` environment:
@@ -11,26 +11,25 @@ uv run pytest tests/
 
 To run a specific module:
 ```bash
-uv run pytest tests/test_backend_api.py
+uv run pytest tests/agents/test_agents.py
 ```
 
-## 🗺 Test Map
+## 🗺 Test Map (Mirrored Structure)
 
-| Component | Responsibility | Relevant Files |
+| Directory | Component | Responsibility |
 | :--- | :--- | :--- |
-| **API Backend** | FastAPI endpoints, routing, and response validation. | `test_backend_api.py` |
-| **Services** | Core business logic, User Management, and Agent Singletons. | `test_backend_services.py` |
-| **Agents** | Multi-agent orchestration, trait resolution, and trait logic. | `test_agents.py`, `test_orchestration.py` |
-| **Intelligence** | Mocking LLM interactions and message streaming. | `test_llm.py` |
-| **Infrastructure** | Database seeding, DuckDB paths, and local file storage. | `test_db_seed.py`, `test_core.py` |
-| **Communication** | Slack and Mattermost integration logic (Mocked). | `test_communication.py` |
+| **`tests/agents/`** | **Agents & Tools** | Multi-agent orchestration, trait resolution, LLM mocking, and communication. |
+| **`tests/command_center/`** | **Backend API** | FastAPI endpoints, services (User/Agent management), and response validation. |
+| **`tests/db/`** | **Infrastructure** | Database seeding and schema initialization. |
+| **`tests/observability/`** | **Monitoring** | System health checks and execution logging. |
+| **`tests/`** | **Core** | Project-wide core utilities (e.g. `test_core.py`). |
 
 ## 🛠 Testing Protocols
 
 ### 1. The `conftest.py` Soul
-We use a centralized `conftest.py` to ensure the testing environment is isolated and safe:
-- **Environment Isolation**: `DUCKDB_DWH_PATH` and `UPLOAD_DIR` are automatically set to `/tmp` to prevent local data corruption.
-- **Global Mocking**: We globally mock the `DuckDBTool` and `Postgres` connection pools to ensure speed and zero external dependencies.
+We use a centralized `conftest.py` at the root of `tests/` to ensure the testing environment is isolated:
+- **Environment Isolation**: `DUCKDB_DWH_PATH` and `UPLOAD_DIR` are automatically set to `/tmp` for all sub-folders.
+- **Global Mocking**: Centralized mocks for `DuckDBTool` and `Postgres` connections.
 
 ### 2. Mocking Guidelines
 Always prioritize `unittest.mock` for external services. 
@@ -38,10 +37,8 @@ Always prioritize `unittest.mock` for external services.
 - **Database**: Use the mocked connection pool provided in `conftest.py`.
 
 ### 3. Adding New Tests
-When adding a new feature:
-1. Create a new `test_*.py` file in this directory.
-2. Ensure you use appropriate labels (e.g., `@pytest.mark.smoke` for critical paths).
-3. Verify that your tests pass without warnings before committing.
+When adding a new feature, place the test in a directory mirroring its source location in `src/famiglia_core`. 
+Example: `src/famiglia_core/tools/api.py` -> `tests/tools/test_api.py`.
 
 ---
 *Stay elegant. Stay verified. La Passione.*

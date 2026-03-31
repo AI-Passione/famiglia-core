@@ -331,7 +331,7 @@ class SlackQueueClient:
         token_mask = f"{token[:9]}...{token[-4:]}" if len(token) > 10 else "invalid-token"
         print(f"[SlackQueue 📂] Using token ({token_mask}) for {agent_name} to download {filename}.", flush=True)
 
-        save_dir = "/app/data/incoming_files"
+        save_dir = os.getenv("UPLOAD_DIR", os.path.abspath(os.path.join(os.getcwd(), "data/incoming_files")))
         os.makedirs(save_dir, exist_ok=True)
 
         # Ensure unique filename to avoid collisions

@@ -10,7 +10,9 @@ class DuckDBTool:
     """
 
     def __init__(self):
-        self.dwh_path = os.getenv("DUCKDB_DWH_PATH", "/app/data/duckdb_dwh.db")
+        # Use local data directory as fallback for easier development and testing
+        default_path = os.path.abspath(os.path.join(os.getcwd(), "data/duckdb_dwh.db"))
+        self.dwh_path = os.getenv("DUCKDB_DWH_PATH", default_path)
         # Ensure parent directory exists
         os.makedirs(os.path.dirname(self.dwh_path), exist_ok=True)
         self._initialize_schema()

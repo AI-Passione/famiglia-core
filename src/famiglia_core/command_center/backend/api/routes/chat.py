@@ -12,7 +12,7 @@ from famiglia_core.command_center.backend.api.services.user_service import user_
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
-UPLOAD_DIR = "/app/data/incoming_files"
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.abspath(os.path.join(os.getcwd(), "data/incoming_files")))
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def build_conversation_key(platform: str, channel: str, thread: str, user: str) -> str:

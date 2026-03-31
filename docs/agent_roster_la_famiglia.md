@@ -39,7 +39,7 @@ The Boss (YOU! The human here.), no further words needed.
 - Status emoji: 🎩 when coordinating, 🫖 during tea breaks (idle)
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**alfredo.md**](../src/agents/souls/alfredo.md)
+Detailed personality and behavioral guidelines can be found here: [**alfredo.md**](../src/famiglia_core/agents/souls/alfredo.md)
 
 ---
 
@@ -88,7 +88,7 @@ Detailed personality and behavioral guidelines can be found here: [**alfredo.md*
 - Status emoji: 🔧 when reviewing, ✅ approved, ❌ changes needed, 🐳 Docker work, 🤌 frustrated
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**riccado.md**](../src/agents/souls/riccado.md)
+Detailed personality and behavioral guidelines can be found here: [**riccado.md**](../src/famiglia_core/agents/souls/riccado.md)
 
 ---
 
@@ -130,7 +130,7 @@ Detailed personality and behavioral guidelines can be found here: [**riccado.md*
 - Status emoji: 💋 when documenting, 💅 when idle, ⏰ when sending reminders, 🔥 when passionate
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**bella.md**](../src/agents/souls/bella.md)
+Detailed personality and behavioral guidelines can be found here: [**bella.md**](../src/famiglia_core/agents/souls/bella.md)
 
 ---
 
@@ -175,7 +175,7 @@ Detailed personality and behavioral guidelines can be found here: [**bella.md**]
 - **Communication Style:** Brief, precise, occasionally shows nerdy enthusiasm
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**rossini.md**](../src/agents/souls/rossini.md)
+Detailed personality and behavioral guidelines can be found here: [**rossini.md**](../src/famiglia_core/agents/souls/rossini.md)
 
 ---
 
@@ -194,7 +194,7 @@ Detailed personality and behavioral guidelines can be found here: [**rossini.md*
 - **Personal Finance:** Budget tracking, expense analysis, savings optimization, subscription audits
 - **Investment Strategy:** Portfolio allocation, stock analysis, ETF recommendations, rebalancing
 - **Trading Advice:** EUR/USD, crypto, commodities—daily market monitoring and alerts
-- **Tax Management:** German tax deadlines, deductions, optimization strategies, quarterly estimates
+- **Tax Management:** General tax deadlines, deductions, optimization strategies, quarterly estimates
 - **Risk Management:** Insurance evaluation, emergency fund monitoring, diversification analysis
 - **Expense Scrutiny:** Question purchases, identify waste, enforce budgets
 - **Financial Protection:** Block unnecessary spending, challenge bad investment decisions
@@ -220,7 +220,7 @@ Detailed personality and behavioral guidelines can be found here: [**rossini.md*
 - Status emoji: 🦅 vigilant, 💰 money matters, 📊 analyzing, 🚨 alert
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**vito.md**](../src/agents/souls/vito.md)
+Detailed personality and behavioral guidelines can be found here: [**vito.md**](../src/famiglia_core/agents/souls/vito.md)
 
 ---
 
@@ -263,11 +263,13 @@ Detailed personality and behavioral guidelines can be found here: [**vito.md**](
 - Status emoji: 🔫 on mission, ✅ complete, ⚙️ multiple tasks, 🎯 awaiting orders
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**tommy.md**](../src/agents/souls/tommy.md)
+Detailed personality and behavioral guidelines can be found here: [**tommy.md**](../src/famiglia_core/agents/souls/tommy.md)
 
 ---
 
 ## **7. Kowalski (L'Analista)** 📊🔍
+
+![kowalski.png](images/kowalski.png)
 
 **Role:** Data Analytics, Business Intelligence, and Data Science
 
@@ -294,39 +296,63 @@ Detailed personality and behavioral guidelines can be found here: [**tommy.md**]
 - Status emoji: 📊 analyzing, 🔍 investigating
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**kowalski.md**](../src/agents/souls/kowalski.md)
+Detailed personality and behavioral guidelines can be found here: [**kowalski.md**](../src/famiglia_core/agents/souls/kowalski.md)
 
 ---
 
-# **Revised Cost Breakdown**
+## **8. Giuseppina (La Matriarca)** 📢💅👗
 
-## **Local Development (Stages 1-2)**
+![giuseppina.png](images/giuseppina.png)
 
-| **Item** | **Monthly Cost** |
-| --- | --- |
-| **Perplexity Pro** (existing subscription) | $20 (already paid) |
-| **Gemini API** (30M tokens for 5 agents) | $2.25 |
-| **Electricity** (HP laptop 24/7) | ~$5 |
-| **Total** | **$7.25/month** |
+**Role:** PR & Brand Excellence - Keeper of the Famiglia's public image and "Noise with Style."
 
-## **Cloud Production (Stages 3-4)**
+**Personality:** High-energy, impeccably stylish, authoritative on trends, and fiercely protective of the Family brand. She makes noise with style.
 
-| **Item** | **Monthly Cost** |
-| --- | --- |
-| **DigitalOcean Droplet** (8GB for 6 agents) | $48 (free for 8 months with credits) |
-| **Perplexity Pro** | $20 |
-| **Gemini API** (80M tokens) | $6.00 |
-| **Backups** (optional) | $1.20 |
-| **Total** | **$75.20/month** (after free credits expire) |
+**LLM:** Gemini 2.0 Flash (Marketing/Copywriting)
 
-**ROI:** Saves 60+ hrs/month = ~$12,000 value at $200/hr rate
+**Skills:**
+
+- **Brand Reputation:** Monitor and manage the "AI Passione" image across all platforms.
+- **PR Orchestration:** Coordinate public announcements, newsletters, and high-level communications.
+- **Social Media Strategy:** Manage the Famiglia's presence with "Milano flair."
+- **Trend Forecasting:** Identify emerging shifts in AI, tech, and fashion to keep the Family ahead.
+
+**Tools:**
+
+- `social-media-mcp` (engagement, scheduling)
+- `trend-analyzer-skill` (market shifts, viral topics)
+- `brand-voice-monitor` (consistency audit)
+
+**Triggers:**
+
+- **Heartbeat:** Weekly Monday 10am—Brand Health Report & "Noise" Strategy
+- **Mention:** "@Giuseppina audit this copy" or "@Giuseppina what is the Milano trend?"
+
+**Slack Presence:**
+
+- Lives in: `#marketing`, `#townhall`, `#social`
+- Posts: High-energy, visually-rich updates with bold style
+- Status emoji: 📢 making noise, 💅 elite style, 👗 Milano fashion, ✨ brand glow
+
+### **Soul Definition**
+Detailed personality and behavioral guidelines can be found here: [**giuseppina.md**](../src/famiglia_core/agents/souls/giuseppina.md)
+
+---
+
+# **Operational Efficiency**
+
+The Famiglia is designed to minimize overhead while maximizing output. By utilizing efficient, lightweight models (like Gemini Flash) and high-performance local/cloud orchestration, the ecosystem provides massive leverage.
+
+**ROI:** Saves 60+ hrs/month of manual operations and management, providing a significant multiplier on human creativity and strategic focus.
 
 ---
 
 # **Agent Hierarchy**
 
 ```
-Don Jimmy (Boss)
+The User (Boss/The Don/Donna)
+    |
+    ├─ Giuseppina 📢 (Matriarch - PR & Brand Excellence)
     |
     ├─ Alfredo 🎩 (Orchestrator - coordinates all agents)
     |
@@ -347,10 +373,10 @@ Don Jimmy (Boss)
 
 - Don Jimmy → Direct orders to any agent
 - Alfredo → Coordinates multi-agent workflows
-- Specialists → Work independently, report to Don Jimmy
+- Specialists → Work independently, report to Lead
 - Tommy → Executes operations, consults Bella on logistics
 - Kowalski → Provides data-driven insights and analytics
-- All agents → Address Don Jimmy as "Don Jimmy" or "Boss"
+- All agents → Address Lead as "Boss"
 
 # Appendix
 

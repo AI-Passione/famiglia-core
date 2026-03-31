@@ -198,20 +198,48 @@ CREATE TABLE IF NOT EXISTS langgraph_writes (
     PRIMARY KEY (thread_id, checkpoint_id, task_id, idx)
 );
 
--- 9. User OAuth Connections (for the Command Center owner)
--- Stores personal OAuth tokens for human-facing service connections (e.g. GitHub, Google).
--- One connection per service, token is encrypted at rest via Fernet before insertion.
+-- 9. User Central Identity (The Don's Ecosystem)
+-- Centralized user profile to sync across Slack, Mattermost, and the Web Dashboard.
+CREATE TABLE IF NOT EXISTS users (
+  id           SERIAL PRIMARY KEY,
+  full_name    VARCHAR(255) NOT NULL,
+  username     VARCHAR(100) UNIQUE NOT NULL,
+  role         VARCHAR(50)  DEFAULT 'don',   -- 'don', 'consigliere', 'soldato'
+  avatar_url   TEXT,
+  metadata     JSONB,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Maps platform-specific IDs back to the central user.
+CREATE TABLE IF NOT EXISTS user_platform_identities (
+  id                SERIAL PRIMARY KEY,
+  user_id           INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  platform          VARCHAR(50) NOT NULL, -- 'slack', 'mattermost', 'github', 'notion'
+  platform_user_id  VARCHAR(255) NOT NULL,
+  metadata          JSONB,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (platform, platform_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_platform_lookup
+  ON user_platform_identities(platform, platform_user_id);
+
+-- 10. User OAuth Connections (for the Command Center owner)
+-- Aligned with the 'users' table if multi-user is needed later.
 CREATE TABLE IF NOT EXISTS user_connections (
   id           SERIAL PRIMARY KEY,
-  service      VARCHAR(50)  NOT NULL,   -- e.g. 'github', 'google'
+  user_id      INT REFERENCES users(id) ON DELETE CASCADE,
+  service      VARCHAR(50)  NOT NULL,   -- e.g. 'github', 'google', 'slack', 'notion'
   username     VARCHAR(255),
   avatar_url   TEXT,
   access_token TEXT         NOT NULL,   -- Fernet-encrypted
   scopes       TEXT,
   connected_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at   TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE (service)                      -- single owner, one entry per service
+  UNIQUE (user_id, service)
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_connections_lookup
-  ON user_connections(service);
+  ON user_connections(user_id, service);

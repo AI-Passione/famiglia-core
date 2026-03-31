@@ -207,7 +207,7 @@ class MattermostQueueClient:
             print(f"[Mattermost 📂] WARNING: No driver found for {agent_name}. Cannot download.")
             return None
 
-        save_dir = "/app/data/incoming_files"
+        save_dir = os.getenv("UPLOAD_DIR", os.path.abspath(os.path.join(os.getcwd(), "data/incoming_files")))
         os.makedirs(save_dir, exist_ok=True)
         
         try:

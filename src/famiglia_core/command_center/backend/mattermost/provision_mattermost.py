@@ -159,9 +159,11 @@ def setup_mattermost():
                         repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
                         pic_path = os.path.join(repo_root, profile_pic_rel)
                         
-                        # Docker fallback
-                        if not os.path.exists(pic_path) and os.path.exists(f"/app/{profile_pic_rel}"):
-                            pic_path = f"/app/{profile_pic_rel}"
+                        # Check relative to current working directory as well
+                        if not os.path.exists(pic_path):
+                            cwd_path = os.path.abspath(os.path.join(os.getcwd(), profile_pic_rel))
+                            if os.path.exists(cwd_path):
+                                pic_path = cwd_path
                             
                         if os.path.exists(pic_path):
                             print(f"Uploading profile picture for {username} from {pic_path}...")

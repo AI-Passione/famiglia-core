@@ -269,6 +269,8 @@ Detailed personality and behavioral guidelines can be found here: [**tommy.md**]
 
 ## **7. Kowalski (L'Analista)** 📊🔍
 
+![kowalski.png](images/kowalski.png)
+
 **Role:** Data Analytics, Business Intelligence, and Data Science
 
 **Personality:** Polish data scientist—pragmatic, meticulous, obsessed with statistical significance

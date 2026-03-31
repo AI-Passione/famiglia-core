@@ -108,7 +108,7 @@ To ensure scalability and clean separation of concerns, the system is split into
 - **Persistence:** [PostgreSQL](https://www.postgresql.org/) (Conversation history & long-term memory)
 - **Caching:** [Redis](https://redis.io/) (Scheduled task queue & temporary state)
 - **Containerization:** [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/)
-- **Messaging:** [Slack](https://slack.com/) (Socket Mode) & [Mattermost](https://mattermost.com/) (Self-hosted)
+- **Messaging:** [Mattermost](https://mattermost.com/) (Self-hosted) & [Slack](https://slack.com/) (Socket Mode)
 
 ### 🔌 External Integrations
 - **Messaging:** [Slack](https://slack.com/) & [Mattermost](https://mattermost.com/)
@@ -119,6 +119,7 @@ To ensure scalability and clean separation of concerns, the system is split into
 - **Pipeline:** GitHub Actions (Automated versioning & GHCR builds)
 - **Registry:** GitHub Container Registry (`ghcr.io`)
 - **Monitoring:** [Grafana](https://grafana.com/) & [Loki](https://grafana.com/oss/loki/) (Container observability)
+- **Tracing:** [Langfuse](https://langfuse.com/) (Full-lifecycle agent observability)
 
 ---
 
@@ -126,12 +127,6 @@ To ensure scalability and clean separation of concerns, the system is split into
 - [**Command Center**](src/famiglia_core/command_center/README.md): Unified dashboard for real-time monitoring and management.
 - [**The Agents**](src/famiglia_core/agents/README.md): Detailed logic for the recurring scheduler and background worker.
 - [**Contribution & Architecture**](CONTRIBUTING.md): Details on project structure and communication flow.
-
-
-## Slack & Notion
-- **Slack**: Channel structures and interaction protocols.
-- **Notion**: Shared databases and project roadmapping.
-
 
 ## FAQs
 

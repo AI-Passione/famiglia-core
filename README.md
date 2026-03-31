@@ -113,13 +113,12 @@ To ensure scalability and clean separation of concerns, the system is split into
 - **Messaging:** [Slack](https://slack.com/) & [Mattermost](https://mattermost.com/)
 - **Productivity:** [Notion](https://www.notion.so/) (Teamspace & DB integrations)
 - **Development:** [GitHub API](https://docs.github.com/en/rest) (Issue & PR management)
-- **Observability:** [Langfuse](https://langfuse.com/) (Open-source agent tracing & analytics)
 
 ### 🚀 CI/CD & Infrastructure
 - **Pipeline:** GitHub Actions (Automated versioning & GHCR builds)
 - **Registry:** GitHub Container Registry (`ghcr.io`)
-- **Monitoring:** [Grafana](https://grafana.com/) & [Loki](https://grafana.com/oss/loki/) (Container observability)
-- **Tracing:** [Langfuse](https://langfuse.com/) (Full-lifecycle agent observability)
+- **Observability:** [Grafana](https://grafana.com/) & [Loki](https://grafana.com/oss/loki/) (Container observability)
+- **AI Observability & Tracing:** [Langfuse](https://langfuse.com/) (Full-lifecycle agent observability)
 
 ---
 

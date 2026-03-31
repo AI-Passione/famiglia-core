@@ -50,6 +50,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prepare Repository Name
+        id: prep
+        run: |
+          echo "repo_lower=${GITHUB_REPOSITORY,,}" >> ${GITHUB_OUTPUT}
+
       - name: Build and push Production Docker Image
         if: steps.semantic.outputs.new_release_published == 'true'
         uses: docker/build-push-action@v5
@@ -58,9 +63,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.semantic.outputs.new_release_version }}
-            ghcr.io/${{ github.repository }}:production
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ steps.prep.outputs.repo_lower }}:${{ steps.semantic.outputs.new_release_version }}
+            ghcr.io/${{ steps.prep.outputs.repo_lower }}:production
+            ghcr.io/${{ steps.prep.outputs.repo_lower }}:latest
           labels: |
             org.opencontainers.image.version=${{ steps.semantic.outputs.new_release_version }}
           cache-from: type=gha

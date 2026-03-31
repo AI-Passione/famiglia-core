@@ -10,7 +10,7 @@
 
 ---
 
-## Getting Started
+# Getting Started
 
 ```bash
 # 1. Pull the official image
@@ -24,29 +24,30 @@ docker run -d --name famiglia-core -p 8000:8000 -p 5173:5173 --env-file .env ghc
 
 # **Core Features**
 
-## 1. Multi-Agents in one place
+## Multi-Agents in one place
 
 - What is better than having an AI assistant? Having a family of AI agents working for you!
 - Each agent has its own personality, skills, and tools - Just like a real family.
 - See [**Detailed Agent Roster**](docs/agent_roster_la_famiglia.md) for full profiles, skills, and soul definitions.
 
-## 2. 24/7 Operations
-- **Runtime:** Agents run 24/7, monitoring Slack continuously.
-- **Coordination:** Hybrid model - Direct assignment (@mentions) + Auto-response to triggers + Alfredo coordination when unclear.
-- **Personality:** Professional during work week, more casual Friday evenings and weekends.
-- **Autonomy:** Phase 1 (cautious) for first 4-8 weeks → Phase 2 (autonomous) after trust established.
-- **Scheduled Tasks:** Commend & Conquer! Assign scheduled tasks and re-occuring tasks to your AI family.  See [**Scheduled Tasks Documentation**](src/agents/tasks/README.md) for details on the recurring scheduler and background worker.
+## Local first, Privacy first
+- 0 dependency on any external service by default.
+- All data is stored locally in your own infrastructure.
+- You own your data, you own your agents, you own your privacy.
 
-## 3. PostgreSQL Context Storage
-- Agent conversation context persists in PostgreSQL tables:
-- `agent_conversations` (scoped by `agent_name + conversation_key`)
-- `agent_messages` (role-based message history per conversation)
-- `agent_memories` (longer-lived key/value memory per agent)
+## 24/7 Operations
+- **Runtime:** Agents run 24/7 and work around the clock for you.
+- **Coordination:** Hybrid model - Direct assignment in Command Center (or @mentions in Slack) + Auto-response to triggers.
+- **Personality:** Professional during work week, more casual Friday evenings and weekends.
+- **Scheduled Tasks:** Commend & Conquer! Assign scheduled tasks and re-occuring tasks to your AI family.  See [**Scheduled Tasks Documentation**](src/famiglia_core/agents/orchestration/README.md) for details on the recurring scheduler and background worker.
+
+## Persistent Memory
+- The Famiglia never forgets. All interaction history is securely stored in your local **PostgreSQL** database.
+- **Personalization:** Over time, agents learn your preferences—what you like, what you don't, and how you work—adapting their "Soul" to your unique rhythm.
+- **Total Sovereignty:** Your memory, your data, your local infrastructure.
 - Toggle with `AGENT_CONTEXT_ENABLED=true|false` in `.env`.
 
----
-
-## 4. Command Center (Web UI)
+## Command Center (Web UI)
 - **Primary Interface:** A premium React-based dashboard for real-time monitoring and orchestration.
 - **Features:** Agent roster with live status, real-time action feed, and cross-platform task management.
 - **Location:** `src/famiglia_core/command_center/frontend` (Web: Port 5173) and `src/famiglia_core/command_center/backend` (API: Port 8000).
@@ -83,9 +84,12 @@ graph TD
 Our multi-agent system is built on a high-performance, containerized stack designed for "Sovereign Intelligence" and multi-platform coordination.
 
 ### 🧠 Sovereign Intelligence
-- **LLM Engine:** [Ollama](https://ollama.com/) (Managing 1B & 3B models locally for absolute privacy)
-- **Primary Models:** Llama 3.2 (3B) & Qwen 2.5 (1B)
-- **Orchestration:** Python-based autonomous agent framework with dual-tier VRAM management and stateful memory.
+- **LLM Engine:** [Ollama](https://ollama.com/) (Managing multiple models locally for absolute privacy)
+- **Primary Models:**
+  - **Reasoning:** [DeepSeek R1 (7B)](https://ollama.com/library/deepseek-r1:7b)
+  - **Coding:** [Qwen 2.5 Coder (7B)](https://ollama.com/library/qwen2.5-coder:7b)
+  - **Daily Tasks:** [Gemma 3 (4B)](https://ollama.com/library/gemma3:4b)
+- **Orchestration:** Python-based autonomous agent framework powered by **LangGraph**, with dual-tier VRAM management and stateful memory.
 
 ### 🏛️ Service Architecture
 To ensure scalability and clean separation of concerns, the system is split into three main services:
@@ -98,10 +102,6 @@ To ensure scalability and clean separation of concerns, the system is split into
     - `src/famiglia_core/command_center/frontend/Dockerfile`: A multi-stage Node/Nginx build.
 4.  **Mattermost (Famiglia Comm-Link)**: Self-hosted internal messaging platform (Port 8065).
     - `Dockerfile.mattermost`: A specialized Debian-based Mattermost image for internal coordination.
-
-### 🧩 Why multiple Dockerfiles & .gitignores?
-- **Dockerfiles**: Each service requires a different runtime or entry point. The Frontend needs Node.js for building, while the Backend and Slack app use different Python entry points. This separation allows for independent scaling and smaller, more secure images.
-- **.gitignore Files**: The root `.gitignore` handles global exclusions (like `.env`). The `src/command_center/frontend/.gitignore` handles frontend-specific artifacts (like `node_modules` and `dist`) created by Vite. This keeps the configuration close to the code it affects.
 
 ### 🧱 Core Tech Stack
 - **Language:** Python 3.12+ (managed with `uv`) & TypeScript (React)
@@ -133,15 +133,21 @@ To ensure scalability and clean separation of concerns, the system is split into
 - **Notion**: Shared databases and project roadmapping.
 
 
+## FAQs
+
+### 🧩 Why multiple Dockerfiles & .gitignores?
+- **Dockerfiles**: Each service requires a different runtime or entry point. The Frontend needs Node.js for building, while the Backend and Slack app use different Python entry points. This separation allows for independent scaling and smaller, more secure images.
+- **.gitignore Files**: The root `.gitignore` handles global exclusions (like `.env`). The `src/command_center/frontend/.gitignore` handles frontend-specific artifacts (like `node_modules` and `dist`) created by Vite. This keeps the configuration close to the code it affects.
+
 ---
 
-## 🤝 Contributing
+# 🤝 Contributing
 
 We welcome additions to the Family, provided they follow our [Code of Conduct](CODE_OF_CONDUCT.md). Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to pitch your visions and submit PRs.
 
 ---
 
-## ⚖️ License
+# ⚖️ License
 
 Built with ❤️ by **AI Passione.**
 

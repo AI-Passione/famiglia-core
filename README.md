@@ -46,10 +46,10 @@ docker run -d --name famiglia-core -p 8000:8000 -p 5173:5173 --env-file .env ghc
 
 ---
 
-## 4. Commanding Center (Web UI)
-- **Primary Interface:** A premium React-based dashboard for real-time monitoring.
-- **Features:** Agent roster with live status, real-time action feed, and task management.
-- **Location:** `src/command_center/frontend` (Web) and `src/command_center/backend` (API).
+## 4. Command Center (Web UI)
+- **Primary Interface:** A premium React-based dashboard for real-time monitoring and orchestration.
+- **Features:** Agent roster with live status, real-time action feed, and cross-platform task management.
+- **Location:** `src/famiglia_core/command_center/frontend` (Web: Port 5173) and `src/famiglia_core/command_center/backend` (API: Port 8000).
 
 ---
 
@@ -80,23 +80,23 @@ graph TD
     end
 ```
 
-Our multi-agent system is built on a high-performance, containerized stack designed for local intelligence and multi-platform coordination.
+Our multi-agent system is built on a high-performance, containerized stack designed for "Sovereign Intelligence" and multi-platform coordination.
 
-### 🧠 Intelligence Tier
-- **LLM Engine:** [Ollama](https://ollama.com/) (Managing 1B & 3B models locally)
+### 🧠 Sovereign Intelligence
+- **LLM Engine:** [Ollama](https://ollama.com/) (Managing 1B & 3B models locally for absolute privacy)
 - **Primary Models:** Llama 3.2 (3B) & Qwen 2.5 (1B)
-- **Orchestration:** Python-based autonomous agent framework with dual-tier VRAM management.
+- **Orchestration:** Python-based autonomous agent framework with dual-tier VRAM management and stateful memory.
 
 ### 🏛️ Service Architecture
 To ensure scalability and clean separation of concerns, the system is split into three main services:
 
-1.  **Slack App (Famiglia)**: The core multi-agent orchestration service.
+1.  **Slack App (Famiglia)**: The core multi-agent orchestration service (Python/Socket Mode).
     - `Dockerfile`: Top-level, runs the Python Slack listener.
-2.  **Commanding Center API**: A FastAPI backend for the web dashboard.
-    - `src/command_center/backend/Dockerfile`: A specialized Python environment for the API.
-3.  **Commanding Center Web**: A React/Vite frontend.
-    - `src/command_center/frontend/Dockerfile`: A multi-stage Node/Nginx build.
-4.  **Mattermost (Famiglia Comm-Link)**: Self-hosted messaging platform.
+2.  **Command Center API**: A FastAPI backend for the web dashboard (Port 8000).
+    - `src/famiglia_core/command_center/backend/Dockerfile`: A specialized Python environment for the API.
+3.  **Command Center Web**: A React/Vite/TypeScript frontend (Port 5173).
+    - `src/famiglia_core/command_center/frontend/Dockerfile`: A multi-stage Node/Nginx build.
+4.  **Mattermost (Famiglia Comm-Link)**: Self-hosted internal messaging platform (Port 8065).
     - `Dockerfile.mattermost`: A specialized Debian-based Mattermost image for internal coordination.
 
 ### 🧩 Why multiple Dockerfiles & .gitignores?
@@ -123,16 +123,14 @@ To ensure scalability and clean separation of concerns, the system is split into
 ---
 
 ## Technical Guides
-- [**Commanding Center**](src/command_center/README.md): Unified dashboard for real-time monitoring and management.
-- [**Mattermost Provisioning**](src/famiglia_core/command_center/backend/mattermost/provision_mattermost.sh): Automated scripts for self-hosted messaging setup.
-- [**Contribution & Architecture**](CONTRIBUTING.md): Details on project structure, communication flow, and RAM management.
-- [**Security & Secrets**](Security.md): How we manage `.env` and GitHub Secrets.
-- [**Agent Roster**](docs/agent_roster_la_famiglia.md): Detailed profiles of the family agents.
+- [**Command Center**](src/famiglia_core/command_center/README.md): Unified dashboard for real-time monitoring and management.
+- [**The Agents**](src/famiglia_core/agents/README.md): Detailed logic for the recurring scheduler and background worker.
+- [**Contribution & Architecture**](CONTRIBUTING.md): Details on project structure and communication flow.
 
 
 ## Slack & Notion
-- **Slack**: See [slack_channel_structure.md](src/interaction/slack/slack_channel_structure.md).
-- **Notion**: See [notion_workspace.md](src/agents/tools/notion_workspace.md).
+- **Slack**: Channel structures and interaction protocols.
+- **Notion**: Shared databases and project roadmapping.
 
 
 ---

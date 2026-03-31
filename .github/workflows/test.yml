@@ -32,6 +32,9 @@ jobs:
       - name: Run Tests 🚀
         run: uv run pytest tests/
 
+      - name: Build Check 📦
+        run: uv build --sdist
+
   docker-lint:
     name: Docker Validation 🐳
     runs-on: ubuntu-latest

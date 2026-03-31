@@ -37,10 +37,10 @@ dev = [
     "slack-sdk>=3.40.1",
 ]
 
-[project.scripts]
-truncate-db = "famiglia_core.db.truncate:truncate_db"
+[tool.uv.scripts]
 start-backend = "uvicorn famiglia_core.command_center.backend.main:app --reload --host 0.0.0.0 --port 8000"
 smoke-test = "pytest tests/test_llm.py -m smoke"
+init-db = "python src/famiglia_core/db/init_db.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

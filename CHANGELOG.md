@@ -1,3 +1,24 @@
+# [1.2.0](https://github.com/AI-Passione/famiglia-core/compare/v1.1.0...v1.2.0) (2026-03-31)
+
+
+### Features
+
+* add CLI for backend management and testing, and update project to editable install mode ([5a15a89](https://github.com/AI-Passione/famiglia-core/commit/5a15a898c8361dd1d45d0092e0e99853b20ab4f4))
+
+# [1.1.0](https://github.com/AI-Passione/famiglia-core/compare/v1.0.2...v1.1.0) (2026-03-31)
+
+
+### Bug Fixes
+
+* specify postgres database for psql connection in initialization scripts ([536c2a1](https://github.com/AI-Passione/famiglia-core/commit/536c2a132f68102e786095d2a2b2f453db578d3a))
+
+
+### Features
+
+* add Giuseppina agent, update documentation, and remove redundant vision file ([7130e8a](https://github.com/AI-Passione/famiglia-core/commit/7130e8a757547dcfa87d871f5969146794fe12a9))
+* add step to create dummy .env file in test workflow ([4bd6190](https://github.com/AI-Passione/famiglia-core/commit/4bd619031ff6802a89b297dc112d85042d0bd1fe))
+* uncomment and configure CI workflow for unit tests ([1b7b009](https://github.com/AI-Passione/famiglia-core/commit/1b7b009da996d39a9bb1ecf38316a75cb181f739))
+
 ## [1.0.2](https://github.com/AI-Passione/famiglia-core/compare/v1.0.1...v1.0.2) (2026-03-31)
 
 ## [1.0.1](https://github.com/AI-Passione/famiglia-core/compare/v1.0.0...v1.0.1) (2026-03-31)

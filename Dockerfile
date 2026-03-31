@@ -5,7 +5,8 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_PROJECT_ENVIRONMENT="/venv" \
-    PATH="/venv/bin:$PATH"
+    PATH="/venv/bin:$PATH" \
+    PYTHONPATH="/app/src"
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

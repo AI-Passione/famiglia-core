@@ -1,0 +1,42 @@
+FROM debian:bookworm-slim
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    jq \
+    libc6 \
+    libffi-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt-get/lists/*
+
+# Set Mattermost version
+ARG MATTERMOST_VERSION=9.11.2
+
+# Download and install Mattermost Enterprise
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        MM_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        MM_ARCH="arm64"; \
+    else \
+        MM_ARCH="amd64"; \
+    fi && \
+    curl -L https://releases.mattermost.com/${MATTERMOST_VERSION}/mattermost-enterprise-${MATTERMOST_VERSION}-linux-${MM_ARCH}.tar.gz | tar -xz -C /opt
+
+# Set up user and permissions
+RUN useradd --system --user-group --shell /usr/sbin/nologin mattermost \
+    && chown -R mattermost:mattermost /opt/mattermost \
+    && mkdir -p /opt/mattermost/data /opt/mattermost/logs /opt/mattermost/config /opt/mattermost/plugins \
+    && chown -R mattermost:mattermost /opt/mattermost/data /opt/mattermost/logs /opt/mattermost/config /opt/mattermost/plugins
+
+# Environment defaults
+ENV PATH="/opt/mattermost/bin:${PATH}"
+ENV MM_SERVICESETTINGS_SITEURL="http://localhost:8065"
+ENV MM_SQLSETTINGS_DRIVERNAME="postgres"
+
+USER mattermost
+WORKDIR /opt/mattermost
+
+EXPOSE 8065
+CMD ["mattermost"]

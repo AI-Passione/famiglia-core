@@ -37,10 +37,10 @@ dev = [
     "slack-sdk>=3.40.1",
 ]
 
-[tool.uv.scripts]
-start-backend = "uvicorn famiglia_core.command_center.backend.main:app --reload --host 0.0.0.0 --port 8000"
-smoke-test = "pytest tests/test_llm.py -m smoke"
-init-db = "python src/famiglia_core/db/init_db.py"
+[project.scripts]
+start-backend = "famiglia_core.cli:start_backend"
+smoke-test = "famiglia_core.cli:smoke_test"
+init-db = "famiglia_core.cli:init_db"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -80,3 +80,10 @@ venvPath = "."
 venv = ".venv"
 extraPaths = ["src"]
 typeCheckingMode = "basic"
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

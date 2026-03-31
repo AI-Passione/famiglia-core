@@ -129,24 +129,21 @@ Please refer to the `README.md` files in the respective directories for more det
 - [**The Agents**](src/famiglia_core/agents/README.md): Detailed logic for the recurring scheduler and background worker.
 - [**Contribution & Architecture**](CONTRIBUTING.md): Details on project structure and communication flow.
 
-## Folder Structure & Important files
+## Folder Structure & Important Files
 ```
-src/
-├── famiglia_core/
-│   ├── agents/                    # Agent logic and tools
-│   │   ├── orchestration/         # Workflow engine and scheduling
-│   │   ├── agents/                # Individual agent implementations
-│   │   └── tools/                 # External service integrations
-│   ├── command_center/            # Web UI and API
-│   │   ├── frontend/              # React/Vite frontend
-│   │   └── backend/               # FastAPI backend
-│   ├── messaging/                 # Slack and Mattermost integrations
-│   └── services/                  # Core services and utilities
-├── docker/
-│   ├── docker-compose.yml         # Main service orchestration
-│   ├── Dockerfile                 # Core Famiglia service
-│   ├── Dockerfile.mattermost      # Mattermost service
-│   └── Dockerfile.frontend        # Frontend service
+.
+├── src/
+│   └── famiglia_core/
+│       ├── agents/                # LangGraph workers and orchestration
+│       ├── command_center/        # Dashboard (Frontend & Backend)
+│       ├── db/                    # PostgreSQL and context storage
+│       └── observability/         # Logging and metrics logic
+├── tests/                         # Unit and integration tests
+├── docs/                          # Detailed architecture and agent rosters
+├── Dockerfile                     # Core Famiglia service (Slack/Orchestrator)
+├── Dockerfile.mattermost          # Self-hosted Mattermost service
+├── docker-compose.yml             # Local development orchestration
+├── pyproject.toml                 # uv-based dependency management
 └── .env.example                   # Environment variable template
 ```
 

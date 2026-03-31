@@ -10,21 +10,11 @@
 
 ---
 
-## 🚀 Quick Start
-
-Get the Famiglia up and running in under 5 minutes using Docker.
+## Getting Started
 
 ```bash
 # 1. Pull the official image
-docker pull ghcr.io/ai-passione/famiglia-core:latest
-
-# 2. Run the Command Center & Backend
-docker run -d \
-  --name famiglia-core \
-  -p 8000:8000 \
-  -p 5173:5173 \
-  --env-file .env \
-  ghcr.io/ai-passione/famiglia-core:latest
+docker run -d --name famiglia-core -p 8000:8000 -p 5173:5173 --env-file .env ghcr.io/ai-passione/famiglia-core:production
 ```
 
 > [!TIP]
@@ -81,6 +71,8 @@ To ensure scalability and clean separation of concerns, the system is split into
     - `src/command_center/backend/Dockerfile`: A specialized Python environment for the API.
 3.  **Commanding Center Web**: A React/Vite frontend.
     - `src/command_center/frontend/Dockerfile`: A multi-stage Node/Nginx build.
+4.  **Mattermost (Famiglia Comm-Link)**: Self-hosted messaging platform.
+    - `Dockerfile.mattermost`: A specialized Debian-based Mattermost image for internal coordination.
 
 ### 🧩 Why multiple Dockerfiles & .gitignores?
 - **Dockerfiles**: Each service requires a different runtime or entry point. The Frontend needs Node.js for building, while the Backend and Slack app use different Python entry points. This separation allows for independent scaling and smaller, more secure images.
@@ -91,9 +83,10 @@ To ensure scalability and clean separation of concerns, the system is split into
 - **Persistence:** [PostgreSQL](https://www.postgresql.org/) (Conversation history & long-term memory)
 - **Caching:** [Redis](https://redis.io/) (Scheduled task queue & temporary state)
 - **Containerization:** [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/)
+- **Messaging:** [Slack](https://slack.com/) (Socket Mode) & [Mattermost](https://mattermost.com/) (Self-hosted)
 
 ### 🔌 External Integrations
-- **Messaging:** [Slack](https://slack.com/) (Socket Mode)
+- **Messaging:** [Slack](https://slack.com/) & [Mattermost](https://mattermost.com/)
 - **Productivity:** [Notion](https://www.notion.so/) (Teamspace & DB integrations)
 - **Development:** [GitHub API](https://docs.github.com/en/rest) (Issue & PR management)
 
@@ -106,6 +99,7 @@ To ensure scalability and clean separation of concerns, the system is split into
 
 ## Technical Guides
 - [**Commanding Center**](src/command_center/README.md): Unified dashboard for real-time monitoring and management.
+- [**Mattermost Provisioning**](src/famiglia_core/command_center/backend/mattermost/provision_mattermost.sh): Automated scripts for self-hosted messaging setup.
 - [**Contribution & Architecture**](CONTRIBUTING.md): Details on project structure, communication flow, and RAM management.
 - [**Security & Secrets**](Security.md): How we manage `.env` and GitHub Secrets.
 - [**Agent Roster**](docs/agent_roster_la_famiglia.md): Detailed profiles of the family agents.
@@ -132,7 +126,8 @@ graph TD
     
     subgraph Ops ["Strategic Operations"]
         Agents -->|Tools| External[GitHub, Notion, Slack, Finance APIs]
-        Agents -->|Notifications| Slack[Slack App: Famiglia Comm-Link]
+        Agents -->|External Comm| Slack[Slack App]
+        Agents -->|Internal Comm| Mattermost[Mattermost: Comm-Link]
     end
     
     subgraph Obs ["Observability & Intel"]

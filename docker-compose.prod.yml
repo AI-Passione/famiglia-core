@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/davnnis2003/la-passione-inc:latest
+    image: ghcr.io/ai-passione/famiglia-core:latest
     restart: unless-stopped
     env_file:
       - .env
@@ -75,6 +75,28 @@ services:
       mattermost-db:
         condition: service_healthy
 
+  backend:
+    image: ghcr.io/ai-passione/famiglia-core-backend:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend:
+    image: ghcr.io/ai-passione/famiglia-core-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_started
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -104,8 +126,14 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/00_schema.sql
+      - ./src/db/agents/souls.sql:/docker-entrypoint-initdb.d/01_souls.sql
+      - ./src/db/agents/skills.sql:/docker-entrypoint-initdb.d/02_skills.sql
+      - ./src/db/agents/tools.sql:/docker-entrypoint-initdb.d/03_tools.sql
+      - ./src/db/agents/resources.sql:/docker-entrypoint-initdb.d/04_resources.sql
+      - ./src/db/agents/workflows.sql:/docker-entrypoint-initdb.d/05_workflows.sql
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U passione_admin -d passione_db" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-passione_admin} -d ${DB_NAME:-passione_db}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -135,6 +163,7 @@ services:
 
   loki:
     image: grafana/loki:3.0.0
+    profiles: ["observability"]
     restart: unless-stopped
     deploy:
       resources:
@@ -150,6 +179,7 @@ services:
 
   promtail:
     image: grafana/promtail:3.0.0
+    profiles: ["observability"]
     restart: unless-stopped
     deploy:
       resources:
@@ -167,6 +197,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.0.0
+    profiles: ["observability"]
     restart: unless-stopped
     deploy:
       resources:
@@ -176,7 +207,7 @@ services:
       - "0.0.0.0:3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_DOMAIN=${GRAFANA_DOMAIN:-localhost}
       - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
@@ -191,6 +222,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.52.0
+    profiles: ["observability"]
     restart: unless-stopped
     deploy:
       resources:
@@ -207,12 +239,14 @@ services:
 
   docker-stats-exporter:
     image: wywywywy/docker_stats_exporter:latest
+    profiles: ["observability"]
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   langfuse-db:
     image: postgres:15-alpine
+    profiles: ["observability"]
     restart: unless-stopped
     environment:
       - POSTGRES_USER=langfuse
@@ -234,6 +268,7 @@ services:
 
   langfuse:
     image: langfuse/langfuse:2
+    profiles: ["observability"]
     restart: unless-stopped
     depends_on:
       langfuse-db:

@@ -117,9 +117,7 @@ To ensure scalability and clean separation of concerns, the system is split into
 
 ---
 
-## 🏛 The Trinity Architecture
-
-The Famiglia operates on "The Trinity," an integrated ecosystem designed for total business autonomy.
+## 🏛 The Architecture
 
 ```mermaid
 graph TD
@@ -142,7 +140,6 @@ graph TD
         Agents -.->|Traces| Langfuse[Langfuse]
     end
 ```
-
 ---
 
 ## 🤝 Contributing

@@ -39,6 +39,9 @@ jobs:
       - name: Checkout Repository 🛒
         uses: actions/checkout@v4
 
+      - name: Create Dummy Env 📄
+        run: touch .env
+
       - name: Validate Development Config 🛠️
         run: docker compose config
 

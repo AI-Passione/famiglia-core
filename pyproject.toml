@@ -1,6 +1,6 @@
 [project]
 name = "famiglia-core"
-version = "1.63.0"
+version = "0.9.0"
 description = "The engine of Don Jimmy's AI Famiglia."
 readme = "README.md"
 requires-python = ">=3.11"

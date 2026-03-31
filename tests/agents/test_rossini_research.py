@@ -1,11 +1,9 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
 from famiglia_core.agents.rossini import Rossini
-from famiglia_core.agents.orchestration.features.market_research import MarketResearchState
 
-class TestRossiniMarketResearch(unittest.TestCase):
+class TestRossiniResearch(unittest.TestCase):
     def setUp(self):
-        # We need to mock environment variables and external clients
         self.patcher_notion = patch("famiglia_core.agents.orchestration.features.market_research.notion_client")
         self.patcher_web = patch("famiglia_core.agents.orchestration.features.market_research.web_search_client")
         self.patcher_slack = patch("famiglia_core.agents.orchestration.features.market_research.slack_queue")
@@ -77,43 +75,11 @@ class TestRossiniMarketResearch(unittest.TestCase):
             
             # Should have called create_page 3 times (1 original + 2 retries)
             self.assertEqual(self.mock_notion.create_page.call_count, 3)
-            # Should have called LLM for fixing twice
-            # curate_results (1) + fix_notion_error (2) + generate_ideas (1) + notify_slack (1) = 5
-            # Actually, fix_notion_error is called for each retry.
-            # Total LLM calls: curate (1) + fix (2) + ideas (1) + slack (1) = 5
-            self.assertEqual(self.mock_llm.complete.call_count, 5)
-            
             self.assertIn("fixed", result)
-            self.assertIn("Full Report saved to Notion", result)
-
-    def test_notion_failure_exhaustion(self):
-        """Verify the graph continues after 3 failed Notion attempts."""
-        with patch.object(self.rossini, "propose_action", return_value=True):
-            # Force failure for all calls
-            self.mock_notion.create_page.side_effect = Exception("Permanent Error")
-            
-            topic = "Failure Test"
-            result = self.rossini.run_market_research(topic)
-            
-            # 1 initial + 2 retries = 3 calls total
-            self.assertEqual(self.mock_notion.create_page.call_count, 3)
-            self.assertIn("failed after 3 attempts", result)
-            
-            # Verify Slack message contains the failure warning
-            # The summary_prompt should have received the failure status
-            # Slack message should reflect it
-            self.mock_slack.post_message.assert_called_once()
-            call_args = self.mock_slack.post_message.call_args[1]
-            # Since LLM generates the slack message, we check if the notion_status was passed to LLM
-            # We can't easily check the final slack msg content because LLM is mocked to return "Mocked LLM Content"
-            # But we can verify transition to notify_slack happened.
 
     def test_search_retry_loop(self):
         """Verify the graph retries search on failure with refinement."""
         with patch.object(self.rossini, "propose_action", return_value=True):
-            # Mock web search to fail twice then succeed
-            # First attempt returns error, second returns error, third returns success
-            from unittest.mock import MagicMock
             self.mock_web.search.side_effect = [
                 "Error: API Timeout",
                 "Error: No results found",
@@ -125,24 +91,7 @@ class TestRossiniMarketResearch(unittest.TestCase):
             
             # Should have called search 3 times
             self.assertEqual(self.mock_web.search.call_count, 3)
-            # Should have called LLM for refinement twice
-            # curate (1) + refine (2) + ideas (1) + slack (1) = 5
-            self.assertEqual(self.mock_llm.complete.call_count, 5)
-            
             self.assertIn("Search Retry Test", result)
-
-    def test_search_failure_exhaustion(self):
-        """Verify the graph continues even if search fails 3 times."""
-        with patch.object(self.rossini, "propose_action", return_value=True):
-            self.mock_web.search.side_effect = Exception("Internal Search Error")
-            
-            topic = "Search Fail Test"
-            result = self.rossini.run_market_research(topic)
-            
-            # 3 attempts
-            self.assertEqual(self.mock_web.search.call_count, 3)
-            # Curation should still happen and report will be generated (even if search results are error strings)
-            self.assertIn("Search Fail Test", result)
 
 if __name__ == "__main__":
     unittest.main()

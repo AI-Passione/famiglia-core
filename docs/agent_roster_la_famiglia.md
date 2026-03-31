@@ -309,7 +309,7 @@ The Famiglia is designed to minimize overhead while maximizing output. By utiliz
 # **Agent Hierarchy**
 
 ```
-Don Jimmy (Boss)
+The User (Boss/The Don/Donna)
     |
     ├─ Alfredo 🎩 (Orchestrator - coordinates all agents)
     |

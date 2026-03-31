@@ -1,0 +1,51 @@
+{
+  "defaults": {
+    "ollama_fallback": "gemma3:4b",
+    "ollama_fallback_key": "ollama-gemma3"
+  },
+  "models": {
+    "gemma3_4b": {
+      "tag": "gemma3:4b",
+      "description": "Default Gemma 3 (4B) — always-warm fallback model",
+      "ram_gb": 4.0
+    },
+    "deepseek_r1_7b": {
+      "tag": "deepseek-r1:7b",
+      "description": "DeepSeek R1 (7B) — reasoning model for complex tasks",
+      "ram_gb": 5.0
+    },
+    "qwen2_5_coder_7b": {
+      "tag": "qwen2.5-coder:7b",
+      "description": "Qwen 2.5 Coder (7B) — coding specialist",
+      "ram_gb": 5.0
+    },
+    "qwen2_5_3b": {
+      "tag": "qwen2.5:3b-instruct-q4_0",
+      "description": "Qwen 2.5 (3B Instruct) — high-performance lightweight model",
+      "ram_gb": 3.0
+    },
+    "qwen2_5_3b_instruct_q4_k_m": {
+      "tag": "qwen2.5:3b-instruct-q4_K_M",
+      "description": "Qwen 2.5 (3B) — tools/coding champ",
+      "ram_gb": 2.5
+    },
+    "deepseek_coder_v2_lite_instruct_q4_0": {
+      "tag": "deepseek-coder-v2-lite-instruct:3b-q4_0",
+      "description": "DeepSeek Coder V2 Lite (3B) — code/tools",
+      "ram_gb": 2.2
+    },
+    "mistral_7b": {
+      "tag": "mistral:7b",
+      "description": "Mistral (7B) — reliable open-weight performer",
+      "ram_gb": 5.0
+    }
+  },
+  "tasks": {
+    "CHAT": "gemma3:4b",
+    "SEARCH": "gemma3:4b",
+    "COMPLEX": "deepseek-r1:7b",
+    "CODING": "qwen2.5-coder:7b",
+    "TOOL": "qwen2.5:3b-instruct-q4_0",
+    "WORKFLOW": "qwen2.5:3b-instruct-q4_0"
+  }
+}

@@ -1,10 +1,10 @@
 from unittest.mock import MagicMock, patch
 
-from src.db.context_store import AgentContextStore
+from famiglia_core.db.context_store import AgentContextStore
 
 
 def test_log_message_persists_with_conversation_scope():
-    with patch("src.db.context_store.psycopg2.connect") as mock_connect:
+    with patch("famiglia_core.db.context_store.psycopg2.connect") as mock_connect:
         conn_conversation = MagicMock()
         conn_message = MagicMock()
         mock_connect.side_effect = [conn_conversation, conn_message]
@@ -38,7 +38,7 @@ def test_log_message_persists_with_conversation_scope():
 
 
 def test_get_recent_messages_is_filtered_by_conversation():
-    with patch("src.db.context_store.psycopg2.connect") as mock_connect:
+    with patch("famiglia_core.db.context_store.psycopg2.connect") as mock_connect:
         conn = MagicMock()
         mock_connect.return_value = conn
 
@@ -65,7 +65,7 @@ def test_get_recent_messages_is_filtered_by_conversation():
 
 
 def test_upsert_memory_is_agent_scoped():
-    with patch("src.db.context_store.psycopg2.connect") as mock_connect:
+    with patch("famiglia_core.db.context_store.psycopg2.connect") as mock_connect:
         conn = MagicMock()
         mock_connect.return_value = conn
 

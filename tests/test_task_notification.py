@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.agents.orchestration.scheduler import TaskOrchestrator
-from src.agents.orchestration.utils.task_helpers import Task
+from famiglia_core.agents.orchestration.scheduler import TaskOrchestrator
+from famiglia_core.agents.orchestration.utils.task_helpers import Task
 
 @pytest.fixture
 def orchestrator():
@@ -10,8 +10,8 @@ def orchestrator():
     orchestrator.configure({"alfredo": agent})
     return orchestrator, agent
 
-@patch("src.agents.orchestration.scheduler.slack_queue")
-@patch("src.agents.orchestration.scheduler.context_store")
+@patch("famiglia_core.agents.orchestration.scheduler.slack_queue")
+@patch("famiglia_core.agents.orchestration.scheduler.context_store")
 def test_execute_task_retries_slack_notification(mock_store, mock_slack, orchestrator):
     orchestrator_obj, agent = orchestrator
     
@@ -43,8 +43,8 @@ def test_execute_task_retries_slack_notification(mock_store, mock_slack, orchest
     args, kwargs = mock_store.complete_scheduled_task.call_args
     assert kwargs["status"] == "completed"
 
-@patch("src.agents.orchestration.scheduler.slack_queue")
-@patch("src.agents.orchestration.scheduler.context_store")
+@patch("famiglia_core.agents.orchestration.scheduler.slack_queue")
+@patch("famiglia_core.agents.orchestration.scheduler.context_store")
 def test_execute_task_fails_if_slack_fails_after_retries(mock_store, mock_slack, orchestrator):
     orchestrator_obj, agent = orchestrator
     
@@ -77,8 +77,8 @@ def test_execute_task_fails_if_slack_fails_after_retries(mock_store, mock_slack,
     assert kwargs["status"] == "failed"
     assert "Slack notification failed" in kwargs["error_details"]
 
-@patch("src.agents.orchestration.scheduler.slack_queue")
-@patch("src.agents.orchestration.scheduler.context_store")
+@patch("famiglia_core.agents.orchestration.scheduler.slack_queue")
+@patch("famiglia_core.agents.orchestration.scheduler.context_store")
 def test_execute_task_notifies_on_exception(mock_store, mock_slack, orchestrator):
     orchestrator_obj, agent = orchestrator
     

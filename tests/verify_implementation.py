@@ -1,6 +1,6 @@
-from src.agents.kowalski import Kowalski
-from src.agents.vito import Vito
-from src.db.audit import audit_logger
+from famiglia_core.agents.kowalski import Kowalski
+from famiglia_core.agents.vito import Vito
+from famiglia_core.db.audit import audit_logger
 import os
 
 def test_kowalski():

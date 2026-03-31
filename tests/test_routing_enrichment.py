@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from src.agents.base_agent import BaseAgent
+from famiglia_core.agents.base_agent import BaseAgent
 
 class TestRoutingEnrichment(unittest.TestCase):
     def setUp(self):
@@ -13,7 +13,7 @@ class TestRoutingEnrichment(unittest.TestCase):
         }
         self.agent = BaseAgent(name="Alfredo", role="Orchestrator", model_config=self.model_config)
 
-    @patch("src.agents.base_agent.client.complete")
+    @patch("famiglia_core.agents.base_agent.client.complete")
     def test_routing_chat(self, mock_complete):
         # Case 1: Fast-path Greeting
         self.assertEqual(self.agent._get_routing_mode("hi"), "CHAT")
@@ -23,7 +23,7 @@ class TestRoutingEnrichment(unittest.TestCase):
         mock_complete.return_value = ("CHAT", "gemma3:1b")
         self.assertEqual(self.agent._get_routing_mode("how are you?"), "CHAT")
 
-    @patch("src.agents.base_agent.client.complete")
+    @patch("famiglia_core.agents.base_agent.client.complete")
     def test_routing_search(self, mock_complete):
         # Case 1: Fast-path Search
         self.assertEqual(self.agent._get_routing_mode("search for news"), "SEARCH")
@@ -32,7 +32,7 @@ class TestRoutingEnrichment(unittest.TestCase):
         mock_complete.return_value = ("SEARCH", "gemma3:1b")
         self.assertEqual(self.agent._get_routing_mode("find the latest trends"), "SEARCH")
 
-    @patch("src.agents.base_agent.client.complete")
+    @patch("famiglia_core.agents.base_agent.client.complete")
     def test_routing_tool(self, mock_complete):
         # Case 1: Fast-path Tool
         self.assertEqual(self.agent._get_routing_mode("list my github issues"), "TOOL")
@@ -42,7 +42,7 @@ class TestRoutingEnrichment(unittest.TestCase):
         mock_complete.return_value = ("TOOL", "gemma3:1b")
         self.assertEqual(self.agent._get_routing_mode("some generic tool request"), "TOOL")
 
-    @patch("src.agents.base_agent.client.complete")
+    @patch("famiglia_core.agents.base_agent.client.complete")
     def test_routing_workflow(self, mock_complete):
         # Case 1: Fast-path Workflow
         self.assertEqual(self.agent._get_routing_mode("run github diagnostic"), "WORKFLOW")
@@ -52,7 +52,7 @@ class TestRoutingEnrichment(unittest.TestCase):
         mock_complete.return_value = ("WORKFLOW", "gemma3:1b")
         self.assertEqual(self.agent._get_routing_mode("verify my permissions and diagnostic state"), "WORKFLOW")
 
-    @patch("src.agents.base_agent.client.complete")
+    @patch("famiglia_core.agents.base_agent.client.complete")
     def test_routing_complex(self, mock_complete):
         # Case 1: Fast-path Complex
         self.assertEqual(self.agent._get_routing_mode("analyze this code"), "COMPLEX")

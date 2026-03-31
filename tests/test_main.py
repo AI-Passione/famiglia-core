@@ -33,11 +33,11 @@ def test_main_skips_agents_without_tokens(monkeypatch, capsys, mocker):
     mock_sq.agent_tokens = {"alfredo": None, "riccado": "tk"}
     mock_sq.agent_app_tokens = {"alfredo": None, "riccado": "app-tk"}
     mock_sq.bot_ids = {"riccado": "U111"}
-    monkeypatch.setattr("src.command_center.backend.slack.client.slack_queue", mock_sq)
+    monkeypatch.setattr("famiglia_core.command_center.backend.slack.client.slack_queue", mock_sq)
 
     # monkeypatch environment so that agents dict is simple
-    from src.agents.alfredo import Alfredo
-    from src.agents.riccado import Riccado
+    from famiglia_core.agents.alfredo import Alfredo
+    from famiglia_core.agents.riccado import Riccado
 
     monkeypatch.setattr("main.Alfredo", lambda: Alfredo())
     monkeypatch.setattr("main.Riccado", lambda: Riccado())
@@ -95,8 +95,8 @@ def test_process_mention_uses_correct_app(monkeypatch, capsys):
     monkeypatch.setattr("main.App", FakeApp)
 
     # create minimal agents to satisfy loop
-    from src.agents.alfredo import Alfredo
-    from src.agents.riccado import Riccado
+    from famiglia_core.agents.alfredo import Alfredo
+    from famiglia_core.agents.riccado import Riccado
     monkeypatch.setattr("main.Alfredo", lambda: Alfredo())
     monkeypatch.setattr("main.Riccado", lambda: Riccado())
 

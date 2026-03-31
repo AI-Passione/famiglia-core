@@ -1,9 +1,9 @@
 import time
 import json
-from src.agents.riccado import Riccado
-from src.agents.rossini import Rossini
-from src.agents.tommy import Tommy
-from src.command_center.backend.slack.client import slack_queue, PRIORITY_CRITICAL, PRIORITY_MEDIUM
+from famiglia_core.agents.riccado import Riccado
+from famiglia_core.agents.rossini import Rossini
+from famiglia_core.agents.tommy import Tommy
+from famiglia_core.command_center.backend.slack.client import slack_queue, PRIORITY_CRITICAL, PRIORITY_MEDIUM
 
 class MockRedis:
     def __init__(self):

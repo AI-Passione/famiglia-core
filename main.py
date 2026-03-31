@@ -10,33 +10,33 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
 from mattermostdriver.websocket import Websocket
 
-from src.command_center.backend.slack.client import slack_queue
-from src.command_center.backend.mattermost.client import mattermost_queue
-from src.db.agents.context_store import context_store
-from src.db.init_db import init_db
-from src.agents.alfredo import Alfredo
-from src.agents.vito import Vito
-from src.agents.riccado import Riccado
-from src.agents.rossini import Rossini
-from src.agents.tommy import Tommy
-from src.agents.bella import Bella
-from src.agents.kowalski import Kowalski
-from src.agents.llm.client import client
-from src.agents.llm.models_registry import get_all_models, TASK_ROUTING
-from src.agents.orchestration.scheduler import task_orchestrator
-from src.agents.base_agent import (
+from famiglia_core.command_center.backend.slack.client import slack_queue
+from famiglia_core.command_center.backend.mattermost.client import mattermost_queue
+from famiglia_core.db.agents.context_store import context_store
+from famiglia_core.db.init_db import init_db
+from famiglia_core.agents.alfredo import Alfredo
+from famiglia_core.agents.vito import Vito
+from famiglia_core.agents.riccado import Riccado
+from famiglia_core.agents.rossini import Rossini
+from famiglia_core.agents.tommy import Tommy
+from famiglia_core.agents.bella import Bella
+from famiglia_core.agents.kowalski import Kowalski
+from famiglia_core.agents.llm.client import client
+from famiglia_core.agents.llm.models_registry import get_all_models, TASK_ROUTING
+from famiglia_core.agents.orchestration.scheduler import task_orchestrator
+from famiglia_core.agents.base_agent import (
     BaseAgent, 
     TASK_TYPE_ALFREDO_GREETING, 
     TASK_TYPE_MARKET_RESEARCH
 )
-from src.agents.orchestration.utils.task_helpers import TASK_TYPE_PRD_AUTOSCAN
-from src.command_center.backend.utils import LLM_SEMAPHORE
-from src.command_center.backend.slack.handlers import (
+from famiglia_core.agents.orchestration.utils.task_helpers import TASK_TYPE_PRD_AUTOSCAN
+from famiglia_core.command_center.backend.utils import LLM_SEMAPHORE
+from famiglia_core.command_center.backend.slack.handlers import (
     incoming_event_worker as slack_worker, 
     process_incoming_event, 
     should_handle_message
 )
-from src.command_center.backend.mattermost.handlers import (
+from famiglia_core.command_center.backend.mattermost.handlers import (
     incoming_event_worker as mm_worker, 
     process_mattermost_event
 )

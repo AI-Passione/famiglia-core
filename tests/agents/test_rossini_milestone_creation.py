@@ -8,8 +8,8 @@ import json
 
 sys.path.append(os.getcwd())
 
-from src.agents.rossini import Rossini
-from src.agents.orchestration.features.milestone_creation import MilestoneCreationState
+from famiglia_core.agents.rossini import Rossini
+from famiglia_core.agents.orchestration.features.milestone_creation import MilestoneCreationState
 
 APPROVED_PRD_BLOCKS = [
     {"text": "# PRD: Test Feature"},
@@ -33,11 +33,11 @@ def test_milestone_creation_logic():
     rossini = Rossini()
     workflow = rossini.milestone_creation_graph
 
-    with patch("src.agents.orchestration.features.milestone_creation.notion_client") as mock_notion, \
-         patch("src.agents.orchestration.features.milestone_creation.github_client") as mock_github, \
-         patch("src.agents.orchestration.features.milestone_creation.github_store") as mock_store, \
-         patch("src.agents.orchestration.features.milestone_creation.client") as mock_llm, \
-         patch("src.agents.orchestration.features.milestone_creation.slack_queue"), \
+    with patch("famiglia_core.agents.orchestration.features.milestone_creation.notion_client") as mock_notion, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.github_client") as mock_github, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.github_store") as mock_store, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.client") as mock_llm, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.slack_queue"), \
          patch.object(rossini, "list_accessible_repos", return_value="la-passione-inc/test"):
 
         mock_notion.read_page.return_value = {
@@ -78,11 +78,11 @@ def test_semantic_issue_matching_different_milestones():
     rossini = Rossini()
     workflow = rossini.milestone_creation_graph
 
-    with patch("src.agents.orchestration.features.milestone_creation.notion_client") as mock_notion, \
-         patch("src.agents.orchestration.features.milestone_creation.github_client") as mock_github, \
-         patch("src.agents.orchestration.features.milestone_creation.github_store") as mock_store, \
-         patch("src.agents.orchestration.features.milestone_creation.client") as mock_llm, \
-         patch("src.agents.orchestration.features.milestone_creation.slack_queue"), \
+    with patch("famiglia_core.agents.orchestration.features.milestone_creation.notion_client") as mock_notion, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.github_client") as mock_github, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.github_store") as mock_store, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.client") as mock_llm, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.slack_queue"), \
          patch.object(rossini, "list_accessible_repos", return_value="la-passione-inc/test"):
 
         mock_notion.read_page.return_value = {
@@ -126,11 +126,11 @@ def test_semantic_issue_matching_different_milestones():
 def test_milestone_hallucination_validation():
     """Verify that hallucinated milestone numbers are caught and nullified."""
     rossini = Rossini()
-    from src.agents.orchestration.features.milestone_creation import MilestoneCreationWorkflow
+    from famiglia_core.agents.orchestration.features.milestone_creation import MilestoneCreationWorkflow
     workflow_logic = MilestoneCreationWorkflow(rossini)
 
-    with patch("src.agents.orchestration.features.milestone_creation.github_client") as mock_github, \
-         patch("src.agents.orchestration.features.milestone_creation.client") as mock_llm:
+    with patch("famiglia_core.agents.orchestration.features.milestone_creation.github_client") as mock_github, \
+         patch("famiglia_core.agents.orchestration.features.milestone_creation.client") as mock_llm:
 
         # 1. Existing milestones are #1
         mock_github.list_milestones.return_value = [{"title": "Existing", "number": 1}]

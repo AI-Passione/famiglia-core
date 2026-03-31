@@ -1,10 +1,10 @@
 from unittest.mock import MagicMock, patch
 
-from src.agents.orchestration.tasks.batched_worker import ScheduledTaskWorker
+from famiglia_core.agents.orchestration.tasks.batched_worker import ScheduledTaskWorker
 
 
-@patch("src.agents.orchestration.tasks.batched_worker.context_store.complete_scheduled_task")
-@patch("src.agents.orchestration.tasks.batched_worker.slack_queue.enqueue_message")
+@patch("famiglia_core.agents.orchestration.tasks.batched_worker.context_store.complete_scheduled_task")
+@patch("famiglia_core.agents.orchestration.tasks.batched_worker.slack_queue.enqueue_message")
 def test_scheduled_worker_handles_slack_reminder_tasks(
     mock_enqueue_message,
     mock_complete_task,
@@ -33,7 +33,7 @@ def test_scheduled_worker_handles_slack_reminder_tasks(
     mock_complete_task.assert_called_once()
 
 
-@patch("src.agents.orchestration.tasks.batched_worker.context_store.complete_scheduled_task")
+@patch("famiglia_core.agents.orchestration.tasks.batched_worker.context_store.complete_scheduled_task")
 def test_scheduled_worker_rejects_incomplete_reminder_metadata(mock_complete_task):
     worker = ScheduledTaskWorker()
     task = {
@@ -69,8 +69,8 @@ def test_scheduled_worker_enforces_task_type_assignee():
     assert assignee == "rossini"
 
 
-@patch("src.agents.orchestration.tasks.batched_worker.context_store.complete_scheduled_task")
-@patch("src.agents.orchestration.tasks.batched_worker.slack_queue.enqueue_message")
+@patch("famiglia_core.agents.orchestration.tasks.batched_worker.context_store.complete_scheduled_task")
+@patch("famiglia_core.agents.orchestration.tasks.batched_worker.slack_queue.enqueue_message")
 def test_scheduled_worker_marks_prd_tasks_as_drafted(
     mock_enqueue_message,
     mock_complete_task,
@@ -99,9 +99,9 @@ def test_scheduled_worker_marks_prd_tasks_as_drafted(
     assert kwargs["task_id"] == 52
 
 
-@patch("src.agents.orchestration.tasks.batched_worker.context_store.complete_scheduled_task")
-@patch("src.agents.orchestration.tasks.batched_worker.context_store.create_scheduled_task")
-@patch("src.agents.orchestration.tasks.batched_worker.slack_queue.enqueue_message")
+@patch("famiglia_core.agents.orchestration.tasks.batched_worker.context_store.complete_scheduled_task")
+@patch("famiglia_core.agents.orchestration.tasks.batched_worker.context_store.create_scheduled_task")
+@patch("famiglia_core.agents.orchestration.tasks.batched_worker.slack_queue.enqueue_message")
 def test_feature_request_creates_followup_for_riccado(
     mock_enqueue_message,
     mock_create_task,

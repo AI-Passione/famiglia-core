@@ -1,6 +1,6 @@
-from src.agents.riccado import Riccado
-from src.db.init_db import init_db
-from src.db.github_store import github_store
+from famiglia_core.agents.riccado import Riccado
+from famiglia_core.db.init_db import init_db
+from famiglia_core.db.github_store import github_store
 
 def verify():
     print("Testing Riccado's GitHub capabilities locally...")

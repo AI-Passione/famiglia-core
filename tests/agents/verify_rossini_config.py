@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 # Add src to path
 sys.path.append(os.getcwd())
 
-from src.agents.rossini import Rossini
-from src.agents.llm.client import client
+from famiglia_core.agents.rossini import Rossini
+from famiglia_core.agents.llm.client import client
 
 def test_rossini_model_selection():
     rossini = Rossini()

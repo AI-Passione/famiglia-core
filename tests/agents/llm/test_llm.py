@@ -1,6 +1,6 @@
 import sys
-from src.agents.llm.client import client
-from src.agents.rossini import Rossini
+from famiglia_core.agents.llm.client import client
+from famiglia_core.agents.rossini import Rossini
 
 r = Rossini()
 q = "could u list out all Github Issues u see?"

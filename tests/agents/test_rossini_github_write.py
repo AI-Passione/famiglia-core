@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-from src.agents.rossini import Rossini
-from src.agents.llm.client import client
+from famiglia_core.agents.rossini import Rossini
+from famiglia_core.agents.llm.client import client
 
 def verify_rossini_github():
     print("Testing Dr. Rossini's GitHub capabilities locally...")

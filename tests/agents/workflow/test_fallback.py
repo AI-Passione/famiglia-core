@@ -1,8 +1,8 @@
 import os
-from src.agents.riccado import Riccado
-from src.agents.alfredo import Alfredo
-from src.agents.llm.client import client
-from src.db.init_db import init_db
+from famiglia_core.agents.riccado import Riccado
+from famiglia_core.agents.alfredo import Alfredo
+from famiglia_core.agents.llm.client import client
+from famiglia_core.db.init_db import init_db
 
 if __name__ == "__main__":
     init_db()

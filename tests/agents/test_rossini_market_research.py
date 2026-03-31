@@ -1,15 +1,15 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from src.agents.rossini import Rossini
-from src.agents.orchestration.features.market_research import MarketResearchState
+from famiglia_core.agents.rossini import Rossini
+from famiglia_core.agents.orchestration.features.market_research import MarketResearchState
 
 class TestRossiniMarketResearch(unittest.TestCase):
     def setUp(self):
         # We need to mock environment variables and external clients
-        self.patcher_notion = patch("src.agents.orchestration.features.market_research.notion_client")
-        self.patcher_web = patch("src.agents.orchestration.features.market_research.web_search_client")
-        self.patcher_slack = patch("src.agents.orchestration.features.market_research.slack_queue")
-        self.patcher_llm = patch("src.agents.orchestration.features.market_research.client")
+        self.patcher_notion = patch("famiglia_core.agents.orchestration.features.market_research.notion_client")
+        self.patcher_web = patch("famiglia_core.agents.orchestration.features.market_research.web_search_client")
+        self.patcher_slack = patch("famiglia_core.agents.orchestration.features.market_research.slack_queue")
+        self.patcher_llm = patch("famiglia_core.agents.orchestration.features.market_research.client")
         
         self.mock_notion = self.patcher_notion.start()
         self.mock_web = self.patcher_web.start()

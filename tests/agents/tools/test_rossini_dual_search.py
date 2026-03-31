@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 # Add src to path
 sys.path.append(os.getcwd())
 
-from src.agents.rossini import Rossini
-from src.agents.llm.client import client
+from famiglia_core.agents.rossini import Rossini
+from famiglia_core.agents.llm.client import client
 
 def test_routing_modes():
     agent = Rossini()

@@ -1,0 +1,30 @@
+display_information:
+  name: Vito
+  description: "Personal finance guardian and investment advisor for the Passione Famiglia"
+features:
+  bot_user:
+    display_name: Vito
+    always_online: false
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - chat:write
+      - groups:history
+      - im:history
+      - reactions:write
+      - apps.manifest:read
+      - apps.manifest:write
+settings:
+  event_subscriptions:
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+  interactivity:
+    is_enabled: true
+  org_deploy_enabled: false
+  socket_mode_enabled: true
+  token_rotation_enabled: false

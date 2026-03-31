@@ -1,5 +1,6 @@
 services:
   app:
+    build: .
     image: ghcr.io/ai-passione/famiglia-core:latest
     restart: unless-stopped
     env_file:
@@ -17,7 +18,7 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-passione_admin}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PASSWORD=${DB_PASSWORD:-passione_password}
       - DB_NAME=${DB_NAME:-passione_db}
       - PYTHONUNBUFFERED=1
       - REDIS_HOST=redis
@@ -77,6 +78,9 @@ services:
 
 
   frontend:
+    build:
+      context: src/famiglia_core/command_center/frontend
+      dockerfile: Dockerfile
     image: ghcr.io/ai-passione/famiglia-core-frontend:latest
     restart: unless-stopped
     ports:
@@ -115,13 +119,13 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./src/db/init_multiple_dbs.sh:/docker-entrypoint-initdb.d/00_init_multiple_dbs.sh
-      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ./src/db/agents/souls.sql:/docker-entrypoint-initdb.d/01_souls.sql
-      - ./src/db/agents/skills.sql:/docker-entrypoint-initdb.d/02_skills.sql
-      - ./src/db/agents/tools.sql:/docker-entrypoint-initdb.d/03_tools.sql
-      - ./src/db/agents/resources.sql:/docker-entrypoint-initdb.d/04_resources.sql
-      - ./src/db/agents/workflows.sql:/docker-entrypoint-initdb.d/05_workflows.sql
+      - ./src/famiglia_core/db/init_multiple_dbs.sh:/docker-entrypoint-initdb.d/00_init_multiple_dbs.sh
+      - ./src/famiglia_core/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./src/famiglia_core/db/agents/souls.sql:/docker-entrypoint-initdb.d/01_souls.sql
+      - ./src/famiglia_core/db/agents/skills.sql:/docker-entrypoint-initdb.d/02_skills.sql
+      - ./src/famiglia_core/db/agents/tools.sql:/docker-entrypoint-initdb.d/03_tools.sql
+      - ./src/famiglia_core/db/agents/resources.sql:/docker-entrypoint-initdb.d/04_resources.sql
+      - ./src/famiglia_core/db/agents/workflows.sql:/docker-entrypoint-initdb.d/05_workflows.sql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-passione_admin} -d ${DB_NAME:-passione_db}" ]
       interval: 10s
@@ -164,7 +168,7 @@ services:
     ports:
       - "127.0.0.1:3100:3100"
     volumes:
-      - ./src/observability/loki/config.yml:/etc/loki/config.yml:ro
+      - ./src/famiglia_core/observability/loki/config.yml:/etc/loki/config.yml:ro
       - loki_data:/loki
 
   promtail:
@@ -178,7 +182,7 @@ services:
     command:
       - -config.file=/etc/promtail/config.yml
     volumes:
-      - ./src/observability/promtail/config.yml:/etc/promtail/config.yml:ro
+      - ./src/famiglia_core/observability/promtail/config.yml:/etc/promtail/config.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - promtail_positions:/tmp
     depends_on:
@@ -203,9 +207,9 @@ services:
       - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./src/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./src/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./src/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./src/famiglia_core/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./src/famiglia_core/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./src/famiglia_core/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       loki:
         condition: service_started
@@ -219,7 +223,7 @@ services:
         limits:
           memory: 256M
     volumes:
-      - ./src/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./src/famiglia_core/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'

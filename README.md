@@ -94,14 +94,13 @@ Our multi-agent system is built on a high-performance, containerized stack desig
 ### 🏛️ Service Architecture
 To ensure scalability and clean separation of concerns, the system is split into three main services:
 
-1.  **Slack App (Famiglia)**: The core multi-agent orchestration service (Python/Socket Mode).
-    - `Dockerfile`: Top-level, runs the Python Slack listener.
-2.  **Command Center API**: A FastAPI backend for the web dashboard (Port 8000).
-    - `src/famiglia_core/command_center/backend/Dockerfile`: A specialized Python environment for the API.
-3.  **Command Center Web**: A React/Vite/TypeScript frontend (Port 5173).
+1.  **Command Center Web**: A React/Vite/TypeScript frontend (Port 5173).
     - `src/famiglia_core/command_center/frontend/Dockerfile`: A multi-stage Node/Nginx build.
-4.  **Mattermost (Famiglia Comm-Link)**: Self-hosted internal messaging platform (Port 8065).
-    - `Dockerfile.mattermost`: A specialized Debian-based Mattermost image for internal coordination.
+2.  **Command Center Backend**: The central engine for agent operations, state management, and real-time API services (Port 8000).
+    - `src/famiglia_core/command_center/backend/Dockerfile`: A specialized Python environment for the Core Backend and API.
+3.  **Famiglia Comm-Link (MatterMost/Slack)**: The core messaging and orchestration bridge.
+    - `Dockerfile`: Top-level, runs the Python Slack listener and agent orchestrator.
+    - `Dockerfile.mattermost`: A specialized Debian-based Mattermost image for internal coordination (Port 8065).
 
 ### 🧱 Core Tech Stack
 - **Language:** Python 3.12+ (managed with `uv`) & TypeScript (React)
@@ -114,6 +113,7 @@ To ensure scalability and clean separation of concerns, the system is split into
 - **Messaging:** [Slack](https://slack.com/) & [Mattermost](https://mattermost.com/)
 - **Productivity:** [Notion](https://www.notion.so/) (Teamspace & DB integrations)
 - **Development:** [GitHub API](https://docs.github.com/en/rest) (Issue & PR management)
+- **Observability:** [Langfuse](https://langfuse.com/) (Open-source agent tracing & analytics)
 
 ### 🚀 CI/CD & Infrastructure
 - **Pipeline:** GitHub Actions (Automated versioning & GHCR builds)

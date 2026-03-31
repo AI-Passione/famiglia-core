@@ -72,8 +72,6 @@ services:
         condition: service_healthy
       mattermost:
         condition: service_started
-      mattermost-db:
-        condition: service_healthy
 
   backend:
     image: ghcr.io/ai-passione/famiglia-core-backend:latest
@@ -120,13 +118,15 @@ services:
           memory: 128M
     environment:
       - POSTGRES_USER=${DB_USER:-passione_admin}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-passione_password}
       - POSTGRES_DB=${DB_NAME:-passione_db}
+      - POSTGRES_MULTIPLE_DATABASES=langfuse,mattermost
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/00_schema.sql
+      - ./src/db/init_multiple_dbs.sh:/docker-entrypoint-initdb.d/00_init_multiple_dbs.sh
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
       - ./src/db/agents/souls.sql:/docker-entrypoint-initdb.d/01_souls.sql
       - ./src/db/agents/skills.sql:/docker-entrypoint-initdb.d/02_skills.sql
       - ./src/db/agents/tools.sql:/docker-entrypoint-initdb.d/03_tools.sql
@@ -271,12 +271,12 @@ services:
     profiles: ["observability"]
     restart: unless-stopped
     depends_on:
-      langfuse-db:
+      postgres:
         condition: service_healthy
     ports:
       - "3001:3000"
     environment:
-      - DATABASE_URL=postgresql://langfuse:langfuse-password@langfuse-db:5432/langfuse
+      - DATABASE_URL=postgresql://${DB_USER:-passione_admin}:${DB_PASSWORD:-passione_password}@postgres:5432/langfuse
       - NEXTAUTH_SECRET=my-secret
       - NEXTAUTH_URL=http://localhost:3001
       - TELEMETRY_ENABLED=false
@@ -290,28 +290,13 @@ services:
         reservations:
           memory: 512M
 
-  mattermost-db:
-    image: postgres:15-alpine
-    restart: unless-stopped
-    environment:
-      - POSTGRES_USER=${MATTERMOST_DB_USER:-mmuser}
-      - POSTGRES_PASSWORD=${MATTERMOST_DB_PASSWORD:-mmuser_password}
-      - POSTGRES_DB=${MATTERMOST_DB_NAME:-mattermost}
-    volumes:
-      - mattermost_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${MATTERMOST_DB_USER:-mmuser} -d ${MATTERMOST_DB_NAME:-mattermost}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   mattermost:
     build:
       context: .
       dockerfile: Dockerfile.mattermost
     restart: unless-stopped
     depends_on:
-      mattermost-db:
+      postgres:
         condition: service_healthy
     ports:
       - "8065:8065"
@@ -319,7 +304,7 @@ services:
       - MM_SERVICESETTINGS_SITEURL=${MATTERMOST_URL:-http://localhost:8065}
       - MM_SERVICESETTINGS_ENABLELOCALMODE=true
       - MM_SQLSETTINGS_DRIVERNAME=postgres
-      - MM_SQLSETTINGS_DATASOURCE=postgres://${MATTERMOST_DB_USER:-mmuser}:${MATTERMOST_DB_PASSWORD:-mmuser_password}@mattermost-db:5432/${MATTERMOST_DB_NAME:-mattermost}?sslmode=disable&connect_timeout=10
+      - MM_SQLSETTINGS_DATASOURCE=postgres://${DB_USER:-passione_admin}:${DB_PASSWORD:-passione_password}@postgres:5432/mattermost?sslmode=disable&connect_timeout=10
     volumes:
       - mattermost_data:/mattermost/data
       - mattermost_logs:/mattermost/logs
@@ -340,8 +325,6 @@ volumes:
   promtail_positions:
   grafana_data:
   prometheus_data:
-  langfuse_db_data:
-  mattermost_db_data:
   mattermost_data:
   mattermost_logs:
   mattermost_config:

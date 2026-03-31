@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/AI-Passione/famiglia-core/compare/v1.1.0...v1.2.0) (2026-03-31)
+
+
+### Features
+
+* add CLI for backend management and testing, and update project to editable install mode ([5a15a89](https://github.com/AI-Passione/famiglia-core/commit/5a15a898c8361dd1d45d0092e0e99853b20ab4f4))
+
 # [1.1.0](https://github.com/AI-Passione/famiglia-core/compare/v1.0.2...v1.1.0) (2026-03-31)
 
 

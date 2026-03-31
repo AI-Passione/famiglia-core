@@ -1,0 +1,321 @@
+services:
+  app:
+    image: ghcr.io/ai-passione/famiglia-core:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          memory: 256M
+    environment:
+      - LANGFUSE_HOST=http://langfuse:3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-passione_admin}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME:-passione_db}
+      - PYTHONUNBUFFERED=1
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SLACK_BOT_TOKEN_ALFREDO=${SLACK_BOT_TOKEN_ALFREDO}
+      - SLACK_BOT_TOKEN_VITO=${SLACK_BOT_TOKEN_VITO}
+      - SLACK_BOT_TOKEN_RICCADO=${SLACK_BOT_TOKEN_RICCADO}
+      - SLACK_BOT_TOKEN_ROSSINI=${SLACK_BOT_TOKEN_ROSSINI}
+      - SLACK_BOT_TOKEN_TOMMY=${SLACK_BOT_TOKEN_TOMMY}
+      - SLACK_BOT_TOKEN_BELLA=${SLACK_BOT_TOKEN_BELLA}
+      - SLACK_BOT_TOKEN_KOWALSKI=${SLACK_BOT_TOKEN_KOWALSKI}
+      - SLACK_BOT_TOKEN_SYSTEM=${SLACK_BOT_TOKEN_SYSTEM}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN}
+      - SLACK_APP_TOKEN_ALFREDO=${SLACK_APP_TOKEN_ALFREDO}
+      - SLACK_APP_TOKEN_VITO=${SLACK_APP_TOKEN_VITO}
+      - SLACK_APP_TOKEN_RICCADO=${SLACK_APP_TOKEN_RICCADO}
+      - SLACK_APP_TOKEN_ROSSINI=${SLACK_APP_TOKEN_ROSSINI}
+      - SLACK_APP_TOKEN_TOMMY=${SLACK_APP_TOKEN_TOMMY}
+      - SLACK_APP_TOKEN_BELLA=${SLACK_APP_TOKEN_BELLA}
+      - SLACK_APP_TOKEN_KOWALSKI=${SLACK_APP_TOKEN_KOWALSKI}
+      - USER_SLACK_ID=${USER_SLACK_ID}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - OLLAMA_REMOTE_HOST=${OLLAMA_REMOTE_HOST}
+      - OLLAMA_FALLBACK_MODEL=${OLLAMA_FALLBACK_MODEL:-gemma3:4b}
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      - APP_ENV=${APP_ENV:-production}
+      - DEV_CHANNEL_ID=${DEV_CHANNEL_ID}
+      - GITHUB_APP_ID_RICCADO=${GITHUB_APP_ID_RICCADO}
+      - GITHUB_APP_INSTALLATION_ID_RICCADO=${GITHUB_APP_INSTALLATION_ID_RICCADO}
+      - GITHUB_APP_PRIVATE_KEY_RICCADO=${GITHUB_APP_PRIVATE_KEY_RICCADO}
+      - GITHUB_APP_ID_ROSSINI=${GITHUB_APP_ID_ROSSINI}
+      - GITHUB_APP_INSTALLATION_ID_ROSSINI=${GITHUB_APP_INSTALLATION_ID_ROSSINI}
+      - GITHUB_APP_PRIVATE_KEY_ROSSINI=${GITHUB_APP_PRIVATE_KEY_ROSSINI}
+      - NOTION_API_KEY_ROSSINI=${NOTION_API_KEY_ROSSINI}
+      - NOTION_API_KEY_KOWALSKI=${NOTION_API_KEY_KOWALSKI}
+      - AGENT_CONTEXT_ENABLED=${AGENT_CONTEXT_ENABLED:-true}
+      - MATTERMOST_URL=${MATTERMOST_URL:-http://mattermost:8065}
+      - MATTERMOST_BOT_TOKEN_ALFREDO=${MATTERMOST_BOT_TOKEN_ALFREDO}
+      - MATTERMOST_BOT_TOKEN_RICCADO=${MATTERMOST_BOT_TOKEN_RICCADO}
+      - MATTERMOST_BOT_TOKEN_ROSSINI=${MATTERMOST_BOT_TOKEN_ROSSINI}
+      - MATTERMOST_BOT_TOKEN_KOWALSKI=${MATTERMOST_BOT_TOKEN_KOWALSKI}
+      - MATTERMOST_BOT_TOKEN_SYSTEM=${MATTERMOST_BOT_TOKEN_SYSTEM}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      ollama:
+        condition: service_healthy
+      mattermost:
+        condition: service_started
+
+
+  frontend:
+    image: ghcr.io/ai-passione/famiglia-core-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      app:
+        condition: service_started
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    environment:
+      - POSTGRES_USER=${DB_USER:-passione_admin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-passione_password}
+      - POSTGRES_DB=${DB_NAME:-passione_db}
+      - POSTGRES_MULTIPLE_DATABASES=langfuse,mattermost
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/db/init_multiple_dbs.sh:/docker-entrypoint-initdb.d/00_init_multiple_dbs.sh
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./src/db/agents/souls.sql:/docker-entrypoint-initdb.d/01_souls.sql
+      - ./src/db/agents/skills.sql:/docker-entrypoint-initdb.d/02_skills.sql
+      - ./src/db/agents/tools.sql:/docker-entrypoint-initdb.d/03_tools.sql
+      - ./src/db/agents/resources.sql:/docker-entrypoint-initdb.d/04_resources.sql
+      - ./src/db/agents/workflows.sql:/docker-entrypoint-initdb.d/05_workflows.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-passione_admin} -d ${DB_NAME:-passione_db}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '6.0'
+          memory: 7.5G
+        reservations:
+          memory: 7G
+    environment:
+      - OLLAMA_KV_CACHE_TYPE=q8_0
+      - OLLAMA_FLASH_ATTENTION=1
+      - OLLAMA_KEEP_ALIVE=0
+      - OLLAMA_MAX_QUEUE=512
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: [ "CMD", "ollama", "list" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  loki:
+    image: grafana/loki:3.0.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    command:
+      - -config.file=/etc/loki/config.yml
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./src/observability/loki/config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    command:
+      - -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./src/observability/promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_positions:/tmp
+    depends_on:
+      loki:
+        condition: service_started
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    ports:
+      - "0.0.0.0:3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=${GRAFANA_DOMAIN:-localhost}
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./src/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./src/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./src/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      loki:
+        condition: service_started
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    volumes:
+      - ./src/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - docker-stats-exporter
+
+  docker-stats-exporter:
+    image: wywywywy/docker_stats_exporter:latest
+    profiles: ["observability"]
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  langfuse-db:
+    image: postgres:15-alpine
+    profiles: ["observability"]
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=langfuse
+      - POSTGRES_PASSWORD=langfuse-password
+      - POSTGRES_DB=langfuse
+    volumes:
+      - langfuse_db_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  langfuse:
+    image: langfuse/langfuse:2
+    profiles: ["observability"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3001:3000"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-passione_admin}:${DB_PASSWORD:-passione_password}@postgres:5432/langfuse
+      - NEXTAUTH_SECRET=my-secret
+      - NEXTAUTH_URL=http://localhost:3001
+      - TELEMETRY_ENABLED=false
+      - LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES=true
+      - SALT=${LANGFUSE_SALT:-super-secret-salt-for-local-use-only}
+      - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  mattermost:
+    build:
+      context: .
+      dockerfile: Dockerfile.mattermost
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8065:8065"
+    environment:
+      - MM_SERVICESETTINGS_SITEURL=${MATTERMOST_URL:-http://localhost:8065}
+      - MM_SERVICESETTINGS_ENABLELOCALMODE=true
+      - MM_SQLSETTINGS_DRIVERNAME=postgres
+      - MM_SQLSETTINGS_DATASOURCE=postgres://${DB_USER:-passione_admin}:${DB_PASSWORD:-passione_password}@postgres:5432/mattermost?sslmode=disable&connect_timeout=10
+    volumes:
+      - mattermost_data:/mattermost/data
+      - mattermost_logs:/mattermost/logs
+      - mattermost_config:/mattermost/config
+      - mattermost_plugins:/mattermost/plugins
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+volumes:
+  redis_data:
+  postgres_data:
+  ollama_data:
+  loki_data:
+  promtail_positions:
+  grafana_data:
+  prometheus_data:
+  mattermost_data:
+  mattermost_logs:
+  mattermost_config:
+  mattermost_plugins:

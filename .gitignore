@@ -60,3 +60,4 @@ Thumbs.db
 *.ntvs*
 *.njsproj
 *.sln
+data/duckdb_dwh.db

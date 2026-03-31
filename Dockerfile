@@ -1,13 +1,16 @@
-# Use official Python image as a base
+# Use a slim Python image
 FROM python:3.11-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    UV_SYSTEM_PYTHON=1
+    UV_PROJECT_ENVIRONMENT="/venv" \
+    PATH="/venv/bin:$PATH"
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
     curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -19,12 +22,16 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 # Copy dependency files first for caching
-# (Note: Assumes pyproject.toml or requirements.txt will exist eventually)
-# COPY pyproject.toml .
-# RUN uv sync --no-dev
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies using uv
+RUN uv sync --no-install-project --no-dev --no-cache
 
 # Copy the rest of the application
 COPY . .
 
-# Default command (placeholder)
-CMD ["python", "-m", "famiglia_core"]
+# Set up the entrypoint script
+RUN chmod +x entrypoint.sh
+
+# Run both the Engine and the API
+CMD ["./entrypoint.sh"]

@@ -1,3 +1,5 @@
+## [1.0.2](https://github.com/AI-Passione/famiglia-core/compare/v1.0.1...v1.0.2) (2026-03-31)
+
 ## [1.0.1](https://github.com/AI-Passione/famiglia-core/compare/v1.0.0...v1.0.1) (2026-03-31)
 
 # 1.0.0 (2026-03-31)

@@ -46,6 +46,9 @@ init-db = "famiglia_core.cli:init_db"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "smoke: Mark tests as smoke tests to be run first.",
+]
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]

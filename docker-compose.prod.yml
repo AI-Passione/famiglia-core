@@ -63,6 +63,8 @@ services:
       - MATTERMOST_BOT_TOKEN_ROSSINI=${MATTERMOST_BOT_TOKEN_ROSSINI}
       - MATTERMOST_BOT_TOKEN_KOWALSKI=${MATTERMOST_BOT_TOKEN_KOWALSKI}
       - MATTERMOST_BOT_TOKEN_SYSTEM=${MATTERMOST_BOT_TOKEN_SYSTEM}
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,18 +75,6 @@ services:
       mattermost:
         condition: service_started
 
-  backend:
-    image: ghcr.io/ai-passione/famiglia-core-backend:latest
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - DB_HOST=postgres
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
 
   frontend:
     image: ghcr.io/ai-passione/famiglia-core-frontend:latest
@@ -92,7 +82,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      backend:
+      app:
         condition: service_started
 
   redis:

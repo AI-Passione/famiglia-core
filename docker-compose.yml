@@ -58,6 +58,8 @@ services:
       - MATTERMOST_BOT_TOKEN_ROSSINI=${MATTERMOST_BOT_TOKEN_ROSSINI}
       - MATTERMOST_BOT_TOKEN_KOWALSKI=${MATTERMOST_BOT_TOKEN_KOWALSKI}
       - MATTERMOST_BOT_TOKEN_SYSTEM=${MATTERMOST_BOT_TOKEN_SYSTEM}
+    ports:
+      - "8000:8000"
     deploy:
       resources:
         limits:
@@ -75,23 +77,6 @@ services:
       mattermost:
         condition: service_started
 
-  backend:
-    build:
-      context: .
-      dockerfile: src/command_center/backend/Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "8000:8000"
-    volumes:
-      - .:/app
-    environment:
-      - DB_HOST=postgres
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
 
   frontend:
     build:
@@ -100,7 +85,7 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      backend:
+      app:
         condition: service_started
 
   redis:

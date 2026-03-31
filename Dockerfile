@@ -30,5 +30,8 @@ RUN uv sync --no-install-project --no-dev --no-cache
 # Copy the rest of the application
 COPY . .
 
-# Run the application
-CMD ["python", "main.py"]
+# Set up the entrypoint script
+RUN chmod +x entrypoint.sh
+
+# Run both the Engine and the API
+CMD ["./entrypoint.sh"]

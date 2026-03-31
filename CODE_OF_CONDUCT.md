@@ -37,7 +37,7 @@ This Code of Conduct applies within all community spaces connected to **"La Pass
 ## Enforcement: Resolution through The Core
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the Core at:
-**conduct@aipassione.com**
+**conduct@ai-passione.com**
 
 All complaints will be reviewed and investigated promptly and fairly. The Core is obligated to respect the privacy and security of the reporter.
 

@@ -2,27 +2,26 @@
 
 This document outlines the release process for the `famiglia-core` engine, powered by `semantic-release` and GitHub Actions.
 
-## 🚀 Branching Strategy
+## 🚀 Single Branch Strategy
 
-Our release process is built around two primary branches:
+To ensure simplicity and stability, we use the `main` branch for both staging and production releases.
 
-### 1. `main` (Staging)
+### 1. Staging builds
 - **Purpose**: All development features and bug fixes are merged into `main` after review.
-- **Automation**: Every push to `main` triggers an automatic Docker build.
-- **Output**: A Docker image tagged with `staging` and the short git SHA is pushed to the [GitHub Container Registry (GHCR)](https://github.com/aipassione/famiglia-core/pkgs/container/famiglia-core).
-- **Usage**: Use the `:staging` tag for testing and integration environments.
+- **Automation**: Every push to `main` triggers a GitHub Action to build and push the `:staging` image.
+- **Output**: A Docker image tagged with `staging` and the short git SHA is pushed to GHCR.
 
-### 2. `release` (Production)
-- **Purpose**: This branch represents stable, production-ready code.
-- **Automation**: Releases from this branch are **not automatic**. They require a manual trigger.
-- **Manual Trigger**: To create a production release:
-  1. Go to the **Actions** tab in the GitHub repository.
-  2. Select the **Manual Production Release** workflow.
-  3. Click **Run workflow** and select the `release` branch.
+### 2. Production releases
+- **Purpose**: Formal releases with versioned tags (e.g., `v1.2.3`).
+- **Automation**: These releases are manually triggered via GitHub Actions.
+- **Manual Trigger**: 
+  1. Go to the **Actions** tab.
+  2. Select **Manual Production Release**.
+  3. Click **Run workflow** and select the `main` branch.
 - **Output**: 
   - A new GitHub Release and Tag (e.g., `v1.2.3`).
   - An updated `CHANGELOG.md`.
-  - A production Docker image tagged with the version number (e.g., `:1.2.3`) and `:latest`.
+  - A production Docker image tagged with the version number (e.g., `:1.2.3`), `:production`, and `:latest`.
 
 ---
 
@@ -38,16 +37,16 @@ We use `semantic-release` to automate versioning based on [Conventional Commits]
 
 ## 📦 Docker Container Registry
 
-All images are hosted on GHCR: `ghcr.io/aipassione/famiglia-core`.
+All images are hosted on GHCR: `ghcr.io/AI-Passione/famiglia-core`.
 
 To pull the latest production image:
 ```bash
-docker pull ghcr.io/aipassione/famiglia-core:latest
+docker pull ghcr.io/AI-Passione/famiglia-core:latest
 ```
 
 To pull the latest staging image:
 ```bash
-docker pull ghcr.io/aipassione/famiglia-core:staging
+docker pull ghcr.io/AI-Passione/famiglia-core:staging
 ```
 
 ---

@@ -2,11 +2,6 @@ name: Manual Production Release
 
 on:
   workflow_dispatch:
-    inputs:
-      release-type:
-        description: 'Type of release (optional, semantic-release will decide if not provided)'
-        required: false
-        default: ''
 
 jobs:
   release:
@@ -60,6 +55,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:${{ steps.semantic.outputs.new_release_version }}
+            ghcr.io/${{ github.repository }}:production
             ghcr.io/${{ github.repository }}:latest
           labels: |
             org.opencontainers.image.version=${{ steps.semantic.outputs.new_release_version }}

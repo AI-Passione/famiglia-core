@@ -1,6 +1,6 @@
 import pytest
 
-from src.agents.soul_registry import load_agent_soul, resolve_agent_id
+from famiglia_core.agents.soul_registry import load_agent_soul, resolve_agent_id
 
 
 def test_resolve_agent_id_by_name():

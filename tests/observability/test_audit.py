@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import json
-from src.db.audit import AuditLogger
+from famiglia_core.db.audit import AuditLogger
 
 @pytest.fixture
 def mock_conn():

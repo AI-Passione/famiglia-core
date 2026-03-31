@@ -1,7 +1,7 @@
 import json
 import unittest
 from unittest.mock import MagicMock, patch
-from src.agents.llm.client import LLMClient
+from famiglia_core.agents.llm.client import LLMClient
 
 class TestDualModelPolicy(unittest.TestCase):
     def setUp(self):

@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
-from src.agents.alfredo import Alfredo
+from famiglia_core.agents.alfredo import Alfredo
 
 
-@patch("src.agents.alfredo.context_store.get_scheduled_tasks_overview")
-@patch("src.agents.alfredo.BaseAgent.complete_task")
+@patch("famiglia_core.agents.alfredo.context_store.get_scheduled_tasks_overview")
+@patch("famiglia_core.agents.alfredo.BaseAgent.complete_task")
 def test_alfredo_status_request_uses_batched_overview_directly(
     mock_super_complete,
     mock_overview,
@@ -48,8 +48,8 @@ def test_alfredo_status_request_uses_batched_overview_directly(
     mock_super_complete.assert_not_called()
 
 
-@patch("src.agents.alfredo.context_store.get_scheduled_tasks_overview")
-@patch("src.agents.alfredo.BaseAgent.complete_task")
+@patch("famiglia_core.agents.alfredo.context_store.get_scheduled_tasks_overview")
+@patch("famiglia_core.agents.alfredo.BaseAgent.complete_task")
 def test_alfredo_ongoing_phrase_triggers_db_status_lookup(
     mock_super_complete,
     mock_overview,
@@ -77,8 +77,8 @@ def test_alfredo_ongoing_phrase_triggers_db_status_lookup(
     mock_overview.assert_called_once()
 
 
-@patch("src.agents.alfredo.context_store.enabled", new=False)
-@patch("src.agents.alfredo.BaseAgent.complete_task")
+@patch("famiglia_core.agents.alfredo.context_store.enabled", new=False)
+@patch("famiglia_core.agents.alfredo.BaseAgent.complete_task")
 def test_alfredo_reports_when_context_store_disabled(mock_super_complete):
     mock_super_complete.return_value = "fallback-llm-response"
     alfredo = Alfredo()

@@ -1,7 +1,7 @@
 import pytest
 import json
 from unittest.mock import MagicMock, patch
-from src.command_center.backend.mattermost.client import MattermostQueueClient, PRIORITY_HIGH
+from famiglia_core.command_center.backend.mattermost.client import MattermostQueueClient, PRIORITY_HIGH
 
 def test_mattermost_enqueue_message():
     # Mock redis
@@ -26,7 +26,7 @@ def test_mattermost_post_message_mock():
     mock_driver = MagicMock()
     
     with patch("redis.from_url", return_value=mock_redis), \
-         patch("src.command_center.backend.mattermost.client.Driver", return_value=mock_driver):
+         patch("famiglia_core.command_center.backend.mattermost.client.Driver", return_value=mock_driver):
         
         # Setup mock driver behavior
         mock_driver.login.return_value = None

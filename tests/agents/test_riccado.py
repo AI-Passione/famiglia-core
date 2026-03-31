@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from src.agents.riccado import Riccado
+from famiglia_core.agents.riccado import Riccado
 
 # client.complete() is called TWICE per complete_task:
 # 1. by _get_routing_mode (returns classification like "COMPLEX")
@@ -8,7 +8,7 @@ from src.agents.riccado import Riccado
 _ROUTING_RETURN = ("COMPLEX", "ollama-gemma3")
 
 
-@patch('src.agents.base_agent.client.complete')
+@patch('famiglia_core.agents.base_agent.client.complete')
 def test_riccado_initialization(mock_complete):
     riccado = Riccado()
     assert riccado.name == "Riccado"
@@ -17,7 +17,7 @@ def test_riccado_initialization(mock_complete):
     assert riccado.model_config["global_fallback"] == "ollama-gemma3"
 
 
-@patch('src.agents.base_agent.client.complete')
+@patch('famiglia_core.agents.base_agent.client.complete')
 def test_review_code(mock_complete):
     mock_complete.side_effect = [_ROUTING_RETURN, ("MA CHE CAZZO! This loop is N+1 dog shit. Use a JOIN instead.", "claude-3.7-sonnet")]
     riccado = Riccado()
@@ -25,7 +25,7 @@ def test_review_code(mock_complete):
     assert result is not None
 
 
-@patch('src.agents.base_agent.client.complete')
+@patch('famiglia_core.agents.base_agent.client.complete')
 def test_write_pipeline(mock_complete):
     mock_complete.side_effect = [_ROUTING_RETURN, ("-- dbt model: stg_orders\nSELECT id, amount FROM raw.orders", "claude-3.7-sonnet")]
     riccado = Riccado()
@@ -33,7 +33,7 @@ def test_write_pipeline(mock_complete):
     assert result is not None
 
 
-@patch('src.agents.base_agent.client.complete')
+@patch('famiglia_core.agents.base_agent.client.complete')
 def test_debug_query(mock_complete):
     mock_complete.side_effect = [_ROUTING_RETURN, ("SELECT * is CRIMINAL. Use explicit columns!", "claude-3.7-sonnet")]
     riccado = Riccado()
@@ -41,7 +41,7 @@ def test_debug_query(mock_complete):
     assert result is not None
 
 
-@patch('src.agents.base_agent.client.complete')
+@patch('famiglia_core.agents.base_agent.client.complete')
 def test_infra_check(mock_complete):
     mock_complete.side_effect = [_ROUTING_RETURN, ("Redis is not persistent. Enable AOF or you lose data, idiota!", "claude-3.7-sonnet")]
     riccado = Riccado()
@@ -49,7 +49,7 @@ def test_infra_check(mock_complete):
     assert result is not None
 
 
-@patch('src.agents.base_agent.client.complete')
+@patch('famiglia_core.agents.base_agent.client.complete')
 def test_deploy(mock_complete):
     mock_complete.side_effect = [_ROUTING_RETURN, ("Deployed passione-api v2.1.0. Run smoke tests. È fatto!", "claude-3.7-sonnet")]
     riccado = Riccado()

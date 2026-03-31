@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
-from src.db.context_store import AgentContextStore
+from famiglia_core.db.context_store import AgentContextStore
 
 
 def _sample_task_row(task_id: int = 7):
@@ -29,7 +29,7 @@ def _sample_task_row(task_id: int = 7):
 
 
 def test_create_scheduled_task_persists_expected_fields():
-    with patch("src.db.context_store.psycopg2.connect") as mock_connect:
+    with patch("famiglia_core.db.context_store.psycopg2.connect") as mock_connect:
         conn = MagicMock()
         cursor = conn.cursor.return_value
         cursor.fetchone.return_value = _sample_task_row(task_id=17)
@@ -62,7 +62,7 @@ def test_create_scheduled_task_persists_expected_fields():
 
 
 def test_claim_next_scheduled_task_marks_in_progress():
-    with patch("src.db.context_store.psycopg2.connect") as mock_connect:
+    with patch("famiglia_core.db.context_store.psycopg2.connect") as mock_connect:
         conn = MagicMock()
         cursor = conn.cursor.return_value
         task_row = _sample_task_row(task_id=22)
@@ -85,7 +85,7 @@ def test_claim_next_scheduled_task_marks_in_progress():
 
 
 def test_complete_scheduled_task_updates_status():
-    with patch("src.db.context_store.psycopg2.connect") as mock_connect:
+    with patch("famiglia_core.db.context_store.psycopg2.connect") as mock_connect:
         conn = MagicMock()
         cursor = conn.cursor.return_value
         cursor.rowcount = 1
@@ -109,7 +109,7 @@ def test_complete_scheduled_task_updates_status():
 
 
 def test_get_scheduled_tasks_overview_includes_queue_and_history():
-    with patch("src.db.context_store.psycopg2.connect") as mock_connect:
+    with patch("famiglia_core.db.context_store.psycopg2.connect") as mock_connect:
         conn = MagicMock()
         count_cursor = MagicMock()
         queue_cursor = MagicMock()

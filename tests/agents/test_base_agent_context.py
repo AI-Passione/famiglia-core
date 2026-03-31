@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from src.agents.base_agent import BaseAgent
+from famiglia_core.agents.base_agent import BaseAgent
 
 # client.complete() is called TWICE per complete_task:
 # 1. by _get_routing_mode (returns classification like "COMPLEX")
@@ -8,12 +8,12 @@ from src.agents.base_agent import BaseAgent
 _ROUTING_RETURN = ("COMPLEX", "ollama-gemma3")
 
 
-@patch("src.agents.base_agent.audit_logger.log_action", return_value=1)
-@patch("src.agents.base_agent.context_store.upsert_memory")
-@patch("src.agents.base_agent.context_store.log_message")
-@patch("src.agents.base_agent.context_store.get_memories")
-@patch("src.agents.base_agent.context_store.get_recent_messages")
-@patch("src.agents.base_agent.client.complete")
+@patch("famiglia_core.agents.base_agent.audit_logger.log_action", return_value=1)
+@patch("famiglia_core.agents.base_agent.context_store.upsert_memory")
+@patch("famiglia_core.agents.base_agent.context_store.log_message")
+@patch("famiglia_core.agents.base_agent.context_store.get_memories")
+@patch("famiglia_core.agents.base_agent.context_store.get_recent_messages")
+@patch("famiglia_core.agents.base_agent.client.complete")
 def test_complete_task_uses_scoped_context_and_persists_messages(
     mock_complete,
     mock_get_recent_messages,
@@ -67,12 +67,12 @@ def test_complete_task_uses_scoped_context_and_persists_messages(
     assert mock_upsert_memory.call_count == 3
 
 
-@patch("src.agents.base_agent.audit_logger.log_action", return_value=1)
-@patch("src.agents.base_agent.context_store.upsert_memory")
-@patch("src.agents.base_agent.context_store.log_message")
-@patch("src.agents.base_agent.context_store.get_memories")
-@patch("src.agents.base_agent.context_store.get_recent_messages")
-@patch("src.agents.base_agent.client.complete")
+@patch("famiglia_core.agents.base_agent.audit_logger.log_action", return_value=1)
+@patch("famiglia_core.agents.base_agent.context_store.upsert_memory")
+@patch("famiglia_core.agents.base_agent.context_store.log_message")
+@patch("famiglia_core.agents.base_agent.context_store.get_memories")
+@patch("famiglia_core.agents.base_agent.context_store.get_recent_messages")
+@patch("famiglia_core.agents.base_agent.client.complete")
 def test_complete_task_footer_includes_model_size_when_available(
     mock_complete,
     mock_get_recent_messages,

@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
-from src.db.context_store import AgentContextStore
-from src.agents.orchestration.scheduler import TaskOrchestrator
+from famiglia_core.db.context_store import AgentContextStore
+from famiglia_core.agents.orchestration.scheduler import TaskOrchestrator
 
 def test_create_and_list_unified_recurring_task():
     """Verify that a scheduled task with schedule_config is treated as recurring."""
-    with patch("src.db.context_store.psycopg2.connect") as mock_connect:
+    with patch("famiglia_core.db.context_store.psycopg2.connect") as mock_connect:
         conn = MagicMock()
         mock_connect.return_value = conn
         cursor = conn.cursor.return_value
@@ -64,7 +64,7 @@ def test_scheduler_pickup_unified_task():
     """Verify the TaskOrchestrator picks up the unified task."""
     scheduler = TaskOrchestrator()
     
-    with patch("src.db.context_store.psycopg2.connect") as mock_connect:
+    with patch("famiglia_core.db.context_store.psycopg2.connect") as mock_connect:
         conn = MagicMock()
         mock_connect.return_value = conn
         cursor = conn.cursor.return_value

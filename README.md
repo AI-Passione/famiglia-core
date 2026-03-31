@@ -55,6 +55,31 @@ docker run -d --name famiglia-core -p 8000:8000 -p 5173:5173 --env-file .env ghc
 
 # **La Tecnologia & Architecture**
 
+## 🏛 The Architecture
+
+```mermaid
+graph TD
+    User([The User: Don or Donna]) -->|Interacts| Dashboard[Command Center: Web Client]
+    Dashboard -->|REST/Websockets| Backend[FastAPI Backend: The Situation Room]
+    
+    subgraph Core ["The Core Intelligence"]
+        Backend -->|Orchestrates| Workflow[Workflow Engine: LangGraph]
+        Workflow -->|Task State| Agents[Autonomous Agents: Alfredo, Vito, Riccado, etc.]
+        Agents -->|Memory| DB[(PostgreSQL: Permanent Memory)]
+    end
+    
+    subgraph Ops ["Strategic Operations"]
+        Agents -->|Tools| External[GitHub, Notion, Slack, Finance APIs]
+        Agents -->|External Comm| Slack[Slack App]
+        Agents -->|Internal Comm| Mattermost[Mattermost: Comm-Link]
+    end
+    
+    subgraph Obs ["Observability & Intel"]
+        Backend -.->|Metrics/Logs| Grafana[Grafana + Loki]
+        Agents -.->|Traces| Langfuse[Langfuse]
+    end
+```
+
 Our multi-agent system is built on a high-performance, containerized stack designed for local intelligence and multi-platform coordination.
 
 ### 🧠 Intelligence Tier
@@ -109,32 +134,7 @@ To ensure scalability and clean separation of concerns, the system is split into
 - **Slack**: See [slack_channel_structure.md](src/interaction/slack/slack_channel_structure.md).
 - **Notion**: See [notion_workspace.md](src/agents/tools/notion_workspace.md).
 
----
 
-## 🏛 The Architecture
-
-```mermaid
-graph TD
-    User([The User: Don or Donna]) -->|Interacts| Dashboard[Command Center: Web Client]
-    Dashboard -->|REST/Websockets| Backend[FastAPI Backend: The Situation Room]
-    
-    subgraph Core ["The Core Intelligence"]
-        Backend -->|Orchestrates| Workflow[Workflow Engine: LangGraph]
-        Workflow -->|Task State| Agents[Autonomous Agents: Alfredo, Vito, Riccado, etc.]
-        Agents -->|Memory| DB[(PostgreSQL: Permanent Memory)]
-    end
-    
-    subgraph Ops ["Strategic Operations"]
-        Agents -->|Tools| External[GitHub, Notion, Slack, Finance APIs]
-        Agents -->|External Comm| Slack[Slack App]
-        Agents -->|Internal Comm| Mattermost[Mattermost: Comm-Link]
-    end
-    
-    subgraph Obs ["Observability & Intel"]
-        Backend -.->|Metrics/Logs| Grafana[Grafana + Loki]
-        Agents -.->|Traces| Langfuse[Langfuse]
-    end
-```
 ---
 
 ## 🤝 Contributing

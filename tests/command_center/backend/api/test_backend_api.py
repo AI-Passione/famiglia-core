@@ -124,3 +124,32 @@ def test_update_settings_endpoint(mock_user_service):
     assert response.status_code == 200
     assert response.json() == payload
     mock_user_service.update_don_settings.assert_called_once_with(payload)
+
+
+@patch("famiglia_core.command_center.backend.api.main.context_store")
+def test_get_famiglia_agents_endpoint(mock_store):
+    mock_store.list_famiglia_agents.return_value = [
+        {
+            "id": "alfredo",
+            "agent_id": "alfredo",
+            "name": "Alfredo",
+            "role": "Strategic Lead",
+            "status": "active",
+            "aliases": ["Chief of Staff"],
+            "personality": "Calm and precise",
+            "identity": "Coordinates the family.",
+            "skills": ["Coordination"],
+            "tools": ["openclaw-api"],
+            "workflows": ["Command Center"],
+            "latest_conversation_snippet": "Status confirmed.",
+            "last_active": datetime(2026, 3, 31, 17, 0, 0, tzinfo=timezone.utc),
+        }
+    ]
+
+    response = client.get("/api/v1/famiglia/agents")
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 1
+    assert payload[0]["name"] == "Alfredo"
+    assert payload[0]["skills"] == ["Coordination"]
+    assert payload[0]["agent_id"] == "alfredo"

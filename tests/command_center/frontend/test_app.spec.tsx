@@ -13,6 +13,9 @@ vi.mock('@/modules/SOP', () => ({
 vi.mock('@/modules/Connections', () => ({
   Connections: () => <div data-testid="connections-page">Connections Page</div>
 }));
+vi.mock('@/modules/Famiglia', () => ({
+  Famiglia: () => <div data-testid="famiglia-page">Famiglia Page</div>
+}));
 
 describe('App Component', () => {
   beforeEach(() => {
@@ -79,6 +82,12 @@ describe('App Component', () => {
     fireEvent.click(settingsLink);
     await waitFor(() => {
       expect(screen.getByText(/Configure how the Command Center addresses you/i)).toBeDefined();
+    });
+
+    const famigliaLink = screen.getByText('The Famiglia');
+    fireEvent.click(famigliaLink);
+    await waitFor(() => {
+      expect(screen.getByTestId('famiglia-page')).toBeDefined();
     });
   });
 

@@ -698,6 +698,73 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to list newsletters: {e}")
             return []
 
+    def list_famiglia_agents(self) -> List[Dict[str, Any]]:
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    """
+                    WITH skill_map AS (
+                        SELECT
+                            as_.agent_id,
+                            ARRAY_AGG(DISTINCT s.name ORDER BY s.name) AS skills
+                        FROM agent_skills as_
+                        INNER JOIN skills s ON s.id = as_.skill_id
+                        GROUP BY as_.agent_id
+                    ),
+                    tool_map AS (
+                        SELECT
+                            at.agent_id,
+                            ARRAY_AGG(DISTINCT t.name ORDER BY t.name) AS tools
+                        FROM agent_tools at
+                        INNER JOIN tools t ON t.id = at.tool_id
+                        GROUP BY at.agent_id
+                    ),
+                    workflow_map AS (
+                        SELECT
+                            aw.agent_id,
+                            ARRAY_AGG(DISTINCT w.name ORDER BY w.name) AS workflows
+                        FROM agent_workflows aw
+                        INNER JOIN workflows w ON w.id = aw.workflow_id
+                        GROUP BY aw.agent_id
+                    ),
+                    latest_messages AS (
+                        SELECT DISTINCT ON (LOWER(m.agent_name))
+                            LOWER(m.agent_name) AS agent_id,
+                            LEFT(REGEXP_REPLACE(COALESCE(m.content, ''), '\\s+', ' ', 'g'), 220) AS latest_conversation_snippet,
+                            m.created_at AS last_active
+                        FROM agent_messages m
+                        WHERE COALESCE(BTRIM(m.agent_name), '') <> ''
+                        ORDER BY LOWER(m.agent_name), m.created_at DESC
+                    )
+                    SELECT
+                        a.agent_id AS id,
+                        a.agent_id,
+                        a.agent_name AS name,
+                        COALESCE(ar.name, 'Unassigned') AS role,
+                        CASE WHEN COALESCE(a.is_active, FALSE) THEN 'active' ELSE 'inactive' END AS status,
+                        COALESCE(a.aliases, ARRAY[]::TEXT[]) AS aliases,
+                        COALESCE(NULLIF(BTRIM(a.persona), ''), 'Soul profile pending.') AS personality,
+                        COALESCE(NULLIF(BTRIM(a.identity), ''), 'Identity profile pending.') AS identity,
+                        COALESCE(sm.skills, ARRAY[]::TEXT[]) AS skills,
+                        COALESCE(tm.tools, ARRAY[]::TEXT[]) AS tools,
+                        COALESCE(wm.workflows, ARRAY[]::TEXT[]) AS workflows,
+                        COALESCE(lm.latest_conversation_snippet, 'No recent conversation snippet available.') AS latest_conversation_snippet,
+                        lm.last_active
+                    FROM agents a
+                    LEFT JOIN archetypes ar ON ar.id = a.archetype_id
+                    LEFT JOIN skill_map sm ON sm.agent_id = a.agent_id
+                    LEFT JOIN tool_map tm ON tm.agent_id = a.agent_id
+                    LEFT JOIN workflow_map wm ON wm.agent_id = a.agent_id
+                    LEFT JOIN latest_messages lm ON lm.agent_id = LOWER(a.agent_id)
+                    ORDER BY COALESCE(a.is_active, FALSE) DESC, a.agent_name ASC
+                    """
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to list Famiglia agents: {e}")
+            return []
+
     # --- Agent Soul & Capability Management ---
 
     def get_agent_soul(self, agent_id: str) -> Optional[Dict[str, Any]]:

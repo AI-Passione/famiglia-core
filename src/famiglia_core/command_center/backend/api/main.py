@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from psycopg2.extras import RealDictCursor
 
 # Ensure project root is in path for imports
@@ -84,6 +84,21 @@ class MissionLog(BaseModel):
     status: str
     duration: str
     initiator: str
+
+class FamigliaAgentProfile(BaseModel):
+    id: str
+    agent_id: str
+    name: str
+    role: str
+    status: str
+    aliases: List[str] = Field(default_factory=list)
+    personality: str
+    identity: str
+    skills: List[str] = Field(default_factory=list)
+    tools: List[str] = Field(default_factory=list)
+    workflows: List[str] = Field(default_factory=list)
+    latest_conversation_snippet: str
+    last_active: Optional[datetime] = None
 
 # --- Core Informational Routes ---
 
@@ -196,6 +211,10 @@ async def get_mission_logs(graph_id: str):
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
+@app.get("/api/v1/famiglia/agents", response_model=List[FamigliaAgentProfile])
+async def get_famiglia_agents():
+    return context_store.list_famiglia_agents()
 
 if __name__ == "__main__":
     import uvicorn

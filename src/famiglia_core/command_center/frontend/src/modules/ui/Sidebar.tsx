@@ -2,6 +2,7 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
   const items = [
     { id: 'situation_room', label: 'The Situation Room', icon: 'dashboard' },
     { id: 'sop', label: 'SOP', icon: 'description' },
+    { id: 'agenda', label: 'The Agenda', icon: 'calendar_month' },
     { id: 'famiglia', label: 'The Famiglia', icon: 'groups' },
     { id: 'intelligences', label: 'Intelligences', icon: 'insights' },
     { id: 'connections', label: 'Connections', icon: 'hub' },
@@ -19,11 +20,10 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
             type="button"
             key={item.id}
             onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 ${
-              activeTab === item.id 
-              ? 'translate-x-1 text-[#ffb3b5] font-bold bg-[#1c1b1b] border-l-4 border-[#4A0404]' 
-              : 'hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50'
-            }`}
+            className={`w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 ${activeTab === item.id
+                ? 'translate-x-1 text-[#ffb3b5] font-bold bg-[#1c1b1b] border-l-4 border-[#4A0404]'
+                : 'hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50'
+              }`}
           >
             <span className="material-symbols-outlined">{item.icon}</span>
             <span className="font-body font-medium text-sm tracking-wide">{item.label}</span>
@@ -34,11 +34,10 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
         <button
           type="button"
           onClick={() => setActiveTab('settings')}
-          className={`w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 ${
-            activeTab === 'settings'
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 ${activeTab === 'settings'
               ? 'translate-x-1 text-[#ffb3b5] font-bold bg-[#1c1b1b] border-l-4 border-[#4A0404]'
               : 'hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50'
-          }`}
+            }`}
         >
           <span className="material-symbols-outlined">settings</span>
           <span className="font-body font-medium text-sm tracking-wide">Settings</span>

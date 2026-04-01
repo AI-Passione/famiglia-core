@@ -267,10 +267,6 @@ export function EngineRoom() {
     snapshot.host.cpu.estimated_load_percent != null
       ? `${snapshot.host.cpu.estimated_load_percent.toFixed(1)}%`
       : 'Unavailable';
-  const memoryValue =
-    snapshot.host.memory.usage_percent != null
-      ? `${snapshot.host.memory.usage_percent.toFixed(1)}%`
-      : 'Unavailable';
   const observabilityHint = `${snapshot.observability.summary.reachable}/${snapshot.observability.summary.total} stacks reachable`;
 
   return (

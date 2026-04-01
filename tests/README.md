@@ -3,10 +3,19 @@
 
 Welcome to the central intelligence validation hub. This directory contains the automated test suite for the `famiglia-core` engine, restructured to mirror the source code for maximum scalability.
 
-## 🚀 Quick Start
-Run all tests using the `uv` environment:
+Run all unit tests (both frontend and backend) from the Command Center:
 ```bash
-uv run pytest tests/
+npm run test
+```
+
+Run all frontend unit tests from the command center:
+```bash
+npm run test:frontend
+```
+
+Run all backend tests using the `uv` environment:
+```bash
+uv run pytest
 ```
 
 To run a specific module:
@@ -22,6 +31,7 @@ uv run pytest tests/agents/test_agents.py
 | **`tests/command_center/backend/slack/`** | **Slack** | Slack client communication, file downloads, and resolution. |
 | **`tests/command_center/backend/mattermost/`** | **Mattermost** | Mattermost client and provisioning logic. |
 | **`tests/command_center/backend/api/`** | **Backend API** | FastAPI endpoints, services, and response validation. |
+| **`tests/command_center/frontend/`** | **Web Dashboard** | React component validation, Vitest configuration, and UI logic. |
 | **`tests/db/`** | **Infrastructure** | Database seeding and schema initialization. |
 | **`tests/observability/`** | **Monitoring** | System health checks and execution logging. |
 | **`tests/`** | **Core** | Project-wide core utilities (e.g. `test_core.py`). |
@@ -41,6 +51,14 @@ Always prioritize `unittest.mock` for external services.
 ### 3. Adding New Tests
 When adding a new feature, place the test in a directory mirroring its source location in `src/famiglia_core`. 
 Example: `src/famiglia_core/tools/api.py` -> `tests/tools/test_api.py`.
+
+## 🎨 Frontend Testing (Vitest)
+
+The Command Center Dashboard uses **Vitest** and **React Testing Library** for high-fidelity UI validation. 
+
+- **Location**: All frontend tests are centralized in `tests/command_center/frontend/`.
+- **Mocks**: Global browser APIs are mocked in `vitest.setup.ts`. 
+- **Execution**: Run `npm run test:frontend` from the repository root to verify the dashboard's integrity.
 
 ---
 *Stay elegant. Stay verified. La Passione.*

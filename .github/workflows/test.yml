@@ -7,6 +7,22 @@ on:
   workflow_dispatch:
 
 jobs:
+  docker-validation:
+    name: Docker Validation 🐳
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository 🛒
+        uses: actions/checkout@v4
+
+      - name: Create Dummy Env 📄
+        run: touch .env
+
+      - name: Validate Development Config 🛠️
+        run: docker compose config
+
+      - name: Validate Production Config 🚀
+        run: docker compose -f docker-compose.prod.yml config
+
   test:
     name: Run Pytest 🧪
     runs-on: ubuntu-latest
@@ -35,18 +51,22 @@ jobs:
       - name: Build Check 📦
         run: uv build --sdist
 
-  docker-lint:
-    name: Docker Validation 🐳
+  frontend-validation:
+    name: Frontend Validation 🧪
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository 🛒
         uses: actions/checkout@v4
 
-      - name: Create Dummy Env 📄
-        run: touch .env
+      - name: Set up Node.js 🟢
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: src/famiglia_core/command_center/frontend/package-lock.json
 
-      - name: Validate Development Config 🛠️
-        run: docker compose config
+      - name: Install Dependencies 📦
+        run: cd src/famiglia_core/command_center/frontend && npm install
 
-      - name: Validate Production Config 🚀
-        run: docker compose -f docker-compose.prod.yml config
+      - name: Run Tests 🚀
+        run: npm run test:frontend

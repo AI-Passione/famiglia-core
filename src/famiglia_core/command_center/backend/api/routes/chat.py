@@ -2,7 +2,7 @@ import os
 import json
 import uuid
 import asyncio
-from typing import Optional, List, Dict, Any, Callable
+from typing import Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Request
 from fastapi.responses import StreamingResponse
 
@@ -90,7 +90,7 @@ async def chat_stream(
         def on_intermediate(text: str):
             # Put intermediate chunks in the queue
             asyncio.run_coroutine_threadsafe(
-                queue.put(StreamChunk(type="intermediate", content=text).json()),
+                queue.put(StreamChunk(type="intermediate", content=text).model_dump_json()),
                 asyncio.get_event_loop()
             )
 
@@ -116,32 +116,39 @@ async def chat_stream(
         # Final result
         try:
             final_response = await task
-            yield f"data: {StreamChunk(type='final', content=final_response).json()}\n\n"
+            yield f"data: {StreamChunk(type='final', content=final_response).model_dump_json()}\n\n"
         except Exception as e:
-            yield f"data: {StreamChunk(type='error', content=str(e)).json()}\n\n"
+            yield f"data: {StreamChunk(type='error', content=str(e)).model_dump_json()}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @router.post("/upload")
 async def upload_file(
-    agent_id: str = Form("alfredo"),
-    file: UploadFile = File(...)
+    request: Request,
+    agent_id: str = Query("alfredo")
 ):
     """Upload a file to be processed by an agent."""
     try:
+        # Get filename from headers or default
+        filename_header = request.headers.get("x-filename", "uploaded_file.txt")
+        
         # Guarantee uniqueness
         file_id = str(uuid.uuid4())[:8]
-        filename = f"{file_id}_{file.filename}"
+        filename = f"{file_id}_{filename_header}"
         file_path = os.path.join(UPLOAD_DIR, filename)
         
+        # Stream the body directly to disk to bypass Starlette's multipart parser
         with open(file_path, "wb") as f:
-            f.write(await file.read())
+            async for chunk in request.stream():
+                f.write(chunk)
             
         return {
             "success": True,
             "filename": filename,
             "file_path": file_path,
-            "message": f"File '{file.filename}' uploaded for {agent_id}. Mention it in your next chat message."
+            "message": f"File '{filename_header}' uploaded for {agent_id}. Mention it in your next chat message."
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+        # Log the error for diagnostics
+        print(f"[API] Stream upload error for {agent_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")

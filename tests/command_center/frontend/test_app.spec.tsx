@@ -1,0 +1,64 @@
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import App from '@/App';
+import React from 'react';
+
+// Mock child components to avoid deep testing
+vi.mock('@/modules/SituationRoom', () => ({
+  SituationRoom: () => <div data-testid="situation-room">Situation Room</div>
+}));
+vi.mock('@/modules/SOP', () => ({
+  SOP: () => <div data-testid="sop-page">SOP Page</div>
+}));
+vi.mock('@/modules/Connections', () => ({
+  Connections: () => <div data-testid="connections-page">Connections Page</div>
+}));
+
+describe('App Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Default fetch mocks
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/agents')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (url.includes('/actions')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (url.includes('/tasks')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (url.includes('/graphs')) return Promise.resolve({ ok: true, json: async () => [] });
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+  });
+
+  it('renders Situation Room by default', async () => {
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId('situation-room')).toBeDefined();
+    });
+  });
+
+  it('switches tabs correctly', async () => {
+    render(<App />);
+    
+    // Find the SOP link in the Sidebar (assuming Sidebar uses these names)
+    // Actually Sidebar has "SOP" text
+    const sopLink = screen.getByText('SOP');
+    fireEvent.click(sopLink);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('sop-page')).toBeDefined();
+    });
+
+    const connectionsLink = screen.getByText('Connections');
+    fireEvent.click(connectionsLink);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('connections-page')).toBeDefined();
+    });
+  });
+
+  it('fetches initial data on mount', async () => {
+    render(<App />);
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/agents'));
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/graphs'));
+    });
+  });
+});

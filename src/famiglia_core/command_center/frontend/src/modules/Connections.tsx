@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE } from '../config';
 
 interface GitHubStatus {
   connected: boolean;
@@ -33,7 +34,7 @@ interface SlackStatus {
   connected_at?: string;
 }
 
-const BACKEND_BASE = 'http://localhost:8000';
+// Shared API configuration is now imported from ../config.ts
 
 function formatDate(iso?: string) {
   if (!iso) return '';
@@ -214,7 +215,7 @@ function GitHubCard({ initialStatus, config, onFinish }: { initialStatus: GitHub
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BACKEND_BASE}/auth/github`);
+      const res = await fetch(`${API_BASE}/auth/github`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail || 'GitHub OAuth setup is incomplete.');
@@ -238,7 +239,7 @@ function GitHubCard({ initialStatus, config, onFinish }: { initialStatus: GitHub
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BACKEND_BASE}/connections/github`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/connections/github`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to disconnect.');
       setStatus({ connected: false });
     } catch (e: any) {
@@ -334,7 +335,7 @@ function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackSt
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BACKEND_BASE}/auth/slack`);
+      const res = await fetch(`${API_BASE}/auth/slack`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail || 'Slack OAuth setup is incomplete.');
@@ -358,7 +359,7 @@ function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackSt
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BACKEND_BASE}/connections/slack`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/connections/slack`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to disconnect.');
       setStatus({ connected: false });
     } catch (e: any) {
@@ -451,7 +452,7 @@ function NotionCard({ initialStatus, config, onFinish }: { initialStatus: Notion
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${BACKEND_BASE}/auth/notion`);
+        const res = await fetch(`${API_BASE}/auth/notion`);
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.detail || 'Notion OAuth setup is incomplete.');
@@ -475,7 +476,7 @@ function NotionCard({ initialStatus, config, onFinish }: { initialStatus: Notion
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${BACKEND_BASE}/connections/notion`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/connections/notion`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Failed to disconnect.');
         setStatus({ connected: false });
       } catch (e: any) {
@@ -575,10 +576,10 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
   const fetchData = async () => {
     try {
       const [cfgRes, githubRes, slackRes, notionRes] = await Promise.all([
-        fetch(`${BACKEND_BASE}/connections/config`),
-        fetch(`${BACKEND_BASE}/connections/github`),
-        fetch(`${BACKEND_BASE}/connections/slack`),
-        fetch(`${BACKEND_BASE}/connections/notion`),
+        fetch(`${API_BASE}/connections/config`),
+        fetch(`${API_BASE}/connections/github`),
+        fetch(`${API_BASE}/connections/slack`),
+        fetch(`${API_BASE}/connections/notion`),
       ]);
       if (cfgRes.ok) setConfig(await cfgRes.json());
       if (githubRes.ok) setGithubStatus(await githubRes.json());

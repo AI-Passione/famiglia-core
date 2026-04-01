@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { GraphDefinition, MissionLogEntry, GraphNode } from '../types';
+import { API_BASE } from '../config';
 
 interface SOPProps {
   graphs: GraphDefinition[];
@@ -10,11 +11,10 @@ interface SOPProps {
 
 export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
   const [logs, setLogs] = useState<MissionLogEntry[]>([]);
-  const BACKEND_BASE = "http://localhost:8000";
 
   useEffect(() => {
     if (selectedGraph) {
-      fetch(`${BACKEND_BASE}/mission-logs/${selectedGraph.id}`)
+      fetch(`${API_BASE}/mission-logs/${selectedGraph.id}`)
         .then(res => res.json())
         .then(data => setLogs(data))
         .catch(err => console.error("Error fetching mission logs:", err));

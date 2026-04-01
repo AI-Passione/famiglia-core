@@ -124,7 +124,7 @@ async def chat_stream(
 
 @router.post("/upload")
 async def upload_file(
-    agent_id: str = Query("alfredo"),
+    agent_id: str = Form("alfredo"),
     file: UploadFile = File(...)
 ):
     """Upload a file to be processed by an agent."""

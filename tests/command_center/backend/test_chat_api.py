@@ -4,7 +4,9 @@ from unittest.mock import MagicMock, patch
 
 from famiglia_core.command_center.backend.api.main import app
 
-client = TestClient(app)
+@pytest.fixture
+def client():
+    return TestClient(app)
 
 @pytest.fixture
 def mock_agent():
@@ -14,7 +16,7 @@ def mock_agent():
 
 @patch("famiglia_core.command_center.backend.api.routes.chat.agent_manager")
 @patch("famiglia_core.command_center.backend.api.routes.chat.user_service")
-def test_chat_standard_endpoint(mock_user_service, mock_agent_manager, mock_agent):
+def test_chat_standard_endpoint(client, mock_user_service, mock_agent_manager, mock_agent):
     # Setup mocks
     mock_agent_manager.get_agent.return_value = mock_agent
     mock_user_service.get_don.return_value = {"id": 1, "full_name": "Don Jimmy"}
@@ -37,7 +39,7 @@ def test_chat_standard_endpoint(mock_user_service, mock_agent_manager, mock_agen
 
 @patch("famiglia_core.command_center.backend.api.routes.chat.agent_manager")
 @patch("famiglia_core.command_center.backend.api.routes.chat.user_service")
-def test_chat_stream_endpoint(mock_user_service, mock_agent_manager, mock_agent):
+def test_chat_stream_endpoint(client, mock_user_service, mock_agent_manager, mock_agent):
     # Setup mocks
     mock_agent_manager.get_agent.return_value = mock_agent
     mock_user_service.get_don.return_value = {"id": 1, "full_name": "Don Jimmy"}
@@ -56,16 +58,16 @@ def test_chat_stream_endpoint(mock_user_service, mock_agent_manager, mock_agent)
         assert "text/event-stream" in response.headers["content-type"]
 
 @patch("famiglia_core.command_center.backend.api.routes.chat.agent_manager")
-def test_upload_file_endpoint(mock_agent_manager):
+def test_upload_file_endpoint(client, mock_agent_manager):
     # Mocking the agent object
     mock_agent = MagicMock()
     mock_agent_manager.get_agent.return_value = mock_agent
     
-    response = client.post(
-        "/api/v1/chat/upload",
-        params={"agent_id": "alfredo"},
-        files={"file": ("test.txt", b"hello world", "text/plain")}
-    )
+    files = [
+        ("file", ("test.txt", b"hello world", "text/plain")),
+        ("agent_id", (None, "alfredo"))
+    ]
+    response = client.post("/api/v1/chat/upload", files=files)
     
     if response.status_code != 200:
         print(f"DEBUG Response: {response.text}")

@@ -1,13 +1,39 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Agent, Action, Task, GraphDefinition } from './types';
+import type { Agent, Action, Task, GraphDefinition, AppSettings } from './types';
 import { TopNav } from './modules/ui/TopNav';
 import { Sidebar } from './modules/ui/Sidebar';
 import { SituationRoom } from './modules/SituationRoom';
 import { SOP } from './modules/SOP';
 import { Intelligences } from './modules/Intelligences';
 import { Connections } from './modules/Connections';
+import { Settings } from './modules/Settings';
 import { DirectivesTerminal } from './modules/ui/DirectivesTerminal';
 import { API_BASE } from './config';
+
+const SETTINGS_STORAGE_KEY = 'command_center_settings';
+const DEFAULT_SETTINGS: AppSettings = {
+  honorific: 'Don',
+  notificationsEnabled: true,
+  backgroundAnimationsEnabled: true,
+};
+
+function getInitialSettings(): AppSettings {
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(raw) as Partial<AppSettings>;
+    return {
+      honorific: parsed.honorific || DEFAULT_SETTINGS.honorific,
+      notificationsEnabled:
+        parsed.notificationsEnabled ?? DEFAULT_SETTINGS.notificationsEnabled,
+      backgroundAnimationsEnabled:
+        parsed.backgroundAnimationsEnabled ??
+        DEFAULT_SETTINGS.backgroundAnimationsEnabled,
+    };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
 
 function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -16,6 +42,7 @@ function App() {
   const [graphs, setGraphs] = useState<GraphDefinition[]>([]);
   const [selectedGraph, setSelectedGraph] = useState<GraphDefinition | null>(null);
   const [activeTab, setActiveTab] = useState('situation_room');
+  const [settings, setSettings] = useState<AppSettings>(() => getInitialSettings());
 
   // Read OAuth redirect params so Connections page can show a toast
   const params = new URLSearchParams(window.location.search);
@@ -34,6 +61,10 @@ function App() {
     // Clean the URL without re-rendering
     window.history.replaceState({}, '', window.location.pathname);
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  }, [settings]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,6 +118,7 @@ function App() {
                 agents={agents} 
                 actions={actions} 
                 tasks={tasks} 
+                honorific={settings.honorific}
               />
             )}
             {activeTab === 'sop' && (
@@ -106,8 +138,11 @@ function App() {
                 onClearParams={clearOAuthParams}
               />
             )}
+            {activeTab === 'settings' && (
+              <Settings settings={settings} onSettingsChange={setSettings} />
+            )}
             {/* Fallback for other tabs */}
-            {!['situation_room', 'sop', 'intelligences', 'connections'].includes(activeTab) && (
+            {!['situation_room', 'sop', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center py-40 opacity-40">
                 <span className="material-symbols-outlined text-6xl mb-4">construction</span>
                 <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>

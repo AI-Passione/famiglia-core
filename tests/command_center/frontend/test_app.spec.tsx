@@ -17,6 +17,7 @@ vi.mock('@/modules/Connections', () => ({
 describe('App Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.removeItem('command_center_settings');
     // Default fetch mocks
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/agents')) return Promise.resolve({ ok: true, json: async () => [] });
@@ -52,6 +53,12 @@ describe('App Component', () => {
     await waitFor(() => {
       expect(screen.getByTestId('connections-page')).toBeDefined();
     });
+
+    const settingsLink = screen.getByText('Settings');
+    fireEvent.click(settingsLink);
+    await waitFor(() => {
+      expect(screen.getByText(/Configure how the Command Center addresses you/i)).toBeDefined();
+    });
   });
 
   it('fetches initial data on mount', async () => {
@@ -59,6 +66,31 @@ describe('App Component', () => {
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/agents'));
       expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/graphs'));
+    });
+  });
+
+  it('loads settings from localStorage and persists updates', async () => {
+    window.localStorage.setItem(
+      'command_center_settings',
+      JSON.stringify({
+        honorific: 'Donna',
+        notificationsEnabled: false,
+        backgroundAnimationsEnabled: true,
+      })
+    );
+
+    render(<App />);
+    fireEvent.click(screen.getByText('Settings'));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Custom honorific')).toHaveValue('Donna');
+    });
+
+    const honorificInput = screen.getByPlaceholderText('Custom honorific');
+    fireEvent.change(honorificInput, { target: { value: 'Boss' } });
+
+    await waitFor(() => {
+      expect(JSON.parse(window.localStorage.getItem('command_center_settings') || '{}').honorific).toBe('Boss');
     });
   });
 });

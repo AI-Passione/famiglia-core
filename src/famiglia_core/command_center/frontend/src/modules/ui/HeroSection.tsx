@@ -1,8 +1,13 @@
-export function HeroSection() {
+interface HeroSectionProps {
+  honorific: string;
+}
+
+export function HeroSection({ honorific }: HeroSectionProps) {
   return (
     <section className="flex justify-between items-end border-b border-outline-variant/10 pb-8">
       <div>
         <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight">The Situation Room</h2>
+        <p className="font-headline text-lg text-[#ffb3b5] mt-2">Welcome back, {honorific}</p>
         <p className="font-label text-tertiary text-xs tracking-widest uppercase mt-2">Active Protocol: Nightfall | Operational Level: Alpha</p>
       </div>
       <div className="flex items-center gap-4">

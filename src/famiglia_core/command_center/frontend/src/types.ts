@@ -50,3 +50,9 @@ export interface MissionLogEntry {
   duration: string;
   initiator: string;
 }
+
+export interface AppSettings {
+  honorific: string;
+  notificationsEnabled: boolean;
+  backgroundAnimationsEnabled: boolean;
+}

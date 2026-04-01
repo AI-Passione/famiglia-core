@@ -7,6 +7,22 @@ on:
   workflow_dispatch:
 
 jobs:
+  docker-validation:
+    name: Docker Validation 🐳
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository 🛒
+        uses: actions/checkout@v4
+
+      - name: Create Dummy Env 📄
+        run: touch .env
+
+      - name: Validate Development Config 🛠️
+        run: docker compose config
+
+      - name: Validate Production Config 🚀
+        run: docker compose -f docker-compose.prod.yml config
+
   test:
     name: Run Pytest 🧪
     runs-on: ubuntu-latest
@@ -34,22 +50,6 @@ jobs:
 
       - name: Build Check 📦
         run: uv build --sdist
-
-  docker-validation:
-    name: Docker Validation 🐳
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository 🛒
-        uses: actions/checkout@v4
-
-      - name: Create Dummy Env 📄
-        run: touch .env
-
-      - name: Validate Development Config 🛠️
-        run: docker compose config
-
-      - name: Validate Production Config 🚀
-        run: docker compose -f docker-compose.prod.yml config
 
   frontend-validation:
     name: Frontend Validation 🧪

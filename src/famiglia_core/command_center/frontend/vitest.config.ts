@@ -5,12 +5,11 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  root: path.resolve(__dirname, '../../../src/famiglia_core/command_center/frontend'),
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: [path.resolve(__dirname, './vitest.setup.ts')],
-    include: [path.resolve(__dirname, './**/*.{test,spec}.{ts,tsx}')],
+    include: [path.resolve(__dirname, '../../../../tests/command_center/frontend/**/*.{test,spec}.{ts,tsx}')],
     server: {
       deps: {
         inline: [/framer-motion/],
@@ -19,12 +18,12 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '@'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   server: {
     fs: {
-      allow: [path.resolve(__dirname, '../../../')],
+      allow: [path.resolve(__dirname, '../../../../')],
     }
   }
 });

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "uv run pytest tests/",
-    "test:frontend": "cd src/famiglia_core/command_center/frontend && npx vitest run --config ../../../../tests/command_center/frontend/vitest.config.ts"
+    "test:frontend": "cd src/famiglia_core/command_center/frontend && npx vitest run"
   },
   "devDependencies": {
     "semantic-release": "^24.0.0",

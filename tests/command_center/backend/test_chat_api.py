@@ -63,10 +63,8 @@ def test_upload_file_endpoint(mock_agent_manager):
     
     response = client.post(
         "/api/v1/chat/upload",
-        files={
-            "file": ("test.txt", b"hello world", "text/plain"),
-            "agent_id": (None, "alfredo")
-        }
+        params={"agent_id": "alfredo"},
+        files={"file": ("test.txt", b"hello world", "text/plain")}
     )
     
     if response.status_code != 200:

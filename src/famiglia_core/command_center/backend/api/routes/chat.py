@@ -90,7 +90,7 @@ async def chat_stream(
         def on_intermediate(text: str):
             # Put intermediate chunks in the queue
             asyncio.run_coroutine_threadsafe(
-                queue.put(StreamChunk(type="intermediate", content=text).json()),
+                queue.put(StreamChunk(type="intermediate", content=text).model_dump_json()),
                 asyncio.get_event_loop()
             )
 
@@ -116,9 +116,9 @@ async def chat_stream(
         # Final result
         try:
             final_response = await task
-            yield f"data: {StreamChunk(type='final', content=final_response).json()}\n\n"
+            yield f"data: {StreamChunk(type='final', content=final_response).model_dump_json()}\n\n"
         except Exception as e:
-            yield f"data: {StreamChunk(type='error', content=str(e)).json()}\n\n"
+            yield f"data: {StreamChunk(type='error', content=str(e)).model_dump_json()}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 

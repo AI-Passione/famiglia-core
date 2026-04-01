@@ -177,3 +177,61 @@ def test_get_famiglia_agents_endpoint(mock_store):
     assert payload[0]["name"] == "Alfredo"
     assert payload[0]["skills"] == ["Coordination"]
     assert payload[0]["agent_id"] == "alfredo"
+
+
+@patch("famiglia_core.command_center.backend.api.main.engine_room_service")
+def test_get_engine_room_snapshot(mock_engine_room_service):
+    mock_engine_room_service.get_snapshot.return_value = {
+        "scope": "local-only",
+        "generated_at": "2026-04-01T11:30:00+00:00",
+        "host": {
+            "hostname": "la-passione.local",
+            "platform": {
+                "system": "Darwin",
+                "release": "24.0.0",
+                "machine": "arm64",
+                "python": "3.12.8",
+            },
+            "uptime": {"seconds": 3600, "display": "1h", "source": "uptime_command"},
+            "cpu": {
+                "cores": 10,
+                "load_average": [1.2, 1.4, 1.6],
+                "estimated_load_percent": 12.0,
+                "source": "load_average_per_core",
+            },
+            "memory": {
+                "total_bytes": 100,
+                "used_bytes": 50,
+                "available_bytes": 50,
+                "usage_percent": 50.0,
+                "source": "vm_stat",
+            },
+            "disk": {
+                "path": "/tmp",
+                "total_bytes": 100,
+                "used_bytes": 50,
+                "free_bytes": 50,
+                "usage_percent": 50.0,
+            },
+        },
+        "tools": {"summary": {"total": 1, "ready": 1, "connected": 1, "configured": 1}, "items": []},
+        "docker": {
+            "available": True,
+            "compose_file": "/tmp/docker-compose.yml",
+            "diagnostics": [],
+            "summary": {"declared": 1, "reachable": 1, "live": 1, "healthy": 1},
+            "services": [],
+        },
+        "observability": {
+            "summary": {"total": 1, "configured": 1, "reachable": 1},
+            "metrics": [],
+            "items": [],
+        },
+    }
+
+    response = client.get("/api/v1/engine-room")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["scope"] == "local-only"
+    assert payload["docker"]["summary"]["healthy"] == 1
+    mock_engine_room_service.get_snapshot.assert_called_once()

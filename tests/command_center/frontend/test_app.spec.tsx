@@ -10,6 +10,9 @@ vi.mock('@/modules/Agenda', () => ({
 vi.mock('@/modules/SituationRoom', () => ({
   SituationRoom: () => <div data-testid="situation-room">Situation Room</div>
 }));
+vi.mock('@/modules/EngineRoom', () => ({
+  EngineRoom: () => <div data-testid="engine-room-page">Engine Room</div>
+}));
 vi.mock('@/modules/SOP', () => ({
   SOP: () => <div data-testid="sop-page">SOP Page</div>
 }));
@@ -78,6 +81,13 @@ describe('App Component', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('situation-room')).toBeDefined();
+    });
+
+    const engineRoomLink = screen.getByText('The Engine Room');
+    fireEvent.click(engineRoomLink);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('engine-room-page')).toBeDefined();
     });
     
     // Find the SOP link in the Sidebar (assuming Sidebar uses these names)

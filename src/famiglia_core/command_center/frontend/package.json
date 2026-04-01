@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "npx vitest run --config ../../../../tests/command_center/frontend/vitest.config.ts",
-    "test:watch": "npx vitest --config ../../../../tests/command_center/frontend/vitest.config.ts"
+    "test": "npx vitest run --config ./vitest.config.ts",
+    "test:watch": "npx vitest --config ./vitest.config.ts"
   },
   "dependencies": {
     "framer-motion": "^12.38.0",

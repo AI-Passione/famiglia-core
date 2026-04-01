@@ -3,6 +3,11 @@
 
 Welcome to the central intelligence validation hub. This directory contains the automated test suite for the `famiglia-core` engine, restructured to mirror the source code for maximum scalability.
 
+Run all unit tests (both frontend and backend) from the Command Center:
+```bash
+npm run test:frontend
+```
+
 Run all frontend unit tests from the command center:
 ```bash
 npm run test:frontend

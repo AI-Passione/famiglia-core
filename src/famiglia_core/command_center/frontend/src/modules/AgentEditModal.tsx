@@ -115,6 +115,7 @@ export function AgentEditModal({ agent, onClose, onSave }: AgentEditModalProps) 
               </span>
               <button
                 onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
+                aria-label="Toggle Active Status"
                 className={`w-12 h-6 rounded-full relative transition-all duration-300 ${formData.is_active ? 'bg-tertiary/20' : 'bg-surface-container-high'}`}
               >
                 <div className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-all duration-300 ease-spring ${formData.is_active ? 'translate-x-6 bg-tertiary' : 'bg-on-surface-variant'}`} />

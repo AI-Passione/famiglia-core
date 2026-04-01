@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SOP } from '../../../src/famiglia_core/command_center/frontend/src/modules/SOP';
-import type { GraphDefinition } from '../../../src/famiglia_core/command_center/frontend/src/types';
+import { SOP } from '@/modules/SOP';
+import type { GraphDefinition } from '@/types';
 import React from 'react';
 
 const mockGraphs: GraphDefinition[] = [

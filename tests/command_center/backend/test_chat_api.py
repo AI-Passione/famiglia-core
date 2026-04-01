@@ -61,12 +61,13 @@ def test_upload_file_endpoint(mock_agent_manager):
     mock_agent = MagicMock()
     mock_agent_manager.get_agent.return_value = mock_agent
     
-    files = {
-        "file": ("test.txt", b"hello world", "text/plain"),
-        "agent_id": (None, "alfredo")
-    }
-    
-    response = client.post("/api/v1/chat/upload", files=files)
+    response = client.post(
+        "/api/v1/chat/upload",
+        files={
+            "file": ("test.txt", b"hello world", "text/plain"),
+            "agent_id": (None, "alfredo")
+        }
+    )
     
     if response.status_code != 200:
         print(f"DEBUG Response: {response.text}")

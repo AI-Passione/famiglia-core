@@ -5,6 +5,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  root: path.resolve(__dirname, '../../../src/famiglia_core/command_center/frontend'),
   test: {
     globals: true,
     environment: 'jsdom',
@@ -18,7 +19,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '../../../src/famiglia_core/command_center/frontend/src'),
+      '@': path.resolve(__dirname, '@'),
     },
   },
   server: {

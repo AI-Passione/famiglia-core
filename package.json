@@ -4,7 +4,8 @@
   "description": "The engine of Don Jimmy's AI Famiglia.",
   "main": "index.js",
   "scripts": {
-    "test": "uv run pytest tests/"
+    "test": "uv run pytest tests/",
+    "test:frontend": "cd src/famiglia_core/command_center/frontend && npx vitest run"
   },
   "devDependencies": {
     "semantic-release": "^24.0.0",

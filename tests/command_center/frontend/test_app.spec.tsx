@@ -1,6 +1,6 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import App from '@/App';
+import { App } from '@/App';
 import React from 'react';
 
 // Mock child components to avoid deep testing

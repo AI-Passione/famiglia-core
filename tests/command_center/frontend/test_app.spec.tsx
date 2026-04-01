@@ -22,6 +22,9 @@ vi.mock('@/modules/Connections', () => ({
 vi.mock('@/modules/Famiglia', () => ({
   Famiglia: () => <div data-testid="famiglia-page">Famiglia Page</div>
 }));
+vi.mock('@/modules/Lounge', () => ({
+  Lounge: () => <div data-testid="lounge-page">Lounge Page</div>
+}));
 
 describe('App Component', () => {
   beforeEach(() => {
@@ -115,6 +118,12 @@ describe('App Component', () => {
     fireEvent.click(famigliaLink);
     await waitFor(() => {
       expect(screen.getByTestId('famiglia-page')).toBeDefined();
+    });
+
+    const loungeLink = screen.getByText('The Lounge');
+    fireEvent.click(loungeLink);
+    await waitFor(() => {
+      expect(screen.getByTestId('lounge-page')).toBeDefined();
     });
   });
 

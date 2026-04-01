@@ -4,6 +4,7 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
     { id: 'sop', label: 'SOP', icon: 'description' },
     { id: 'agenda', label: 'The Agenda', icon: 'calendar_month' },
     { id: 'famiglia', label: 'The Famiglia', icon: 'groups' },
+    { id: 'lounge', label: 'The Lounge', icon: 'nightlife' },
     { id: 'intelligences', label: 'Intelligences', icon: 'insights' },
     { id: 'engine_room', label: 'The Engine Room', icon: 'precision_manufacturing' },
     { id: 'connections', label: 'Connections', icon: 'hub' },

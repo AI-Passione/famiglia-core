@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 
 from famiglia_core.db.agents.context_store import context_store
 from famiglia_core.command_center.backend.graph_parser import GraphParser, GraphDefinition
-from famiglia_core.command_center.backend.api.routes import chat, auth, connections, settings
+from famiglia_core.command_center.backend.api.routes import chat, auth, connections, settings, famiglia
 from famiglia_core.command_center.backend.api.services.engine_room_service import engine_room_service
 
 FEATURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../agents/orchestration/features"))
@@ -60,6 +60,7 @@ app.include_router(chat.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(connections.router, prefix="/api/v1")
 app.include_router(settings.router, prefix="/api/v1")
+app.include_router(famiglia.router, prefix="/api/v1/famiglia")
 
 # Serve static images
 if os.path.exists(IMAGES_DIR):
@@ -257,9 +258,7 @@ async def get_mission_logs(graph_id: str):
         if cursor: cursor.close()
         if conn: conn.close()
 
-@app.get("/api/v1/famiglia/agents", response_model=List[FamigliaAgentProfile])
-async def get_famiglia_agents():
-    return context_store.list_famiglia_agents()
+# (Moved to routes/famiglia.py)
 
 
 @app.get("/api/v1/engine-room")

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FamigliaAgent } from '../types';
 import { API_BASE, BACKEND_BASE } from '../config';
+import { AgentEditModal } from './AgentEditModal';
 
 function normalizeStatus(status: string): 'active' | 'inactive' {
   const value = (status || '').toLowerCase();
@@ -36,24 +37,25 @@ export function Famiglia() {
   const [agents, setAgents] = useState<FamigliaAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingAgent, setEditingAgent] = useState<FamigliaAgent | null>(null);
+
+  const loadRoster = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE}/famiglia/agents`);
+      if (!response.ok) throw new Error('Failed to load agent roster');
+      const payload = await response.json();
+      setAgents(Array.isArray(payload) ? (payload as FamigliaAgent[]) : []);
+    } catch (err) {
+      console.error(err);
+      setError('Unable to load The Famiglia roster from PostgreSQL.');
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadRoster = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`${API_BASE}/famiglia/agents`);
-        if (!response.ok) throw new Error('Failed to load agent roster');
-        const payload = await response.json();
-        setAgents(Array.isArray(payload) ? (payload as FamigliaAgent[]) : []);
-      } catch (err) {
-        console.error(err);
-        setError('Unable to load The Famiglia roster from PostgreSQL.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadRoster();
   }, []);
 
@@ -135,10 +137,23 @@ export function Famiglia() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h2 className="font-headline text-2xl text-white">{agent.name}</h2>
-                  <p className="font-label text-[11px] uppercase tracking-widest text-outline mt-1">
-                    {agent.role}
-                  </p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h2 className="font-headline text-2xl text-white">{agent.name}</h2>
+                      <p className="font-label text-[11px] uppercase tracking-widest text-outline mt-1">
+                        {agent.role}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => setEditingAgent(agent)}
+                      className="p-2 text-on-surface-variant hover:text-tertiary transition-colors group/edit"
+                      title="Edit Agent Dossier"
+                    >
+                      <svg className="w-5 h-5 transition-transform group-hover/edit:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  </div>
                   <p className="font-body text-xs text-outline mt-2">
                     Agent ID: <span className="uppercase tracking-[0.18em]">{agent.agent_id}</span>
                   </p>
@@ -203,6 +218,14 @@ export function Famiglia() {
           );
         })}
       </section>
+
+      {editingAgent && (
+        <AgentEditModal
+          agent={editingAgent}
+          onClose={() => setEditingAgent(null)}
+          onSave={() => loadRoster(false)}
+        />
+      )}
     </div>
   );
 }

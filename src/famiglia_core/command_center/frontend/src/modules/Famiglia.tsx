@@ -16,6 +16,22 @@ function initialsFor(name: string): string {
     .join('');
 }
 
+function formatLastActive(value: string | null): string {
+  if (!value) return 'No recent activity';
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'No recent activity';
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(parsed);
+}
+
+function renderList(values: string[], fallback: string): string {
+  return values.length > 0 ? values.join(', ') : fallback;
+}
+
 export function Famiglia() {
   const [agents, setAgents] = useState<FamigliaAgent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +48,7 @@ export function Famiglia() {
         setAgents(Array.isArray(payload) ? (payload as FamigliaAgent[]) : []);
       } catch (err) {
         console.error(err);
-        setError('Unable to load The Famiglia roster from Notion.');
+        setError('Unable to load The Famiglia roster from PostgreSQL.');
       } finally {
         setLoading(false);
       }
@@ -45,6 +61,7 @@ export function Famiglia() {
     () => agents.filter(agent => normalizeStatus(agent.status) === 'active').length,
     [agents]
   );
+  const totalCount = agents.length;
 
   if (loading) {
     return (
@@ -69,13 +86,27 @@ export function Famiglia() {
         <div>
           <h1 className="font-headline text-5xl font-bold text-white tracking-tight">Agent Roster</h1>
           <p className="font-body text-outline mt-3 max-w-3xl">
-            Full active/inactive AI personnel index sourced from the Agent Roster Notion database.
+            PostgreSQL-backed roster sourced from the `agents` table, enriched with linked skills, tools, workflows, and recent message history.
           </p>
         </div>
-        <div className="font-label uppercase text-[11px] tracking-widest text-tertiary">
-          {activeCount} Active Agents
+        <div className="text-right">
+          <div className="font-label uppercase text-[11px] tracking-widest text-tertiary">
+            {activeCount} Active Agents
+          </div>
+          <div className="font-label uppercase text-[11px] tracking-widest text-outline mt-2">
+            {totalCount} Total Souls
+          </div>
         </div>
       </header>
+
+      {agents.length === 0 && (
+        <section className="border border-outline-variant/20 bg-surface-container-low p-8">
+          <h2 className="font-headline text-2xl text-white">No agents found</h2>
+          <p className="font-body text-on-surface-variant mt-3 max-w-2xl">
+            The roster is now driven directly from PostgreSQL. Seed or sync the `agents` table to make this page come alive.
+          </p>
+        </section>
+      )}
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {agents.map(agent => {
@@ -87,19 +118,16 @@ export function Famiglia() {
             >
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 bg-surface-container-lowest overflow-hidden flex items-center justify-center text-outline font-headline">
-                  {agent.profile_pic_url ? (
-                    <img
-                      src={agent.profile_pic_url}
-                      alt={`${agent.name} profile`}
-                      className="w-full h-full object-cover grayscale"
-                    />
-                  ) : (
-                    initialsFor(agent.name)
-                  )}
+                  {initialsFor(agent.name)}
                 </div>
                 <div className="flex-1">
                   <h2 className="font-headline text-2xl text-white">{agent.name}</h2>
-                  <p className="font-label text-[11px] uppercase tracking-widest text-outline mt-1">{agent.role}</p>
+                  <p className="font-label text-[11px] uppercase tracking-widest text-outline mt-1">
+                    {agent.role}
+                  </p>
+                  <p className="font-body text-xs text-outline mt-2">
+                    Agent ID: <span className="uppercase tracking-[0.18em]">{agent.agent_id}</span>
+                  </p>
                 </div>
                 <span
                   className={`px-2 py-1 font-label text-[10px] uppercase tracking-widest border ${
@@ -112,23 +140,44 @@ export function Famiglia() {
                 </span>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="font-label text-[10px] uppercase tracking-[0.18em] text-outline mb-1">Aliases</p>
+                  <p className="font-body text-on-surface-variant">
+                    {renderList(agent.aliases, 'No aliases configured.')}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-label text-[10px] uppercase tracking-[0.18em] text-outline mb-1">Last Active</p>
+                  <p className="font-body text-on-surface-variant">{formatLastActive(agent.last_active)}</p>
+                </div>
+              </div>
+
               <div className="space-y-4 text-sm">
                 <div>
-                  <p className="font-label text-[10px] uppercase tracking-[0.18em] text-outline mb-1">Soul Definition</p>
+                  <p className="font-label text-[10px] uppercase tracking-[0.18em] text-outline mb-1">Persona</p>
                   <p className="font-body text-on-surface-variant italic">"{agent.personality}"</p>
                 </div>
                 <div>
+                  <p className="font-label text-[10px] uppercase tracking-[0.18em] text-outline mb-1">Identity</p>
+                  <p className="font-body text-on-surface-variant">{agent.identity}</p>
+                </div>
+                <div>
                   <p className="font-label text-[10px] uppercase tracking-[0.18em] text-outline mb-1">Skills</p>
-                  <p className="font-body text-on-surface-variant">{agent.skills.join(', ') || 'No skills listed.'}</p>
+                  <p className="font-body text-on-surface-variant">
+                    {renderList(agent.skills, 'No skills listed.')}
+                  </p>
                 </div>
                 <div>
                   <p className="font-label text-[10px] uppercase tracking-[0.18em] text-outline mb-1">Tools</p>
-                  <p className="font-body text-on-surface-variant">{agent.tools.join(', ') || 'No tools listed.'}</p>
+                  <p className="font-body text-on-surface-variant">
+                    {renderList(agent.tools, 'No tools listed.')}
+                  </p>
                 </div>
                 <div>
-                  <p className="font-label text-[10px] uppercase tracking-[0.18em] text-outline mb-1">Assigned Projects</p>
+                  <p className="font-label text-[10px] uppercase tracking-[0.18em] text-outline mb-1">Workflows</p>
                   <p className="font-body text-on-surface-variant">
-                    {agent.assigned_projects.join(', ') || 'No active projects assigned.'}
+                    {renderList(agent.workflows, 'No workflows linked yet.')}
                   </p>
                 </div>
                 <div>

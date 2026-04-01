@@ -59,13 +59,16 @@ export interface AppSettings {
 
 export interface FamigliaAgent {
   id: string;
+  agent_id: string;
   name: string;
   role: string;
   status: string;
-  profile_pic_url: string | null;
+  aliases: string[];
   personality: string;
+  identity: string;
   skills: string[];
   tools: string[];
-  assigned_projects: string[];
+  workflows: string[];
   latest_conversation_snippet: string;
+  last_active: string | null;
 }

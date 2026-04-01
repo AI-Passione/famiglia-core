@@ -71,6 +71,18 @@ class TaskInstance(BaseModel):
     completed_at: Optional[datetime] = None
     result_summary: Optional[str] = None
 
+class RecurringTaskTemplate(BaseModel):
+    id: int
+    title: str
+    task_payload: str
+    priority: str
+    expected_agent: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    schedule_config: Dict[str, Any] = Field(default_factory=dict)
+    last_spawned_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
 class InsightSummary(BaseModel):
     id: int
     title: str
@@ -140,6 +152,10 @@ async def get_tasks(status: Optional[str] = None, limit: int = 50):
     statuses = [status] if status else None
     tasks = context_store.list_scheduled_tasks(statuses=statuses, limit=limit)
     return tasks
+
+@app.get("/api/v1/recurring-tasks", response_model=List[RecurringTaskTemplate])
+async def get_recurring_tasks():
+    return context_store.list_recurring_tasks()
 
 @app.get("/api/v1/insights", response_model=List[InsightSummary])
 async def get_insights(limit: int = 20):

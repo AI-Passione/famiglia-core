@@ -4,6 +4,9 @@ import App from '@/App';
 import React from 'react';
 
 // Mock child components to avoid deep testing
+vi.mock('@/modules/Agenda', () => ({
+  Agenda: () => <div data-testid="agenda-page">Agenda Page</div>
+}));
 vi.mock('@/modules/SituationRoom', () => ({
   SituationRoom: () => <div data-testid="situation-room">Situation Room</div>
 }));
@@ -29,6 +32,7 @@ describe('App Component', () => {
       if (url.includes('/agents')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/actions')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/tasks')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (url.includes('/recurring-tasks')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/graphs')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/settings')) {
         if (options?.method === 'PUT') {
@@ -55,15 +59,29 @@ describe('App Component', () => {
     });
   });
 
-  it('renders Situation Room by default', async () => {
+  it('renders Agenda by default', async () => {
     render(<App />);
     await waitFor(() => {
-      expect(screen.getByTestId('situation-room')).toBeDefined();
+      expect(screen.getByTestId('agenda-page')).toBeDefined();
     });
   });
 
   it('switches tabs correctly', async () => {
     render(<App />);
+
+    const agendaLink = screen.getByText('The Agenda');
+    fireEvent.click(agendaLink);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('agenda-page')).toBeDefined();
+    });
+
+    const situationRoomLink = screen.getByText('The Situation Room');
+    fireEvent.click(situationRoomLink);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('situation-room')).toBeDefined();
+    });
 
     const engineRoomLink = screen.getByText('The Engine Room');
     fireEvent.click(engineRoomLink);
@@ -73,7 +91,6 @@ describe('App Component', () => {
     });
     
     // Find the SOP link in the Sidebar (assuming Sidebar uses these names)
-    // Actually Sidebar has "SOP" text
     const sopLink = screen.getByText('SOP');
     fireEvent.click(sopLink);
     
@@ -139,6 +156,7 @@ describe('App Component', () => {
       if (url.includes('/agents')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/actions')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/tasks')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (url.includes('/recurring-tasks')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/graphs')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/settings')) {
         if (options?.method === 'PUT') {

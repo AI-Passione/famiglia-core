@@ -53,6 +53,30 @@ def test_get_actions_endpoint(mock_store):
     assert response.status_code == 200
     assert len(response.json()) == 1
 
+@patch("famiglia_core.command_center.backend.api.main.context_store")
+def test_get_recurring_tasks_endpoint(mock_store):
+    mock_store.list_recurring_tasks.return_value = [
+        {
+            "id": 7,
+            "title": "Weekly strategy sync",
+            "task_payload": "Prepare the Monday priority brief.",
+            "priority": "high",
+            "expected_agent": "alfredo",
+            "metadata": {"category": "strategy"},
+            "schedule_config": {"days": [0], "hour": 9, "minute": 30},
+            "last_spawned_at": datetime(2026, 3, 30, 9, 30, 0, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 3, 1, 9, 0, 0, tzinfo=timezone.utc),
+            "updated_at": datetime(2026, 3, 30, 9, 31, 0, tzinfo=timezone.utc),
+        }
+    ]
+
+    response = client.get("/api/v1/recurring-tasks")
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 1
+    assert payload[0]["title"] == "Weekly strategy sync"
+    assert payload[0]["schedule_config"]["hour"] == 9
+
 @patch("famiglia_core.command_center.backend.api.main.graph_parser")
 def test_get_graphs_endpoint(mock_parser):
     mock_parser.parse_all_graphs.return_value = [

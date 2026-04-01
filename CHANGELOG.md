@@ -1,3 +1,14 @@
+# [1.4.0](https://github.com/AI-Passione/famiglia-core/compare/v1.3.0...v1.4.0) (2026-04-01)
+
+
+### Features
+
+* activate all AI agents by updating the souls normalization migration script ([283d2c5](https://github.com/AI-Passione/famiglia-core/commit/283d2c5ad11a7673f2b9aa47d632d853f2845003))
+* add avatar support for agents with static image serving and database integration ([5ff2936](https://github.com/AI-Passione/famiglia-core/commit/5ff29363d405f1d6c9631725a04edb9e1d7f66cf))
+* add is_active toggle to agent configuration and update UI status display ([bdcef81](https://github.com/AI-Passione/famiglia-core/commit/bdcef81594d7bc22073c476f7d7f30f170aa6500))
+* implement agent management API routes and frontend editing modal with avatar upload and capability syncing ([5a496c8](https://github.com/AI-Passione/famiglia-core/commit/5a496c80ce123d2d172475d078445ee139331eb1))
+* implement AgentEditModal component and add comprehensive backend and frontend test suites ([821579f](https://github.com/AI-Passione/famiglia-core/commit/821579f12fd93d27bbc696c680836d95bb182933))
+
 # [1.3.0](https://github.com/AI-Passione/famiglia-core/compare/v1.2.0...v1.3.0) (2026-04-01)
 
 

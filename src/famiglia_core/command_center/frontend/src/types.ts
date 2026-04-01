@@ -95,6 +95,7 @@ export interface FamigliaAgent {
   agent_id: string;
   name: string;
   role: string;
+  is_active: boolean;
   status: string;
   aliases: string[];
   personality: string;

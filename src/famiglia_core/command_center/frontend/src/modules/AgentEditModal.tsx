@@ -21,6 +21,7 @@ export function AgentEditModal({ agent, onClose, onSave }: AgentEditModalProps) 
     persona: agent.personality,
     identity: agent.identity,
     aliases: agent.aliases.join(', '),
+    is_active: agent.is_active,
   });
 
   const [selectedTools, setSelectedTools] = useState<number[]>(agent.tool_ids);
@@ -50,6 +51,7 @@ export function AgentEditModal({ agent, onClose, onSave }: AgentEditModalProps) 
           persona: formData.persona,
           identity: formData.identity,
           aliases: formData.aliases.split(',').map((s) => s.trim()).filter(Boolean),
+          is_active: formData.is_active,
         }),
       });
 
@@ -105,14 +107,28 @@ export function AgentEditModal({ agent, onClose, onSave }: AgentEditModalProps) 
               Agent Dossier Configuration
             </p>
           </div>
-          <button onClick={onClose} className="text-on-surface-variant hover:text-white transition-colors">
+          
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <span className={`text-[10px] uppercase font-headline tracking-widest transition-colors ${formData.is_active ? 'text-tertiary' : 'text-on-surface-variant'}`}>
+                {formData.is_active ? 'Status: Active' : 'Status: Inactive'}
+              </span>
+              <button
+                onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
+                className={`w-12 h-6 rounded-full relative transition-all duration-300 ${formData.is_active ? 'bg-tertiary/20' : 'bg-surface-container-high'}`}
+              >
+                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-all duration-300 ease-spring ${formData.is_active ? 'translate-x-6 bg-tertiary' : 'bg-on-surface-variant'}`} />
+              </button>
+            </div>
+            <button onClick={onClose} className="text-on-surface-variant hover:text-white transition-colors">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
+      </div>
 
-        <div className="p-8 space-y-10">
+      <div className="p-8 space-y-10">
           
           {/* Section: Avatar & Identity */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">

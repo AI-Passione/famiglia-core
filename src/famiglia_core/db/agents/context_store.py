@@ -745,6 +745,7 @@ class AgentContextStore:
                         a.agent_id,
                         a.agent_name AS name,
                         COALESCE(ar.name, 'Unassigned') AS role,
+                        a.is_active,
                         CASE WHEN COALESCE(a.is_active, FALSE) THEN 'active' ELSE 'inactive' END AS status,
                         a.avatar_url,
                         COALESCE(a.aliases, ARRAY[]::TEXT[]) AS aliases,

@@ -144,7 +144,7 @@ export function Famiglia() {
                         {agent.role}
                       </p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setEditingAgent(agent)}
                       className="p-2 text-on-surface-variant hover:text-tertiary transition-colors group/edit"
                       title="Edit Agent Dossier"
@@ -154,16 +154,12 @@ export function Famiglia() {
                       </svg>
                     </button>
                   </div>
-                  <p className="font-body text-xs text-outline mt-2">
-                    Agent ID: <span className="uppercase tracking-[0.18em]">{agent.agent_id}</span>
-                  </p>
                 </div>
                 <span
-                  className={`px-2 py-1 font-label text-[10px] uppercase tracking-widest border ${
-                    status === 'active'
+                  className={`px-2 py-1 font-label text-[10px] uppercase tracking-widest border ${status === 'active'
                       ? 'text-tertiary border-tertiary/40 bg-on-tertiary-fixed-variant/20'
                       : 'text-outline border-outline/30'
-                  }`}
+                    }`}
                 >
                   {status}
                 </span>

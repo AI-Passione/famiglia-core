@@ -71,7 +71,7 @@ def test_upload_avatar(mock_store):
         
         response = client.post(
             "/api/v1/famiglia/agents/alfredo/avatar", 
-            files={"file": ("test.png", b"fake image data", "image/png")}
+            files=files
         )
         
     if response.status_code != 200:

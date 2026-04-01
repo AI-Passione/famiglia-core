@@ -11,6 +11,7 @@ SOUL_REGISTRY: Dict[str, Dict[str, List[str]]] = {
     "vito": {"aliases": ["vito"]},
     "tommy": {"aliases": ["tommy"]},
     "kowalski": {"aliases": ["kowalski"]},
+    "giuseppina": {"aliases": ["giuseppina"]},
 }
 
 

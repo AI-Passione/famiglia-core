@@ -150,7 +150,7 @@ def test_update_settings_endpoint(mock_user_service):
     mock_user_service.update_don_settings.assert_called_once_with(payload)
 
 
-@patch("famiglia_core.command_center.backend.api.main.context_store")
+@patch("famiglia_core.command_center.backend.api.routes.famiglia.context_store")
 def test_get_famiglia_agents_endpoint(mock_store):
     mock_store.list_famiglia_agents.return_value = [
         {

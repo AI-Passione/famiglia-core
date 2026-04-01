@@ -707,7 +707,8 @@ class AgentContextStore:
                     WITH skill_map AS (
                         SELECT
                             as_.agent_id,
-                            ARRAY_AGG(DISTINCT s.name ORDER BY s.name) AS skills
+                            ARRAY_AGG(DISTINCT s.name ORDER BY s.name) AS skills,
+                            ARRAY_AGG(DISTINCT s.id ORDER BY s.id) AS skill_ids
                         FROM agent_skills as_
                         INNER JOIN skills s ON s.id = as_.skill_id
                         GROUP BY as_.agent_id
@@ -715,7 +716,8 @@ class AgentContextStore:
                     tool_map AS (
                         SELECT
                             at.agent_id,
-                            ARRAY_AGG(DISTINCT t.name ORDER BY t.name) AS tools
+                            ARRAY_AGG(DISTINCT t.name ORDER BY t.name) AS tools,
+                            ARRAY_AGG(DISTINCT t.id ORDER BY t.id) AS tool_ids
                         FROM agent_tools at
                         INNER JOIN tools t ON t.id = at.tool_id
                         GROUP BY at.agent_id
@@ -723,7 +725,8 @@ class AgentContextStore:
                     workflow_map AS (
                         SELECT
                             aw.agent_id,
-                            ARRAY_AGG(DISTINCT w.name ORDER BY w.name) AS workflows
+                            ARRAY_AGG(DISTINCT w.name ORDER BY w.name) AS workflows,
+                            ARRAY_AGG(DISTINCT w.id ORDER BY w.id) AS workflow_ids
                         FROM agent_workflows aw
                         INNER JOIN workflows w ON w.id = aw.workflow_id
                         GROUP BY aw.agent_id
@@ -742,13 +745,18 @@ class AgentContextStore:
                         a.agent_id,
                         a.agent_name AS name,
                         COALESCE(ar.name, 'Unassigned') AS role,
+                        a.is_active,
                         CASE WHEN COALESCE(a.is_active, FALSE) THEN 'active' ELSE 'inactive' END AS status,
+                        a.avatar_url,
                         COALESCE(a.aliases, ARRAY[]::TEXT[]) AS aliases,
                         COALESCE(NULLIF(BTRIM(a.persona), ''), 'Soul profile pending.') AS personality,
                         COALESCE(NULLIF(BTRIM(a.identity), ''), 'Identity profile pending.') AS identity,
                         COALESCE(sm.skills, ARRAY[]::TEXT[]) AS skills,
+                        COALESCE(sm.skill_ids, ARRAY[]::INTEGER[]) AS skill_ids,
                         COALESCE(tm.tools, ARRAY[]::TEXT[]) AS tools,
+                        COALESCE(tm.tool_ids, ARRAY[]::INTEGER[]) AS tool_ids,
                         COALESCE(wm.workflows, ARRAY[]::TEXT[]) AS workflows,
+                        COALESCE(wm.workflow_ids, ARRAY[]::INTEGER[]) AS workflow_ids,
                         COALESCE(lm.latest_conversation_snippet, 'No recent conversation snippet available.') AS latest_conversation_snippet,
                         lm.last_active
                     FROM agents a
@@ -838,7 +846,7 @@ class AgentContextStore:
 
     def upsert_agent_soul(self, agent_id: str, agent_name: str, **kwargs) -> bool:
         """Update or create an agent soul record."""
-        allowed_fields = {"persona", "reply_constraints", "identity", "aliases", "archetype_id", "is_active"}
+        allowed_fields = {"persona", "reply_constraints", "identity", "aliases", "archetype_id", "is_active", "avatar_url"}
         update_fields = {k: v for k, v in kwargs.items() if k in allowed_fields}
         
         if not update_fields:
@@ -866,6 +874,58 @@ class AgentContextStore:
                 return True
         except Exception as e:
             print(f"[ContextStore] Failed to upsert agent soul for {agent_id}: {e}")
+            return False
+
+    def get_available_capabilities(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Fetch all available tools, skills, and workflows from the system."""
+        capabilities = {"tools": [], "skills": [], "workflows": []}
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return capabilities
+                
+                cursor.execute("SELECT id, name, description, plugin FROM tools ORDER BY name")
+                capabilities["tools"] = list(cursor.fetchall())
+                
+                cursor.execute("SELECT id, name, description, category FROM skills ORDER BY name")
+                capabilities["skills"] = list(cursor.fetchall())
+                
+                cursor.execute("SELECT id, name, description, category FROM workflows ORDER BY name")
+                capabilities["workflows"] = list(cursor.fetchall())
+                
+                return capabilities
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch available capabilities: {e}")
+            return capabilities
+
+    def update_agent_traits(self, agent_id: str, trait_type: str, trait_ids: List[int]) -> bool:
+        """Sync junction tables for an agent's traits (tools, skills, workflows)."""
+        table_map = {
+            "tools": ("agent_tools", "tool_id"),
+            "skills": ("agent_skills", "skill_id"),
+            "workflows": ("agent_workflows", "workflow_id")
+        }
+        
+        if trait_type not in table_map:
+            return False
+            
+        table_name, col_name = table_map[trait_type]
+        
+        try:
+            with self.db_session() as cursor:
+                if cursor is None: return False
+                
+                # 1. Clear existing relationships
+                cursor.execute(f"DELETE FROM {table_name} WHERE agent_id = %s", (agent_id,))
+                
+                # 2. Insert new relationships
+                if trait_ids:
+                    values = [(agent_id, tid) for tid in trait_ids]
+                    query = f"INSERT INTO {table_name} (agent_id, {col_name}) VALUES %s ON CONFLICT DO NOTHING"
+                    psycopg2.extras.execute_values(cursor, query, values)
+                
+                return True
+        except Exception as e:
+            print(f"[ContextStore] Failed to update agent {trait_type} for {agent_id}: {e}")
             return False
 
     def _get_connection(self):

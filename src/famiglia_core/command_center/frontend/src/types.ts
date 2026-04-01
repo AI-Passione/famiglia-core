@@ -95,15 +95,20 @@ export interface FamigliaAgent {
   agent_id: string;
   name: string;
   role: string;
+  is_active: boolean;
   status: string;
   aliases: string[];
   personality: string;
   identity: string;
   skills: string[];
+  skill_ids: number[];
   tools: string[];
+  tool_ids: number[];
   workflows: string[];
+  workflow_ids: number[];
   latest_conversation_snippet: string;
   last_active: string | null;
+  avatar_url: string | null;
 }
 
 export interface EngineRoomPort {

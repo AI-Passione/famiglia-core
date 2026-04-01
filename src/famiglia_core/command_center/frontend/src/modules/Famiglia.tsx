@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FamigliaAgent } from '../types';
-import { API_BASE } from '../config';
+import { API_BASE, BACKEND_BASE } from '../config';
+import { AgentEditModal } from './AgentEditModal';
 
 function normalizeStatus(status: string): 'active' | 'inactive' {
   const value = (status || '').toLowerCase();
@@ -36,24 +37,25 @@ export function Famiglia() {
   const [agents, setAgents] = useState<FamigliaAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingAgent, setEditingAgent] = useState<FamigliaAgent | null>(null);
+
+  const loadRoster = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE}/famiglia/agents`);
+      if (!response.ok) throw new Error('Failed to load agent roster');
+      const payload = await response.json();
+      setAgents(Array.isArray(payload) ? (payload as FamigliaAgent[]) : []);
+    } catch (err) {
+      console.error(err);
+      setError('Unable to load The Famiglia roster from PostgreSQL.');
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadRoster = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`${API_BASE}/famiglia/agents`);
-        if (!response.ok) throw new Error('Failed to load agent roster');
-        const payload = await response.json();
-        setAgents(Array.isArray(payload) ? (payload as FamigliaAgent[]) : []);
-      } catch (err) {
-        console.error(err);
-        setError('Unable to load The Famiglia roster from PostgreSQL.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadRoster();
   }, []);
 
@@ -117,24 +119,47 @@ export function Famiglia() {
               className="bg-surface-container-low border border-outline-variant/20 p-6 space-y-5"
             >
               <div className="flex items-start gap-4">
-                <div className="w-16 h-16 bg-surface-container-lowest overflow-hidden flex items-center justify-center text-outline font-headline">
-                  {initialsFor(agent.name)}
+                <div className="w-16 h-16 bg-surface-container-lowest overflow-hidden flex items-center justify-center text-outline font-headline relative group">
+                  {agent.avatar_url ? (
+                    <>
+                      <img
+                        src={`${BACKEND_BASE}${agent.avatar_url}`}
+                        alt={agent.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 border border-white/10 group-hover:border-tertiary/30 transition-colors pointer-events-none" />
+                    </>
+                  ) : (
+                    <span>{initialsFor(agent.name)}</span>
+                  )}
                 </div>
                 <div className="flex-1">
-                  <h2 className="font-headline text-2xl text-white">{agent.name}</h2>
-                  <p className="font-label text-[11px] uppercase tracking-widest text-outline mt-1">
-                    {agent.role}
-                  </p>
-                  <p className="font-body text-xs text-outline mt-2">
-                    Agent ID: <span className="uppercase tracking-[0.18em]">{agent.agent_id}</span>
-                  </p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h2 className="font-headline text-2xl text-white">{agent.name}</h2>
+                      <p className="font-label text-[11px] uppercase tracking-widest text-outline mt-1">
+                        {agent.role}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setEditingAgent(agent)}
+                      className="p-2 text-on-surface-variant hover:text-tertiary transition-colors group/edit"
+                      title="Edit Agent Dossier"
+                    >
+                      <svg className="w-5 h-5 transition-transform group-hover/edit:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 <span
-                  className={`px-2 py-1 font-label text-[10px] uppercase tracking-widest border ${
-                    status === 'active'
+                  className={`px-2 py-1 font-label text-[10px] uppercase tracking-widest border ${status === 'active'
                       ? 'text-tertiary border-tertiary/40 bg-on-tertiary-fixed-variant/20'
                       : 'text-outline border-outline/30'
-                  }`}
+                    }`}
                 >
                   {status}
                 </span>
@@ -189,6 +214,14 @@ export function Famiglia() {
           );
         })}
       </section>
+
+      {editingAgent && (
+        <AgentEditModal
+          agent={editingAgent}
+          onClose={() => setEditingAgent(null)}
+          onSave={() => loadRoster(false)}
+        />
+      )}
     </div>
   );
 }

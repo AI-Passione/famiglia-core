@@ -40,6 +40,8 @@ describe('Famiglia Component', () => {
       expect(screen.getByText('Chief of Staff')).toBeTruthy();
       expect(screen.getByText('Coordinates the family.')).toBeTruthy();
       expect(screen.getByText('Command Center')).toBeTruthy();
+      expect(screen.getByText('1 Active Agents')).toBeTruthy();
+      expect(screen.getByText('1 Total Souls')).toBeTruthy();
       expect(screen.getByText(/Status confirmed\./i)).toBeTruthy();
     });
   });
@@ -54,6 +56,20 @@ describe('Famiglia Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('No agents found')).toBeTruthy();
+    });
+  });
+
+  it('renders the PostgreSQL error state when roster fetch fails', async () => {
+    (global as any).fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({}),
+    });
+
+    render(<Famiglia />);
+
+    await waitFor(() => {
+      expect(screen.getByText('The Famiglia')).toBeTruthy();
+      expect(screen.getByText('Unable to load The Famiglia roster from PostgreSQL.')).toBeTruthy();
     });
   });
 });

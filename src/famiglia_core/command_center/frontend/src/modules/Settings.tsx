@@ -14,7 +14,7 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
         <h1 className="font-headline text-5xl text-white tracking-tight">Settings</h1>
         <p className="font-body text-[#a38b88] text-sm max-w-3xl">
           Configure how the Command Center addresses you and tune the visual experience.
-          Settings are stored locally in this browser.
+          Settings are synced with Command Center API and cached locally in this browser.
         </p>
       </header>
 

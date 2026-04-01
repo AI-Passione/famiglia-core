@@ -19,11 +19,32 @@ describe('App Component', () => {
     vi.clearAllMocks();
     window.localStorage.removeItem('command_center_settings');
     // Default fetch mocks
-    global.fetch = vi.fn().mockImplementation((url: string) => {
+    global.fetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
       if (url.includes('/agents')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/actions')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/tasks')) return Promise.resolve({ ok: true, json: async () => [] });
       if (url.includes('/graphs')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (url.includes('/settings')) {
+        if (options?.method === 'PUT') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => JSON.parse((options.body as string) || '{}'),
+          });
+        }
+
+        const existing = window.localStorage.getItem('command_center_settings');
+        return Promise.resolve({
+          ok: true,
+          json: async () =>
+            existing
+              ? JSON.parse(existing)
+              : {
+                  honorific: 'Don',
+                  notificationsEnabled: true,
+                  backgroundAnimationsEnabled: true,
+                },
+        });
+      }
       return Promise.resolve({ ok: true, json: async () => ({}) });
     });
   });

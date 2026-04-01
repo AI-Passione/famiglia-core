@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Agent, Action, Task, GraphDefinition, AppSettings } from './types';
 import { TopNav } from './modules/ui/TopNav';
 import { Sidebar } from './modules/ui/Sidebar';
@@ -43,6 +43,8 @@ function App() {
   const [selectedGraph, setSelectedGraph] = useState<GraphDefinition | null>(null);
   const [activeTab, setActiveTab] = useState('situation_room');
   const [settings, setSettings] = useState<AppSettings>(() => getInitialSettings());
+  const [settingsHydrated, setSettingsHydrated] = useState(false);
+  const hasSyncedSettings = useRef(false);
 
   // Read OAuth redirect params so Connections page can show a toast
   const params = new URLSearchParams(window.location.search);
@@ -63,8 +65,57 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const hydrateSettings = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/settings`);
+        if (response.ok) {
+          const backendSettings = (await response.json()) as AppSettings;
+          setSettings({
+            honorific: backendSettings.honorific || DEFAULT_SETTINGS.honorific,
+            notificationsEnabled:
+              backendSettings.notificationsEnabled ??
+              DEFAULT_SETTINGS.notificationsEnabled,
+            backgroundAnimationsEnabled:
+              backendSettings.backgroundAnimationsEnabled ??
+              DEFAULT_SETTINGS.backgroundAnimationsEnabled,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to hydrate settings from backend, using local settings.', error);
+      } finally {
+        setSettingsHydrated(true);
+      }
+    };
+    hydrateSettings();
+  }, []);
+
+  useEffect(() => {
     window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    if (!settingsHydrated) return;
+
+    // Skip first sync call after hydration to avoid writing unchanged values.
+    if (!hasSyncedSettings.current) {
+      hasSyncedSettings.current = true;
+      return;
+    }
+
+    const sync = setTimeout(async () => {
+      try {
+        await fetch(`${API_BASE}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings),
+        });
+      } catch (error) {
+        console.error('Failed to sync settings to backend.', error);
+      }
+    }, 250);
+
+    return () => clearTimeout(sync);
+  }, [settings, settingsHydrated]);
 
   useEffect(() => {
     const fetchData = async () => {

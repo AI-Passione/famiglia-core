@@ -1,4 +1,3 @@
-import json
 from typing import Optional, Dict, Any
 from famiglia_core.db.agents.context_store import context_store
 
@@ -58,16 +57,20 @@ class UserService:
             print(f"[UserService] Error ensuring identity: {e}")
 
     def get_don_settings(self) -> Dict[str, Any]:
-        """Load Command Center settings from the Don's user metadata JSONB."""
+        """Load Command Center settings from the dedicated user_settings table."""
         try:
             with context_store.db_session(commit=False) as cursor:
                 if cursor is None:
                     return DEFAULT_SETTINGS.copy()
                 cursor.execute(
                     """
-                    SELECT metadata
-                    FROM users
-                    WHERE role = 'don'
+                    SELECT
+                        us.honorific,
+                        us.notifications_enabled,
+                        us.background_animations_enabled
+                    FROM user_settings us
+                    JOIN users u ON u.id = us.user_id
+                    WHERE u.role = 'don'
                     LIMIT 1;
                     """
                 )
@@ -75,27 +78,21 @@ class UserService:
                 if not row:
                     return DEFAULT_SETTINGS.copy()
 
-                metadata = row.get("metadata") or {}
-                command_center_settings = metadata.get("command_center_settings") or {}
                 return {
-                    "honorific": command_center_settings.get(
-                        "honorific", DEFAULT_SETTINGS["honorific"]
-                    ),
-                    "notificationsEnabled": command_center_settings.get(
-                        "notificationsEnabled",
-                        DEFAULT_SETTINGS["notificationsEnabled"],
-                    ),
-                    "backgroundAnimationsEnabled": command_center_settings.get(
-                        "backgroundAnimationsEnabled",
-                        DEFAULT_SETTINGS["backgroundAnimationsEnabled"],
-                    ),
+                    "honorific": row.get("honorific") or DEFAULT_SETTINGS["honorific"],
+                    "notificationsEnabled": row.get("notifications_enabled")
+                    if row.get("notifications_enabled") is not None
+                    else DEFAULT_SETTINGS["notificationsEnabled"],
+                    "backgroundAnimationsEnabled": row.get("background_animations_enabled")
+                    if row.get("background_animations_enabled") is not None
+                    else DEFAULT_SETTINGS["backgroundAnimationsEnabled"],
                 }
         except Exception as e:
             print(f"[UserService] Error loading Don settings: {e}")
             return DEFAULT_SETTINGS.copy()
 
     def update_don_settings(self, settings: Dict[str, Any]) -> Dict[str, Any]:
-        """Persist Command Center settings into the Don's user metadata JSONB."""
+        """Persist Command Center settings into the dedicated user_settings table."""
         normalized_settings = {
             "honorific": settings.get("honorific", DEFAULT_SETTINGS["honorific"]),
             "notificationsEnabled": settings.get(
@@ -113,38 +110,55 @@ class UserService:
 
                 cursor.execute(
                     """
-                    UPDATE users
-                    SET
-                      metadata = COALESCE(metadata, '{}'::jsonb) ||
-                                 jsonb_build_object('command_center_settings', %s::jsonb),
-                      updated_at = NOW()
-                    WHERE id = (
-                      SELECT id FROM users WHERE role = 'don' LIMIT 1
-                    )
-                    RETURNING id;
-                    """,
-                    (json.dumps(normalized_settings),),
+                    SELECT id
+                    FROM users
+                    WHERE role = 'don'
+                    LIMIT 1;
+                    """
                 )
-                updated_row = cursor.fetchone()
-
-                if not updated_row:
-                    # Create a default Don user if missing, then persist settings.
+                don_row = cursor.fetchone()
+                if not don_row:
                     cursor.execute(
                         """
-                        INSERT INTO users (full_name, username, role, metadata)
-                        VALUES (%s, %s, 'don', %s::jsonb)
+                        INSERT INTO users (full_name, username, role)
+                        VALUES (%s, %s, 'don')
                         ON CONFLICT (username) DO UPDATE
-                        SET metadata = EXCLUDED.metadata, updated_at = NOW();
+                        SET updated_at = NOW()
+                        RETURNING id;
                         """,
-                        (
-                            "Don Jimmy",
-                            "don_jimmy",
-                            json.dumps(
-                                {"command_center_settings": normalized_settings}
-                            ),
-                        ),
+                        ("Don Jimmy", "don_jimmy"),
                     )
+                    don_row = cursor.fetchone()
 
+                if not don_row:
+                    return normalized_settings
+
+                don_user_id = don_row["id"]
+                cursor.execute(
+                    """
+                    INSERT INTO user_settings (
+                        user_id,
+                        honorific,
+                        notifications_enabled,
+                        background_animations_enabled,
+                        updated_at
+                    )
+                    VALUES (%s, %s, %s, %s, NOW())
+                    ON CONFLICT (user_id) DO UPDATE
+                    SET
+                      honorific = EXCLUDED.honorific,
+                      notifications_enabled = EXCLUDED.notifications_enabled,
+                      background_animations_enabled = EXCLUDED.background_animations_enabled,
+                      updated_at = NOW()
+                    RETURNING id;
+                    """,
+                    (
+                        don_user_id,
+                        normalized_settings["honorific"],
+                        normalized_settings["notificationsEnabled"],
+                        normalized_settings["backgroundAnimationsEnabled"],
+                    ),
+                )
                 return normalized_settings
         except Exception as e:
             print(f"[UserService] Error updating Don settings: {e}")

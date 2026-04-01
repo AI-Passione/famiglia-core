@@ -5,7 +5,6 @@ import re
 import shutil
 import socket
 import subprocess
-import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone

@@ -114,4 +114,45 @@ describe('App Component', () => {
       expect(JSON.parse(window.localStorage.getItem('command_center_settings') || '{}').honorific).toBe('Boss');
     });
   });
+
+  it('hydrates settings from backend and syncs updates with PUT', async () => {
+    global.fetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+      if (url.includes('/agents')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (url.includes('/actions')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (url.includes('/tasks')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (url.includes('/graphs')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (url.includes('/settings')) {
+        if (options?.method === 'PUT') {
+          return Promise.resolve({ ok: true, json: async () => ({}) });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            honorific: 'Capo',
+            notificationsEnabled: true,
+            backgroundAnimationsEnabled: false,
+          }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByText('Settings'));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Custom honorific')).toHaveValue('Capo');
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('Custom honorific'), {
+      target: { value: 'Donna' },
+    });
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/settings'),
+        expect.objectContaining({ method: 'PUT' })
+      );
+    });
+  });
 });

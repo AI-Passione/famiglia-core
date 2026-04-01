@@ -9,12 +9,13 @@ interface SituationRoomProps {
   agents: Agent[];
   actions: Action[];
   tasks: Task[];
+  honorific: string;
 }
 
-export function SituationRoom({ agents, actions, tasks }: SituationRoomProps) {
+export function SituationRoom({ agents, actions, tasks, honorific }: SituationRoomProps) {
   return (
     <>
-      <HeroSection />
+      <HeroSection honorific={honorific} />
       <div className="grid grid-cols-12 gap-6">
         <OpsPulse agentsCount={agents.length} highPriorityCount={tasks.filter(t => t.priority === 'high').length} />
         <IntelligenceFeed actions={actions} />

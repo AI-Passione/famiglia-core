@@ -27,7 +27,22 @@ CREATE TABLE IF NOT EXISTS user_platform_identities (
 CREATE INDEX IF NOT EXISTS idx_user_platform_lookup
   ON user_platform_identities(platform, platform_user_id);
 
--- 3. Update User Connections to add user_id
+-- 3. Create User Settings Table
+CREATE TABLE IF NOT EXISTS user_settings (
+  id                              SERIAL PRIMARY KEY,
+  user_id                         INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  honorific                       VARCHAR(64) NOT NULL DEFAULT 'Don',
+  notifications_enabled           BOOLEAN NOT NULL DEFAULT TRUE,
+  background_animations_enabled   BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at                      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at                      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_settings_user_id
+  ON user_settings(user_id);
+
+-- 4. Update User Connections to add user_id
 -- We add it as nullable first to avoid issues with existing rows
 DO $$
 BEGIN
@@ -36,7 +51,7 @@ BEGIN
     END IF;
 END$$;
 
--- 4. Create other missing core tables
+-- 5. Create other missing core tables
 CREATE TABLE IF NOT EXISTS agent_actions (
   id SERIAL PRIMARY KEY,
   timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),

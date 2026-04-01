@@ -96,3 +96,31 @@ def test_get_mission_logs_endpoint(mock_store):
     assert len(data) == 1
     assert data[0]["id"] == "ML-101"
     assert data[0]["status"] == "success"
+
+@patch("famiglia_core.command_center.backend.api.routes.settings.user_service")
+def test_get_settings_endpoint(mock_user_service):
+    mock_user_service.get_don_settings.return_value = {
+        "honorific": "Capo",
+        "notificationsEnabled": False,
+        "backgroundAnimationsEnabled": True,
+    }
+
+    response = client.get("/api/v1/settings")
+    assert response.status_code == 200
+    assert response.json()["honorific"] == "Capo"
+    assert response.json()["notificationsEnabled"] is False
+
+
+@patch("famiglia_core.command_center.backend.api.routes.settings.user_service")
+def test_update_settings_endpoint(mock_user_service):
+    payload = {
+        "honorific": "Donna",
+        "notificationsEnabled": True,
+        "backgroundAnimationsEnabled": False,
+    }
+    mock_user_service.update_don_settings.return_value = payload
+
+    response = client.put("/api/v1/settings", json=payload)
+    assert response.status_code == 200
+    assert response.json() == payload
+    mock_user_service.update_don_settings.assert_called_once_with(payload)

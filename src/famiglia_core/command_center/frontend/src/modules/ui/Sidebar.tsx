@@ -1,17 +1,3 @@
-interface SidebarSmallLinkProps {
-  icon: string;
-  label: string;
-}
-
-function SidebarSmallLink({ icon, label }: SidebarSmallLinkProps) {
-  return (
-    <button className="w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50">
-      <span className="material-symbols-outlined">{icon}</span>
-      <span className="font-body font-medium text-sm tracking-wide">{label}</span>
-    </button>
-  );
-}
-
 export function Sidebar({ activeTab, setActiveTab }: any) {
   const items = [
     { id: 'situation_room', label: 'The Situation Room', icon: 'dashboard' },
@@ -29,6 +15,7 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
       <nav className="flex-1 px-4 space-y-1">
         {items.map(item => (
           <button
+            type="button"
             key={item.id}
             onClick={() => setActiveTab(item.id)}
             className={`w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 ${
@@ -43,7 +30,18 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
         ))}
       </nav>
       <div className="px-4 mt-auto pt-6 space-y-1">
-        <SidebarSmallLink icon="settings" label="Settings" />
+        <button
+          type="button"
+          onClick={() => setActiveTab('settings')}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 ${
+            activeTab === 'settings'
+              ? 'translate-x-1 text-[#ffb3b5] font-bold bg-[#1c1b1b] border-l-4 border-[#4A0404]'
+              : 'hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50'
+          }`}
+        >
+          <span className="material-symbols-outlined">settings</span>
+          <span className="font-body font-medium text-sm tracking-wide">Settings</span>
+        </button>
       </div>
     </aside>
   );

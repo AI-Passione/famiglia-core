@@ -226,7 +226,22 @@ CREATE TABLE IF NOT EXISTS user_platform_identities (
 CREATE INDEX IF NOT EXISTS idx_user_platform_lookup
   ON user_platform_identities(platform, platform_user_id);
 
--- 10. User OAuth Connections (for the Command Center owner)
+-- 10. User App Settings (for the Command Center owner)
+CREATE TABLE IF NOT EXISTS user_settings (
+  id                              SERIAL PRIMARY KEY,
+  user_id                         INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  honorific                       VARCHAR(64) NOT NULL DEFAULT 'Don',
+  notifications_enabled           BOOLEAN NOT NULL DEFAULT TRUE,
+  background_animations_enabled   BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at                      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at                      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_settings_user_id
+  ON user_settings(user_id);
+
+-- 11. User OAuth Connections (for the Command Center owner)
 -- Aligned with the 'users' table if multi-user is needed later.
 CREATE TABLE IF NOT EXISTS user_connections (
   id           SERIAL PRIMARY KEY,

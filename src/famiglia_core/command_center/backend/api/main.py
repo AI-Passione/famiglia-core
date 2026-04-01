@@ -19,6 +19,25 @@ from famiglia_core.command_center.backend.api.services.engine_room_service impor
 FEATURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../agents/orchestration/features"))
 graph_parser = GraphParser(FEATURES_DIR)
 
+
+def _parse_origin_list(*values: str) -> List[str]:
+    origins: List[str] = []
+
+    for value in values:
+        for raw_origin in value.split(","):
+            origin = raw_origin.strip().rstrip("/")
+            if origin and origin not in origins:
+                origins.append(origin)
+
+    return origins
+
+
+allowed_origins = _parse_origin_list(
+    os.getenv("CORS_ALLOW_ORIGINS", ""),
+    os.getenv("FRONTEND_BASE_URL", "http://localhost:5173"),
+    os.getenv("BACKEND_BASE_URL", "http://localhost:8000"),
+)
+
 app = FastAPI(
     title="La Passione Commanding Center API",
     description="Unified API for AI Agent Orchestration and Command Center interactions.",
@@ -28,7 +47,7 @@ app = FastAPI(
 # Enable CORS for the frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify the actual frontend URL
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

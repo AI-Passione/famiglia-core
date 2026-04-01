@@ -26,3 +26,18 @@ npm run dev
 ```
 Default Dev Port: `5173`.
 Dashboard expects API at `localhost:8000` by default.
+
+## 🌍 GitHub Pages
+The frontend can now be deployed through `.github/workflows/pages.yml`.
+
+- Static assets use a relative Vite base so the build works on both repo-scoped Pages URLs and a custom domain.
+- `public/CNAME` is set to `ai-passione.com`. Change that file if you want a subdomain instead.
+- Production API calls are controlled through Vite env vars:
+  - `VITE_API_BASE`: full API prefix, for example `https://api.ai-passione.com/api/v1`
+  - `VITE_BACKEND_BASE`: optional alternative that expands to `${VITE_BACKEND_BASE}/api/v1`
+- The workflow defaults `VITE_API_BASE` to `https://api.ai-passione.com/api/v1`, but a GitHub repository variable with the same name will override it.
+
+For the deployed site to work end-to-end, the backend must also be public and configured with:
+- `FRONTEND_BASE_URL=https://ai-passione.com`
+- `BACKEND_BASE_URL=https://api.ai-passione.com`
+- `CORS_ALLOW_ORIGINS=https://ai-passione.com,https://ai-passione.github.io`

@@ -743,6 +743,7 @@ class AgentContextStore:
                         a.agent_name AS name,
                         COALESCE(ar.name, 'Unassigned') AS role,
                         CASE WHEN COALESCE(a.is_active, FALSE) THEN 'active' ELSE 'inactive' END AS status,
+                        a.avatar_url,
                         COALESCE(a.aliases, ARRAY[]::TEXT[]) AS aliases,
                         COALESCE(NULLIF(BTRIM(a.persona), ''), 'Soul profile pending.') AS personality,
                         COALESCE(NULLIF(BTRIM(a.identity), ''), 'Identity profile pending.') AS identity,
@@ -838,7 +839,7 @@ class AgentContextStore:
 
     def upsert_agent_soul(self, agent_id: str, agent_name: str, **kwargs) -> bool:
         """Update or create an agent soul record."""
-        allowed_fields = {"persona", "reply_constraints", "identity", "aliases", "archetype_id", "is_active"}
+        allowed_fields = {"persona", "reply_constraints", "identity", "aliases", "archetype_id", "is_active", "avatar_url"}
         update_fields = {k: v for k, v in kwargs.items() if k in allowed_fields}
         
         if not update_fields:

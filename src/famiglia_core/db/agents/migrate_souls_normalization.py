@@ -142,7 +142,8 @@ class SoulMigrator:
             {"name": "Data Analyst", "source": "kowalski", "desc": "Deep-dives into analytics, pattern recognition, and detailed reporting."},
             {"name": "Operations Support", "source": "bella", "desc": "Facilitates communication, general assistance, and logistics."},
             {"name": "Personal Assistant", "source": "bella", "desc": "Provides direct support, scheduling, and administrative coordination."},
-            {"name": "Advisor", "source": "vito", "desc": "Offers strategic guidance, legal perspectives, and wise counsel."}
+            {"name": "Advisor", "source": "vito", "desc": "Offers strategic guidance, legal perspectives, and wise counsel."},
+            {"name": "Brand Strategist", "source": "giuseppina", "desc": "Handles PR, marketing, and the overall 'vibe' of the AI Passione brand."}
         ]
         archetype_ids = {}
         with context_store.db_session() as cursor:
@@ -171,7 +172,19 @@ class SoulMigrator:
             "rossini": "Product Strategist",
             "kowalski": "Data Analyst", "tommy": "Data Analyst", 
             "vito": "Advisor",
-            "bella": "Personal Assistant"
+            "bella": "Personal Assistant",
+            "giuseppina": "Brand Strategist"
+        }
+        
+        AVATAR_MAPPING = {
+            "alfredo": "/api/v1/images/alfredo.png",
+            "bella": "/api/v1/images/bella.png",
+            "rossini": "/api/v1/images/dr_rossini.png",
+            "giuseppina": "/api/v1/images/giuseppina.png",
+            "kowalski": "/api/v1/images/kowalski.png",
+            "riccado": "/api/v1/images/riccardo.png",
+            "tommy": "/api/v1/images/tommy.png",
+            "vito": "/api/v1/images/vito.png",
         }
         
         inactive_agents = set()
@@ -229,7 +242,8 @@ class SoulMigrator:
                 identity=parsed_data["identity"], 
                 aliases=config.get("aliases", []), 
                 archetype_id=arch_id,
-                is_active=is_active
+                is_active=is_active,
+                avatar_url=AVATAR_MAPPING.get(agent_id)
             )
 
             active_tools = {t["plugin"] for t in parsed_data["tools"]}

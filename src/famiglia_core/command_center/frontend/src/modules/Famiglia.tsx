@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FamigliaAgent } from '../types';
-import { API_BASE } from '../config';
+import { API_BASE, BACKEND_BASE } from '../config';
 
 function normalizeStatus(status: string): 'active' | 'inactive' {
   const value = (status || '').toLowerCase();
@@ -117,8 +117,22 @@ export function Famiglia() {
               className="bg-surface-container-low border border-outline-variant/20 p-6 space-y-5"
             >
               <div className="flex items-start gap-4">
-                <div className="w-16 h-16 bg-surface-container-lowest overflow-hidden flex items-center justify-center text-outline font-headline">
-                  {initialsFor(agent.name)}
+                <div className="w-16 h-16 bg-surface-container-lowest overflow-hidden flex items-center justify-center text-outline font-headline relative group">
+                  {agent.avatar_url ? (
+                    <>
+                      <img
+                        src={`${BACKEND_BASE}${agent.avatar_url}`}
+                        alt={agent.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 border border-white/10 group-hover:border-tertiary/30 transition-colors pointer-events-none" />
+                    </>
+                  ) : (
+                    <span>{initialsFor(agent.name)}</span>
+                  )}
                 </div>
                 <div className="flex-1">
                   <h2 className="font-headline text-2xl text-white">{agent.name}</h2>

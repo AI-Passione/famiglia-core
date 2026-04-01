@@ -104,6 +104,7 @@ export interface FamigliaAgent {
   workflows: string[];
   latest_conversation_snippet: string;
   last_active: string | null;
+  avatar_url: string | null;
 }
 
 export interface EngineRoomPort {

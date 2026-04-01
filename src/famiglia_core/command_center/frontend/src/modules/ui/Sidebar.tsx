@@ -4,8 +4,8 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
     { id: 'sop', label: 'SOP', icon: 'description' },
     { id: 'agenda', label: 'The Agenda', icon: 'calendar_month' },
     { id: 'famiglia', label: 'The Famiglia', icon: 'groups' },
-    { id: 'lounge', label: 'The Lounge', icon: 'nightlife' },
     { id: 'intelligences', label: 'Intelligences', icon: 'insights' },
+    { id: 'lounge', label: 'The Lounge', icon: 'nightlife' },
     { id: 'engine_room', label: 'The Engine Room', icon: 'precision_manufacturing' },
     { id: 'connections', label: 'Connections', icon: 'hub' },
   ];
@@ -23,8 +23,8 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
             key={item.id}
             onClick={() => setActiveTab(item.id)}
             className={`w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 ${activeTab === item.id
-                ? 'translate-x-1 text-[#ffb3b5] font-bold bg-[#1c1b1b] border-l-4 border-[#4A0404]'
-                : 'hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50'
+              ? 'translate-x-1 text-[#ffb3b5] font-bold bg-[#1c1b1b] border-l-4 border-[#4A0404]'
+              : 'hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50'
               }`}
           >
             <span className="material-symbols-outlined">{item.icon}</span>
@@ -37,8 +37,8 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
           type="button"
           onClick={() => setActiveTab('settings')}
           className={`w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 ${activeTab === 'settings'
-              ? 'translate-x-1 text-[#ffb3b5] font-bold bg-[#1c1b1b] border-l-4 border-[#4A0404]'
-              : 'hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50'
+            ? 'translate-x-1 text-[#ffb3b5] font-bold bg-[#1c1b1b] border-l-4 border-[#4A0404]'
+            : 'hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50'
             }`}
         >
           <span className="material-symbols-outlined">settings</span>

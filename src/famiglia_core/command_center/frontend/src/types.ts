@@ -72,3 +72,119 @@ export interface FamigliaAgent {
   latest_conversation_snippet: string;
   last_active: string | null;
 }
+
+export interface EngineRoomPort {
+  host_port: number;
+  container_port: number;
+  raw: string;
+}
+
+export interface EngineRoomTool {
+  slug: string;
+  name: string;
+  category: string;
+  description: string;
+  configured: boolean;
+  connected: boolean;
+  status: string;
+  detail: string;
+}
+
+export interface EngineRoomDockerService {
+  name: string;
+  image?: string | null;
+  profiles: string[];
+  ports: EngineRoomPort[];
+  has_healthcheck: boolean;
+  reachable: boolean;
+  state: string;
+  health: string;
+  source: string;
+}
+
+export interface EngineRoomObservabilityItem {
+  name: string;
+  service_name: string;
+  description: string;
+  url: string;
+  configured: boolean;
+  reachable: boolean;
+  state: string;
+  health: string;
+}
+
+export interface EngineRoomMetric {
+  label: string;
+  value: string;
+  hint: string;
+  tone: 'good' | 'warn' | 'critical' | 'neutral';
+}
+
+export interface EngineRoomSnapshot {
+  scope: string;
+  generated_at: string;
+  host: {
+    hostname: string;
+    platform: {
+      system: string;
+      release: string;
+      machine: string;
+      python: string;
+    };
+    uptime: {
+      seconds: number | null;
+      display: string;
+      source: string;
+    };
+    cpu: {
+      cores: number;
+      load_average: number[] | null;
+      estimated_load_percent: number | null;
+      source: string;
+    };
+    memory: {
+      total_bytes: number | null;
+      used_bytes: number | null;
+      available_bytes: number | null;
+      usage_percent: number | null;
+      source: string;
+    };
+    disk: {
+      path: string;
+      total_bytes: number;
+      used_bytes: number;
+      free_bytes: number;
+      usage_percent: number | null;
+    };
+  };
+  tools: {
+    items: EngineRoomTool[];
+    summary: {
+      total: number;
+      ready: number;
+      connected: number;
+      configured: number;
+    };
+  };
+  docker: {
+    available: boolean;
+    compose_file: string;
+    diagnostics: string[];
+    services: EngineRoomDockerService[];
+    summary: {
+      declared: number;
+      reachable: number;
+      live: number;
+      healthy: number;
+    };
+  };
+  observability: {
+    items: EngineRoomObservabilityItem[];
+    metrics: EngineRoomMetric[];
+    summary: {
+      total: number;
+      configured: number;
+      reachable: number;
+    };
+  };
+}

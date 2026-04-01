@@ -3,6 +3,7 @@ import type { Agent, Action, Task, GraphDefinition, AppSettings } from './types'
 import { TopNav } from './modules/ui/TopNav';
 import { Sidebar } from './modules/ui/Sidebar';
 import { SituationRoom } from './modules/SituationRoom';
+import { EngineRoom } from './modules/EngineRoom';
 import { SOP } from './modules/SOP';
 import { Intelligences } from './modules/Intelligences';
 import { Connections } from './modules/Connections';
@@ -173,6 +174,9 @@ function App() {
                 honorific={settings.honorific}
               />
             )}
+            {activeTab === 'engine_room' && (
+              <EngineRoom />
+            )}
             {activeTab === 'sop' && (
               <SOP 
                 graphs={graphs} 
@@ -197,7 +201,7 @@ function App() {
               <Settings settings={settings} onSettingsChange={setSettings} />
             )}
             {/* Fallback for other tabs */}
-            {!['situation_room', 'sop', 'famiglia', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
+            {!['situation_room', 'engine_room', 'sop', 'famiglia', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center py-40 opacity-40">
                 <span className="material-symbols-outlined text-6xl mb-4">construction</span>
                 <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>

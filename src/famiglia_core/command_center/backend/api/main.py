@@ -14,6 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 from famiglia_core.db.agents.context_store import context_store
 from famiglia_core.command_center.backend.graph_parser import GraphParser, GraphDefinition
 from famiglia_core.command_center.backend.api.routes import chat, auth, connections, settings
+from famiglia_core.command_center.backend.api.services.engine_room_service import engine_room_service
 
 FEATURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../agents/orchestration/features"))
 graph_parser = GraphParser(FEATURES_DIR)
@@ -215,6 +216,11 @@ async def get_mission_logs(graph_id: str):
 @app.get("/api/v1/famiglia/agents", response_model=List[FamigliaAgentProfile])
 async def get_famiglia_agents():
     return context_store.list_famiglia_agents()
+
+
+@app.get("/api/v1/engine-room")
+async def get_engine_room_snapshot():
+    return engine_room_service.get_snapshot()
 
 if __name__ == "__main__":
     import uvicorn

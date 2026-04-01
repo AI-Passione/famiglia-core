@@ -53,7 +53,7 @@ function App() {
   const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>([]);
   const [graphs, setGraphs] = useState<GraphDefinition[]>([]);
   const [selectedGraph, setSelectedGraph] = useState<GraphDefinition | null>(null);
-  const [activeTab, setActiveTab] = useState('agenda');
+  const [activeTab, setActiveTab] = useState('situation_room');
   const [settings, setSettings] = useState<AppSettings>(() => getInitialSettings());
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const hasSyncedSettings = useRef(false);

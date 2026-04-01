@@ -62,10 +62,10 @@ describe('App Component', () => {
     });
   });
 
-  it('renders Agenda by default', async () => {
+  it('renders The Situation Room by default', async () => {
     render(<App />);
     await waitFor(() => {
-      expect(screen.getByTestId('agenda-page')).toBeDefined();
+      expect(screen.getByTestId('situation-room')).toBeDefined();
     });
   });
 

@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import logging
 import yaml
 
 from famiglia_core.command_center.backend.github.auth_github import github_oauth_client
@@ -122,8 +123,8 @@ class EngineRoomService:
                     "display": result.stdout.strip(),
                     "source": "uptime_command",
                 }
-        except Exception:
-            pass
+        except Exception as exc:
+            logging.debug("Failed to collect uptime via 'uptime' command: %s", exc)
 
         return {"seconds": None, "display": "Unavailable", "source": "unavailable"}
 

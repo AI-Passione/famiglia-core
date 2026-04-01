@@ -51,7 +51,7 @@ docker run -d --name famiglia-core -p 8000:8000 -p 5173:5173 --env-file .env ghc
 - **Primary Interface:** A premium React-based dashboard for real-time monitoring and orchestration.
 - **Features:** Agent roster with live status, real-time action feed, and cross-platform task management.
 - **Location:** `src/famiglia_core/command_center/frontend` (Web: Port 5173) and `src/famiglia_core/command_center/backend` (API: Port 8000).
-- **Public Deployment:** GitHub Pages workflow at `.github/workflows/pages.yml`, with custom domain support via `src/famiglia_core/command_center/frontend/public/CNAME`.
+- **Public Demo Deployment:** GitHub Pages workflow at `.github/workflows/pages.yml`, with custom domain support via `src/famiglia_core/command_center/frontend/public/CNAME`. This is intended for demo/showcase use only, not as the primary production hosting model for the full Command Center stack.
 
 ---
 
@@ -118,7 +118,7 @@ To ensure scalability and clean separation of concerns, the system is split into
 ### 🚀 CI/CD & Infrastructure
 - **Pipeline:** GitHub Actions (Automated versioning & GHCR builds)
 - **Registry:** GitHub Container Registry (`ghcr.io`)
-- **Static Frontend Hosting:** GitHub Pages for the Command Center frontend
+- **Static Frontend Hosting:** GitHub Pages for a demo-facing Command Center frontend
 - **Observability:** [Grafana](https://grafana.com/) & [Loki](https://grafana.com/oss/loki/) (Container observability)
 - **AI Observability & Tracing:** [Langfuse](https://langfuse.com/) (Full-lifecycle agent observability)
 

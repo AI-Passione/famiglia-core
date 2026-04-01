@@ -21,6 +21,7 @@ The Commanding Center follows a modern decoupled architecture:
 ### 2. [Frontend Web](frontend/README.md)
 - **Tech**: React 19 / Vite 6 / Tailwind CSS
 - **Role**: A high-performance single-page application (SPA) focused on visual excellence and real-time polling.
+- **Public Demo Option**: The frontend can be published to GitHub Pages for demos and marketing visibility, but the full production Command Center experience is still meant to run with the backend/API stack.
 
 ---
 
@@ -37,4 +38,4 @@ Access the dashboard at `http://localhost:5173`.
 ---
 
 ## 🐳 Deployment & Containers
-Each component is containerized for production reliability. For deep technical details (endpoints, build processes, manual dev setups), see the [Backend](backend/README.md) and [Frontend](frontend/README.md) technical guides.
+Each component is containerized for production reliability. GitHub Pages support exists for demo-only static frontend exposure; it is not the primary deployment target for the full authenticated Command Center platform. For deep technical details (endpoints, build processes, manual dev setups), see the [Backend](backend/README.md) and [Frontend](frontend/README.md) technical guides.

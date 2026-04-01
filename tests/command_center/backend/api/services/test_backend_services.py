@@ -55,3 +55,43 @@ def test_agent_manager_singleton_and_listing():
     
     # Check non-existent agent
     assert manager.get_agent("unknown_agent") is None
+
+
+@patch("famiglia_core.command_center.backend.api.services.user_service.context_store")
+def test_user_service_get_don_settings_from_user_settings_table(mock_store):
+    mock_cursor = MagicMock()
+    mock_store.db_session.return_value.__enter__.return_value = mock_cursor
+    mock_cursor.fetchone.return_value = {
+        "honorific": "Boss",
+        "notifications_enabled": False,
+        "background_animations_enabled": True,
+    }
+
+    service = UserService()
+    settings = service.get_don_settings()
+
+    assert settings["honorific"] == "Boss"
+    assert settings["notificationsEnabled"] is False
+    assert settings["backgroundAnimationsEnabled"] is True
+
+
+@patch("famiglia_core.command_center.backend.api.services.user_service.context_store")
+def test_user_service_update_don_settings_upserts_row(mock_store):
+    mock_cursor = MagicMock()
+    mock_store.db_session.return_value.__enter__.return_value = mock_cursor
+    # first fetchone() for don user id, second for upsert RETURNING id
+    mock_cursor.fetchone.side_effect = [{"id": 7}, {"id": 99}]
+
+    service = UserService()
+    updated = service.update_don_settings(
+        {
+            "honorific": "Donna",
+            "notificationsEnabled": True,
+            "backgroundAnimationsEnabled": False,
+        }
+    )
+
+    assert updated["honorific"] == "Donna"
+    assert updated["notificationsEnabled"] is True
+    assert updated["backgroundAnimationsEnabled"] is False
+    assert mock_cursor.execute.call_count >= 2

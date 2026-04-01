@@ -2,7 +2,7 @@ import os
 import json
 import uuid
 import asyncio
-from typing import Optional, List, Dict, Any, Callable
+from typing import Optional, List, Dict, Any, Callable, Annotated
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Request
 from fastapi.responses import StreamingResponse
 
@@ -124,11 +124,16 @@ async def chat_stream(
 
 @router.post("/upload")
 async def upload_file(
-    agent_id: str = Form("alfredo"),
-    file: UploadFile = File(...)
+    request: Request,
+    agent_id: str = Query("alfredo")
 ):
     """Upload a file to be processed by an agent."""
     try:
+        form = await request.form()
+        file = form.get("file")
+        if not file or not isinstance(file, UploadFile):
+            raise HTTPException(status_code=400, detail="Missing 'file' field in multipart form")
+
         # Guarantee uniqueness
         file_id = str(uuid.uuid4())[:8]
         filename = f"{file_id}_{file.filename}"
@@ -143,5 +148,7 @@ async def upload_file(
             "file_path": file_path,
             "message": f"File '{file.filename}' uploaded for {agent_id}. Mention it in your next chat message."
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")

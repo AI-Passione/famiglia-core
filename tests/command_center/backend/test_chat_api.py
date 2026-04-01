@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from famiglia_core.command_center.backend.api.main import app
 
@@ -14,10 +14,11 @@ def mock_agent():
     agent.complete_task.return_value = "This is a test response from the agent."
     return agent
 
-@patch("famiglia_core.command_center.backend.api.routes.chat.agent_manager")
-@patch("famiglia_core.command_center.backend.api.routes.chat.user_service")
-def test_chat_standard_endpoint(client, mock_user_service, mock_agent_manager, mock_agent):
+def test_chat_standard_endpoint(client, mocker, mock_agent):
     # Setup mocks
+    mock_agent_manager = mocker.patch("famiglia_core.command_center.backend.api.routes.chat.agent_manager")
+    mock_user_service = mocker.patch("famiglia_core.command_center.backend.api.routes.chat.user_service")
+    
     mock_agent_manager.get_agent.return_value = mock_agent
     mock_user_service.get_don.return_value = {"id": 1, "full_name": "Don Jimmy"}
     
@@ -37,10 +38,11 @@ def test_chat_standard_endpoint(client, mock_user_service, mock_agent_manager, m
     
     mock_agent.complete_task.assert_called_once()
 
-@patch("famiglia_core.command_center.backend.api.routes.chat.agent_manager")
-@patch("famiglia_core.command_center.backend.api.routes.chat.user_service")
-def test_chat_stream_endpoint(client, mock_user_service, mock_agent_manager, mock_agent):
+def test_chat_stream_endpoint(client, mocker, mock_agent):
     # Setup mocks
+    mock_agent_manager = mocker.patch("famiglia_core.command_center.backend.api.routes.chat.agent_manager")
+    mock_user_service = mocker.patch("famiglia_core.command_center.backend.api.routes.chat.user_service")
+    
     mock_agent_manager.get_agent.return_value = mock_agent
     mock_user_service.get_don.return_value = {"id": 1, "full_name": "Don Jimmy"}
     
@@ -57,17 +59,23 @@ def test_chat_stream_endpoint(client, mock_user_service, mock_agent_manager, moc
         assert response.status_code == 200
         assert "text/event-stream" in response.headers["content-type"]
 
-@patch("famiglia_core.command_center.backend.api.routes.chat.agent_manager")
-def test_upload_file_endpoint(client, mock_agent_manager):
+def test_upload_file_endpoint(client, mocker):
+    # Setup mocks
+    mock_agent_manager = mocker.patch("famiglia_core.command_center.backend.api.routes.chat.agent_manager")
+    
     # Mocking the agent object
     mock_agent = MagicMock()
     mock_agent_manager.get_agent.return_value = mock_agent
     
-    files = [
-        ("file", ("test.txt", b"hello world", "text/plain")),
-        ("agent_id", (None, "alfredo"))
-    ]
-    response = client.post("/api/v1/chat/upload", files=files)
+    from io import BytesIO
+    file_content = b"hello world"
+    file_obj = BytesIO(file_content)
+    
+    response = client.post(
+        "/api/v1/chat/upload",
+        params={"agent_id": "alfredo"},
+        files={"file": ("test.txt", file_obj, "application/octet-stream")}
+    )
     
     if response.status_code != 200:
         print(f"DEBUG Response: {response.text}")

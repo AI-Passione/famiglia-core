@@ -129,26 +129,26 @@ async def upload_file(
 ):
     """Upload a file to be processed by an agent."""
     try:
-        form = await request.form()
-        file = form.get("file")
-        if not file or not isinstance(file, UploadFile):
-            raise HTTPException(status_code=400, detail="Missing 'file' field in multipart form")
-
+        # Get filename from headers or default
+        filename_header = request.headers.get("x-filename", "uploaded_file.txt")
+        
         # Guarantee uniqueness
         file_id = str(uuid.uuid4())[:8]
-        filename = f"{file_id}_{file.filename}"
+        filename = f"{file_id}_{filename_header}"
         file_path = os.path.join(UPLOAD_DIR, filename)
         
+        # Stream the body directly to disk to bypass Starlette's multipart parser
         with open(file_path, "wb") as f:
-            f.write(await file.read())
+            async for chunk in request.stream():
+                f.write(chunk)
             
         return {
             "success": True,
             "filename": filename,
             "file_path": file_path,
-            "message": f"File '{file.filename}' uploaded for {agent_id}. Mention it in your next chat message."
+            "message": f"File '{filename_header}' uploaded for {agent_id}. Mention it in your next chat message."
         }
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+        # Log the error for diagnostics
+        print(f"[API] Stream upload error for {agent_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")

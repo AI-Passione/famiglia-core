@@ -67,14 +67,14 @@ def test_upload_file_endpoint(client, mocker):
     mock_agent = MagicMock()
     mock_agent_manager.get_agent.return_value = mock_agent
     
-    from io import BytesIO
     file_content = b"hello world"
-    file_obj = BytesIO(file_content)
     
+    # Send as raw body with specific header to match new streaming route
     response = client.post(
         "/api/v1/chat/upload",
         params={"agent_id": "alfredo"},
-        files={"file": ("test.txt", file_obj, "application/octet-stream")}
+        content=file_content,
+        headers={"x-filename": "test.txt", "Content-Type": "application/octet-stream"}
     )
     
     if response.status_code != 200:

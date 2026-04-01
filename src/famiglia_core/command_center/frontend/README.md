@@ -27,10 +27,10 @@ npm run dev
 Default Dev Port: `5173`.
 Dashboard expects API at `localhost:8000` by default.
 
-## 🌍 GitHub Pages
+## 🌍 Public Demo (via GitHub Pages)
 The frontend can now be deployed through `.github/workflows/pages.yml`.
 
-This GitHub Pages path is meant for demo/showcase usage only. It is useful for exposing the visual Command Center shell on the public internet, but it is not the primary production deployment model for the full platform.
+This GitHub Pages path is meant for **demo/showcase usage only**. It is useful for exposing the visual Command Center shell on the public internet, but it is not the primary production deployment model for the full platform.
 
 - Static assets use a relative Vite base so the build works on both repo-scoped Pages URLs and a custom domain.
 - `public/CNAME` is set to `aipassione.com`. Change that file if you want a subdomain instead.

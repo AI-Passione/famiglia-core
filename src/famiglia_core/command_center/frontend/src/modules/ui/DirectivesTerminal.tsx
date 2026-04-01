@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE } from '../../config';
 
 interface Message {
   id: string;
@@ -65,7 +66,7 @@ export function DirectivesTerminal() {
     setMessages((prev: Message[]) => [...prev, newAgentMessage]);
 
     try {
-      const url = new URL('http://localhost:8000/api/v1/chat/stream');
+      const url = new URL(`${API_BASE}/chat/stream`);
       url.searchParams.append('message', input);
       url.searchParams.append('agent_id', 'alfredo');
 
@@ -250,7 +251,10 @@ export function DirectivesTerminal() {
       </AnimatePresence>
 
       <button 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          console.log("DirectivesTerminal toggle clicked. Current isOpen:", isOpen);
+          setIsOpen(!isOpen);
+        }}
         className="bg-[#4A0404] text-white rounded-full p-4 shadow-[0px_24px_48px_rgba(0,0,0,0.4)] border border-[#ffb3b5]/10 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-3 group relative overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>

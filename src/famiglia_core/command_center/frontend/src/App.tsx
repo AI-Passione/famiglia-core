@@ -7,6 +7,7 @@ import { SOP } from './modules/SOP';
 import { Intelligences } from './modules/Intelligences';
 import { Connections } from './modules/Connections';
 import { DirectivesTerminal } from './modules/ui/DirectivesTerminal';
+import { API_BASE } from './config';
 
 function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -34,15 +35,13 @@ function App() {
     window.history.replaceState({}, '', window.location.pathname);
   }, []);
 
-  const BACKEND_BASE = "http://localhost:8000";
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [agentsRes, actionsRes, tasksRes] = await Promise.all([
-          fetch(`${BACKEND_BASE}/api/v1/agents`),
-          fetch(`${BACKEND_BASE}/api/v1/actions?limit=10`),
-          fetch(`${BACKEND_BASE}/api/v1/tasks?limit=3`)
+          fetch(`${API_BASE}/agents`),
+          fetch(`${API_BASE}/actions?limit=10`),
+          fetch(`${API_BASE}/tasks?limit=3`)
         ]);
         
         if (agentsRes.ok) setAgents(await agentsRes.json());
@@ -55,7 +54,7 @@ function App() {
 
     const fetchGraphs = async () => {
       try {
-        const response = await fetch(`${BACKEND_BASE}/graphs`);
+        const response = await fetch(`${API_BASE}/graphs`);
         const data = await response.json();
         setGraphs(data);
         if (data.length > 0 && !selectedGraph) {

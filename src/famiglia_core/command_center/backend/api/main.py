@@ -14,6 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 from famiglia_core.db.agents.context_store import context_store
 from famiglia_core.command_center.backend.graph_parser import GraphParser, GraphDefinition
 from famiglia_core.command_center.backend.api.routes import chat, auth, connections, settings
+from famiglia_core.agents.tools.notion import notion_client
 
 FEATURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../agents/orchestration/features"))
 graph_parser = GraphParser(FEATURES_DIR)
@@ -84,6 +85,18 @@ class MissionLog(BaseModel):
     status: str
     duration: str
     initiator: str
+
+class FamigliaAgentProfile(BaseModel):
+    id: str
+    name: str
+    role: str
+    status: str
+    profile_pic_url: Optional[str] = None
+    personality: str
+    skills: List[str] = []
+    tools: List[str] = []
+    assigned_projects: List[str] = []
+    latest_conversation_snippet: str
 
 # --- Core Informational Routes ---
 
@@ -196,6 +209,101 @@ async def get_mission_logs(graph_id: str):
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
+def _extract_rich_text(prop: Dict[str, Any]) -> str:
+    chunks = prop.get("rich_text", []) if prop else []
+    return "".join(chunk.get("plain_text", "") for chunk in chunks).strip()
+
+def _extract_title(prop: Dict[str, Any]) -> str:
+    chunks = prop.get("title", []) if prop else []
+    return "".join(chunk.get("plain_text", "") for chunk in chunks).strip()
+
+def _extract_select_name(prop: Dict[str, Any]) -> str:
+    select = prop.get("select") if prop else None
+    return (select or {}).get("name", "").strip()
+
+def _extract_multi_select(prop: Dict[str, Any]) -> List[str]:
+    values = prop.get("multi_select", []) if prop else []
+    return [entry.get("name", "").strip() for entry in values if entry.get("name")]
+
+def _extract_files_url(prop: Dict[str, Any]) -> Optional[str]:
+    files = prop.get("files", []) if prop else []
+    if not files:
+        return None
+    file_obj = files[0]
+    if file_obj.get("type") == "external":
+        return (file_obj.get("external") or {}).get("url")
+    if file_obj.get("type") == "file":
+        return (file_obj.get("file") or {}).get("url")
+    return None
+
+def _extract_people_name(prop: Dict[str, Any]) -> Optional[str]:
+    people = prop.get("people", []) if prop else []
+    if not people:
+        return None
+    return people[0].get("name")
+
+def _normalize_prop_map(properties: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    normalized = {}
+    for key, value in properties.items():
+        normalized[key.lower().replace(" ", "").replace("_", "")] = value
+    return normalized
+
+@app.get("/api/v1/famiglia/agents", response_model=List[FamigliaAgentProfile])
+async def get_famiglia_agents():
+    database_id = os.getenv("NOTION_AGENT_ROSTER_DATABASE_ID")
+    if not database_id:
+        return []
+
+    try:
+        raw_rows = notion_client.search_database(database_id=database_id, agent_name="CommandCenter")
+    except Exception as exc:
+        print(f"[API] Failed to load Notion roster database: {exc}")
+        return []
+
+    profiles: List[FamigliaAgentProfile] = []
+    for row in raw_rows:
+        props = row.get("properties", {})
+        prop_map = _normalize_prop_map(props)
+
+        name = _extract_title(prop_map.get("name", {})) or _extract_rich_text(prop_map.get("name", {}))
+        role = _extract_select_name(prop_map.get("role", {})) or _extract_rich_text(prop_map.get("role", {}))
+        status = _extract_select_name(prop_map.get("status", {})) or "inactive"
+        personality = _extract_rich_text(prop_map.get("personality", {})) or _extract_rich_text(prop_map.get("soul", {}))
+        skills = _extract_multi_select(prop_map.get("skills", {}))
+        tools = _extract_multi_select(prop_map.get("tools", {}))
+        assigned_projects = _extract_multi_select(prop_map.get("assignedprojects", {}))
+        snippet = (
+            _extract_rich_text(prop_map.get("latestconversationsnippet", {}))
+            or _extract_rich_text(prop_map.get("latestsnippet", {}))
+            or _extract_rich_text(prop_map.get("latestconversation", {}))
+            or "No recent conversation snippet available."
+        )
+        profile_pic_url = _extract_files_url(prop_map.get("profilepic", {})) or _extract_rich_text(prop_map.get("profilepicurl", {}))
+
+        if not name:
+            name = _extract_people_name(prop_map.get("agent", {})) or "Unknown Agent"
+        if not role:
+            role = "Unassigned"
+        if not personality:
+            personality = "Soul profile pending."
+
+        profiles.append(
+            FamigliaAgentProfile(
+                id=row.get("id", name.lower().replace(" ", "_")),
+                name=name,
+                role=role,
+                status=status.lower(),
+                profile_pic_url=profile_pic_url or None,
+                personality=personality,
+                skills=skills,
+                tools=tools,
+                assigned_projects=assigned_projects,
+                latest_conversation_snippet=snippet,
+            )
+        )
+
+    return profiles
 
 if __name__ == "__main__":
     import uvicorn

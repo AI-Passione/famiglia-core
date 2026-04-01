@@ -56,3 +56,16 @@ export interface AppSettings {
   notificationsEnabled: boolean;
   backgroundAnimationsEnabled: boolean;
 }
+
+export interface FamigliaAgent {
+  id: string;
+  name: string;
+  role: string;
+  status: string;
+  profile_pic_url: string | null;
+  personality: string;
+  skills: string[];
+  tools: string[];
+  assigned_projects: string[];
+  latest_conversation_snippet: string;
+}

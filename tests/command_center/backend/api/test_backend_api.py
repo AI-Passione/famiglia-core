@@ -124,3 +124,31 @@ def test_update_settings_endpoint(mock_user_service):
     assert response.status_code == 200
     assert response.json() == payload
     mock_user_service.update_don_settings.assert_called_once_with(payload)
+
+
+@patch("famiglia_core.command_center.backend.api.main.notion_client")
+@patch("famiglia_core.command_center.backend.api.main.os.getenv")
+def test_get_famiglia_agents_endpoint(mock_getenv, mock_notion_client):
+    mock_getenv.return_value = "notion-db-id"
+    mock_notion_client.search_database.return_value = [
+        {
+            "id": "row-1",
+            "properties": {
+                "Name": {"type": "title", "title": [{"plain_text": "Alfredo"}]},
+                "Role": {"type": "select", "select": {"name": "Strategic Lead"}},
+                "Status": {"type": "select", "select": {"name": "Active"}},
+                "Personality": {"type": "rich_text", "rich_text": [{"plain_text": "Calm and precise"}]},
+                "Skills": {"type": "multi_select", "multi_select": [{"name": "Coordination"}]},
+                "Tools": {"type": "multi_select", "multi_select": [{"name": "openclaw-api"}]},
+                "Assigned Projects": {"type": "multi_select", "multi_select": [{"name": "Command Center"}]},
+                "Latest Conversation Snippet": {"type": "rich_text", "rich_text": [{"plain_text": "Status confirmed."}]},
+            },
+        }
+    ]
+
+    response = client.get("/api/v1/famiglia/agents")
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 1
+    assert payload[0]["name"] == "Alfredo"
+    assert payload[0]["skills"] == ["Coordination"]

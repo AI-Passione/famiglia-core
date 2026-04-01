@@ -1,5 +1,6 @@
 export function Sidebar({ activeTab, setActiveTab }: any) {
   const items = [
+    { id: 'agenda', label: 'The Agenda', icon: 'calendar_month' },
     { id: 'situation_room', label: 'The Situation Room', icon: 'dashboard' },
     { id: 'sop', label: 'SOP', icon: 'description' },
     { id: 'famiglia', label: 'The Famiglia', icon: 'groups' },

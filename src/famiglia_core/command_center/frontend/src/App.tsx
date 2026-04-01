@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Agent, Action, Task, GraphDefinition, AppSettings } from './types';
+import type {
+  Agent,
+  Action,
+  Task,
+  RecurringTask,
+  GraphDefinition,
+  AppSettings,
+} from './types';
 import { TopNav } from './modules/ui/TopNav';
 import { Sidebar } from './modules/ui/Sidebar';
+import { Agenda } from './modules/Agenda';
 import { SituationRoom } from './modules/SituationRoom';
 import { SOP } from './modules/SOP';
 import { Intelligences } from './modules/Intelligences';
@@ -40,9 +48,10 @@ function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>([]);
   const [graphs, setGraphs] = useState<GraphDefinition[]>([]);
   const [selectedGraph, setSelectedGraph] = useState<GraphDefinition | null>(null);
-  const [activeTab, setActiveTab] = useState('situation_room');
+  const [activeTab, setActiveTab] = useState('agenda');
   const [settings, setSettings] = useState<AppSettings>(() => getInitialSettings());
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const hasSyncedSettings = useRef(false);
@@ -121,15 +130,17 @@ function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [agentsRes, actionsRes, tasksRes] = await Promise.all([
+        const [agentsRes, actionsRes, tasksRes, recurringTasksRes] = await Promise.all([
           fetch(`${API_BASE}/agents`),
-          fetch(`${API_BASE}/actions?limit=10`),
-          fetch(`${API_BASE}/tasks?limit=3`)
+          fetch(`${API_BASE}/actions?limit=24`),
+          fetch(`${API_BASE}/tasks?limit=40`),
+          fetch(`${API_BASE}/recurring-tasks`)
         ]);
         
         if (agentsRes.ok) setAgents(await agentsRes.json());
         if (actionsRes.ok) setActions(await actionsRes.json());
         if (tasksRes.ok) setTasks(await tasksRes.json());
+        if (recurringTasksRes.ok) setRecurringTasks(await recurringTasksRes.json());
       } catch (err) {
         console.error("Failed to fetch data:", err);
       }
@@ -165,6 +176,15 @@ function App() {
           <div className="absolute inset-0 noir-bg-map pointer-events-none opacity-20"></div>
           
           <div className="relative z-10 p-10 max-w-7xl mx-auto space-y-10">
+            {activeTab === 'agenda' && (
+              <Agenda
+                agents={agents}
+                actions={actions}
+                tasks={tasks}
+                recurringTasks={recurringTasks}
+                honorific={settings.honorific}
+              />
+            )}
             {activeTab === 'situation_room' && (
               <SituationRoom 
                 agents={agents} 
@@ -197,7 +217,7 @@ function App() {
               <Settings settings={settings} onSettingsChange={setSettings} />
             )}
             {/* Fallback for other tabs */}
-            {!['situation_room', 'sop', 'famiglia', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
+            {!['agenda', 'situation_room', 'sop', 'famiglia', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center py-40 opacity-40">
                 <span className="material-symbols-outlined text-6xl mb-4">construction</span>
                 <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>

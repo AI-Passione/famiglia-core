@@ -19,7 +19,7 @@ export function SituationRoom({ agents, actions, tasks, honorific }: SituationRo
       <div className="grid grid-cols-12 gap-6">
         <OpsPulse agentsCount={agents.length} highPriorityCount={tasks.filter(t => t.priority === 'high').length} />
         <IntelligenceFeed actions={actions} />
-        <DirectivesGrid tasks={tasks} />
+        <DirectivesGrid tasks={tasks.slice(0, 3)} />
         <SystemHealth />
       </div>
     </>

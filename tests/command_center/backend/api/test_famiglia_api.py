@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import patch, mock_open
 from famiglia_core.command_center.backend.api.main import app
 
 client = TestClient(app)

@@ -174,7 +174,7 @@ class SoulMigrator:
             "bella": "Personal Assistant"
         }
         
-        inactive_agents = {"vito", "tommy", "bella"}
+        inactive_agents = set()
 
         # 2. Seed Shared Soul Baseline
         shared_path = self.souls_dir / "souls.md"

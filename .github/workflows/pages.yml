@@ -1,4 +1,4 @@
-name: Deploy Command Center Frontend
+name: Deploy Command Center Frontend (Demo)
 
 on:
   push:

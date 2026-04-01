@@ -5,7 +5,7 @@ Welcome to the central intelligence validation hub. This directory contains the 
 
 Run all unit tests (both frontend and backend) from the Command Center:
 ```bash
-npm run test:frontend
+npm run test
 ```
 
 Run all frontend unit tests from the command center:

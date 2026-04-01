@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import List, Optional, Dict
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
 

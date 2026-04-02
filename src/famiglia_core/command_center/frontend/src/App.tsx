@@ -20,6 +20,7 @@ import { Connections } from './modules/Connections';
 import { Settings } from './modules/Settings';
 import { Famiglia } from './modules/Famiglia';
 import { Lounge } from './modules/Lounge';
+import { Terminal } from './modules/Terminal';
 import { DirectivesTerminal } from './modules/ui/DirectivesTerminal';
 import { API_BASE } from './config';
 
@@ -230,11 +231,14 @@ function App() {
                 onClearParams={clearOAuthParams}
               />
             )}
+            {activeTab === 'terminal' && (
+              <Terminal agents={agents} actions={actions} />
+            )}
             {activeTab === 'settings' && (
               <Settings settings={settings} onSettingsChange={setSettings} />
             )}
             {/* Fallback for other tabs */}
-            {!['agenda', 'situation_room', 'engine_room', 'operations', 'famiglia', 'lounge', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
+            {!['terminal', 'agenda', 'situation_room', 'engine_room', 'operations', 'famiglia', 'lounge', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center py-40 opacity-40">
                 <span className="material-symbols-outlined text-6xl mb-4">construction</span>
                 <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>

@@ -24,8 +24,24 @@ body {
 }
 
 .glass-module {
-  background: rgba(53, 53, 52, 0.6);
+  background: rgba(53, 53, 52, 0.4);
   backdrop-filter: blur(20px);
+}
+
+.glass-premium {
+  background: rgba(20, 20, 20, 0.7);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bg-brand-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+}
+
+.text-brand-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

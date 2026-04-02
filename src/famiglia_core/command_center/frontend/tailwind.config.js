@@ -57,8 +57,8 @@ export default {
       },
       fontFamily: {
         "headline": ["Noto Serif"],
-        "body": ["Manrope"],
-        "label": ["Space Grotesk"]
+        "body": ["Inter", "Manrope", "sans-serif"],
+        "label": ["Space Grotesk", "sans-serif"]
       },
       borderRadius: {
         "DEFAULT": "0.125rem",

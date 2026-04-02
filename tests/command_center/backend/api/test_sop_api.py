@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
-from datetime import datetime, timezone
+from datetime import datetime
 
 from famiglia_core.command_center.backend.api.main import app
 

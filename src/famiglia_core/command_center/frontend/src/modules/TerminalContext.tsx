@@ -154,7 +154,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
         console.log("[TerminalContext] Rehydrating mission history...");
         const res = await fetch(`${API_BASE}/chat/conversations?limit=50`);
         if (res.ok) {
-          const conversations = await res.json();
+          // const conversations = await res.json();
           // Map backend conversations to chats if needed
           // For now, we continue using the provisioned channels but we could load thread history here
         }

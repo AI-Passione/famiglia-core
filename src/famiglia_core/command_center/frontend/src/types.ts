@@ -263,3 +263,45 @@ export interface EngineRoomSnapshot {
     };
   };
 }
+
+export interface Category {
+  id: number;
+  name: string;
+  display_name: string;
+  created_at: string;
+}
+
+export interface CategoryCreate {
+  name: string;
+  display_name: string;
+}
+
+export interface SOPNode {
+  id?: number;
+  workflow_id?: number;
+  node_name: string;
+  description: string | null;
+  node_type: string;
+}
+
+export interface SOPWorkflow {
+  id: number;
+  name: string;
+  display_name: string | null;
+  description: string | null;
+  category_id?: number;
+  category_name?: string;
+  category_display_name?: string;
+  node_order: string[];
+  nodes: SOPNode[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SOPWorkflowCreate {
+  name: string;
+  display_name: string | null;
+  description: string | null;
+  category_id?: number;
+  nodes: Omit<SOPNode, 'id' | 'workflow_id'>[];
+}

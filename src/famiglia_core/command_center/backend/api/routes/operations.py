@@ -50,14 +50,14 @@ async def get_all_mission_logs():
             query = """
                 SELECT 
                     id, 
-                    metadata->>'graph_id' as graph_id,
+                    COALESCE(metadata->>'graph_id', metadata->>'workflow_id') as graph_id,
                     created_at, 
                     status, 
                     picked_up_at, 
                     completed_at, 
                     created_by_name as initiator
                 FROM task_instances
-                WHERE metadata->>'task_type' = 'operations_execution'
+                WHERE metadata->>'task_type' IN ('operations_execution', 'sop_execution')
                 ORDER BY created_at DESC
                 LIMIT 40
             """

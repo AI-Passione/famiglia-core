@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS workflows;
 CREATE TABLE IF NOT EXISTS workflows (
   id SERIAL PRIMARY KEY,
   name TEXT UNIQUE NOT NULL,
+  display_name TEXT,
   description TEXT,
   category VARCHAR(50), -- e.g., 'market_research', 'product_development', 'analytics'
   node_order TEXT[] DEFAULT '{}', -- Array of node names in execution order

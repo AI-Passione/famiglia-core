@@ -152,3 +152,14 @@ async def upload_file(
         # Log the error for diagnostics
         print(f"[API] Stream upload error for {agent_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@router.get("/conversations")
+async def list_conversations(limit: int = Query(20), offset: int = Query(0)):
+    """List recent agent conversations."""
+    from famiglia_core.db.agents.context_store import context_store
+    conversations = context_store.list_conversations(limit=limit, offset=offset)
+    # Serialize datetimes for JSON response
+    for conv in conversations:
+        if conv.get("updated_at"):
+            conv["updated_at"] = conv["updated_at"].isoformat()
+    return conversations

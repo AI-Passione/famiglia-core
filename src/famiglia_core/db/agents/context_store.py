@@ -1015,6 +1015,172 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to update agent {trait_type} for {agent_id}: {e}")
             return False
 
+    # --- SOP (Standard Operating Procedure) Management ---
+
+    def list_workflow_categories(self) -> List[Dict[str, Any]]:
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute("SELECT * FROM workflow_categories ORDER BY display_name ASC")
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to list workflow categories: {e}")
+            return []
+
+    def create_workflow_category(self, name: str, display_name: str) -> Optional[Dict[str, Any]]:
+        try:
+            with self.db_session() as cursor:
+                if cursor is None: return None
+                cursor.execute(
+                    """
+                    INSERT INTO workflow_categories (name, display_name)
+                    VALUES (%s, %s)
+                    ON CONFLICT (name) DO UPDATE SET
+                        display_name = EXCLUDED.display_name
+                    RETURNING *
+                    """,
+                    (name, display_name),
+                )
+                return cursor.fetchone()
+        except Exception as e:
+            print(f"[ContextStore] Failed to create workflow category: {e}")
+            return None
+
+    def delete_workflow_category(self, category_id: int) -> bool:
+        try:
+            with self.db_session() as cursor:
+                if cursor is None: return False
+                cursor.execute("DELETE FROM workflow_categories WHERE id = %s", (category_id,))
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"[ContextStore] Failed to delete workflow category: {e}")
+            return False
+
+    def list_sop_workflows(self, category_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        query = """
+            SELECT w.*, c.name as category_name, c.display_name as category_display_name
+            FROM workflows w
+            LEFT JOIN workflow_categories c ON w.category_id = c.id
+        """
+        params = []
+        if category_id:
+            query += " WHERE w.category_id = %s"
+            params.append(category_id)
+        query += " ORDER BY w.display_name ASC"
+        
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(query, params)
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to list SOP workflows: {e}")
+            return []
+
+    def get_sop_workflow(self, workflow_id: int) -> Optional[Dict[str, Any]]:
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return None
+                
+                # Fetch workflow details with category info
+                cursor.execute(
+                    """
+                    SELECT w.*, c.name as category_name, c.display_name as category_display_name
+                    FROM workflows w
+                    LEFT JOIN workflow_categories c ON w.category_id = c.id
+                    WHERE w.id = %s
+                    """, 
+                    (workflow_id,)
+                )
+                workflow = cursor.fetchone()
+                if not workflow:
+                    return None
+                
+                # Fetch associated nodes
+                cursor.execute("SELECT * FROM workflow_nodes WHERE workflow_id = %s", (workflow_id,))
+                workflow["nodes"] = list(cursor.fetchall())
+                
+                return workflow
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch SOP workflow {workflow_id}: {e}")
+            return None
+
+    def create_sop_workflow(self, name: str, display_name: Optional[str] = None, description: Optional[str] = None, category_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        try:
+            display_name = display_name or name
+            with self.db_session() as cursor:
+                if cursor is None: return None
+                cursor.execute(
+                    """
+                    INSERT INTO workflows (name, display_name, description, category_id, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, NOW(), NOW())
+                    ON CONFLICT (name) DO UPDATE SET
+                        display_name = COALESCE(EXCLUDED.display_name, workflows.display_name),
+                        description = COALESCE(EXCLUDED.description, workflows.description),
+                        category_id = COALESCE(EXCLUDED.category_id, workflows.category_id),
+                        updated_at = NOW()
+                    RETURNING *
+                    """,
+                    (name, display_name, description, category_id),
+                )
+                return cursor.fetchone()
+        except Exception as e:
+            print(f"[ContextStore] Failed to create SOP workflow: {e}")
+            return None
+
+    def delete_sop_workflow(self, workflow_id: int) -> bool:
+        try:
+            with self.db_session() as cursor:
+                if cursor is None: return False
+                cursor.execute("DELETE FROM workflows WHERE id = %s", (workflow_id,))
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"[ContextStore] Failed to delete SOP workflow {workflow_id}: {e}")
+            return False
+
+    def sync_workflow_nodes(self, workflow_id: int, nodes: List[Dict[str, Any]]) -> bool:
+        """Fully sync the nodes of a workflow, replacing existing ones."""
+        try:
+            with self.db_session() as cursor:
+                if cursor is None: return False
+                
+                # 1. Clear existing nodes
+                cursor.execute("DELETE FROM workflow_nodes WHERE workflow_id = %s", (workflow_id,))
+                
+                # 2. Insert new nodes
+                if nodes:
+                    node_values = [(workflow_id, n["node_name"], n.get("description"), n.get("node_type", "task")) for n in nodes]
+                    query = "INSERT INTO workflow_nodes (workflow_id, node_name, description, node_type, created_at) VALUES %s"
+                    psycopg2.extras.execute_values(cursor, query, node_values)
+                
+                # 3. Update workflow node_order if provided in the list order
+                node_names = [n["node_name"] for n in nodes]
+                cursor.execute("UPDATE workflows SET node_order = %s, updated_at = NOW() WHERE id = %s", (node_names, workflow_id))
+                
+                return True
+        except Exception as e:
+            print(f"[ContextStore] Failed to sync workflow nodes for {workflow_id}: {e}")
+            return False
+
+    def update_sop_workflow_metadata(self, workflow_id: int, **kwargs) -> bool:
+        allowed_fields = {"name", "display_name", "description", "category_id"}
+        update_fields = {k: v for k, v in kwargs.items() if k in allowed_fields}
+        if not update_fields:
+            return False
+            
+        sets = ", ".join([f"{k} = %s" for k in update_fields.keys()])
+        query = f"UPDATE workflows SET {sets}, updated_at = NOW() WHERE id = %s"
+        params = (*update_fields.values(), workflow_id)
+        
+        try:
+            with self.db_session() as cursor:
+                if cursor is None: return False
+                cursor.execute(query, params)
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"[ContextStore] Failed to update SOP workflow metadata {workflow_id}: {e}")
+            return False
+
     def _get_connection(self):
         """Legacy compatibility method. returns a connection from the pool. 
         WARNING: The caller is expected to call conn.close(), but in this pool setup, 

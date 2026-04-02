@@ -1,77 +1,80 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Operations } from '@/modules/Operations';
-import type { GraphDefinition } from '@/types';
+import type { GraphDefinition, Task, ActionLog } from '@/types';
 import React from 'react';
 
 const mockGraphs: GraphDefinition[] = [
-  {
-    id: 'market_research',
-    name: 'Market Research',
-    nodes: [],
-    edges: []
-  }
+  { id: '1', name: 'Strategic Core', nodes: [], edges: [] }
+];
+
+const mockActions: ActionLog[] = [
+  { id: '1', agent_name: 'Don', action_type: 'Decision', action_details: {}, timestamp: new Date().toISOString() }
+];
+
+const mockMissionLogs = [
+  { id: 'ML-001', graph_id: 'strategic_core', timestamp: '2023-10-27 10:00:00', status: 'success', duration: '5.2s', initiator: 'Don' }
+];
+
+const mockConversations = [
+  { id: 1, conversation_key: 'web:dash:direct:1', updated_at: new Date().toISOString(), latest_message: 'Finalizing strategy...', latest_agent: 'Alfredo' }
 ];
 
 describe('Operations Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', vi.fn((url: string) => {
-      // Default mock implementation
       if (url.includes('/actions')) {
         return Promise.resolve({
           ok: true,
-          json: async () => ({ actions: [], total: 0 }),
+          json: async () => ({ actions: mockActions, total: 1 }),
         });
       }
-      if (url.includes('/conversations')) {
+      if (url.includes('/operations/mission-logs/all')) {
         return Promise.resolve({
           ok: true,
-          json: async () => ({ conversations: [], total: 0 }),
+          json: async () => mockMissionLogs,
         });
       }
-      return Promise.resolve({
-        ok: true,
-        json: async () => ({ tasks: [], total: 0 }),
-      });
+      if (url.includes('/chat/conversations')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockConversations,
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
     }));
   });
 
-  it('renders correctly with no selected graph', () => {
+  it('renders correctly with tripartite situational feeds', async () => {
     render(<Operations graphs={mockGraphs} selectedGraph={null} setSelectedGraph={vi.fn()} initialTasks={[]} />);
-    expect(screen.getByText('Operations')).toBeDefined();
     
-    // Check for tripartite section headers
-    expect(screen.getByText('Mission Logs')).toBeDefined();
-    expect(screen.getByText('Strategic Dialogue')).toBeDefined();
-    expect(screen.getByText('Tool Action Ledger')).toBeDefined();
+    expect(await screen.findByText(/Operational Pipelines/i)).toBeDefined();
+    
+    // Check for tripartite section headers via test-id
+    expect(await screen.findByTestId('mission-logs-header')).toBeDefined();
+    expect(await screen.findByTestId('strategic-dialogue-header')).toBeDefined();
+    expect(await screen.findByTestId('tool-ledger-header')).toBeDefined();
   });
 
-  it('fetches and displays tripartite feeds when a graph is selected', async () => {
-    const mockActions = { actions: [{ id: 1, timestamp: new Date().toISOString(), agent_name: 'Alfredo', action_type: 'web_search', action_details: {}, approval_status: 'APPROVED', cost_usd: 0, duration_seconds: 5, completed_at: new Date().toISOString() }], total: 1 };
-    const mockTasks = { tasks: [{ id: 1, title: 'Check market', task_payload: '...', status: 'completed', priority: 'medium', created_at: new Date().toISOString() }], total: 1 };
-    const mockConversations = { conversations: [{ id: 1, conversation_key: 'discovery', updated_at: new Date().toISOString(), latest_message: 'Found trends', latest_agent: 'Alfredo' }], total: 1 };
-
-    // Override fetch for this test
-    vi.stubGlobal('fetch', vi.fn((url: string) => {
-      if (url.includes('/actions')) return Promise.resolve({ ok: true, json: async () => mockActions });
-      if (url.includes('/conversations')) return Promise.resolve({ ok: true, json: async () => mockConversations });
-      return Promise.resolve({ ok: true, json: async () => mockTasks });
-    }));
-
+  it('populates mission logs and strategic dialogue with real-time data', async () => {
     render(<Operations graphs={mockGraphs} selectedGraph={mockGraphs[0]} setSelectedGraph={vi.fn()} initialTasks={[]} />);
     
-    expect(screen.getByText(`Operations: ${mockGraphs[0].name}`)).toBeDefined();
-    
-    // Wait for all 3 sections to load data
+    // Mission Logs check
     await waitFor(() => {
-      // Check for raw IDs (1) instead of prefixed strings (T-1, C-1, A-1)
-      const idElements = screen.getAllByText(/1/i);
-      expect(idElements.length).toBeGreaterThanOrEqual(3); 
-    });
+      expect(screen.queryByText(/strategic_core/i)).toBeTruthy();
+      expect(screen.queryByText(/ML-001/i)).toBeTruthy();
+    }, { timeout: 3000 });
+
+    // Strategic Dialogue check
+    await waitFor(() => {
+      expect(screen.queryByText(/Alfredo/i)).toBeTruthy();
+      expect(screen.queryByText(/Finalizing strategy/i)).toBeTruthy();
+    }, { timeout: 3000 });
     
-    expect(screen.getByText('Check market')).toBeDefined();
-    expect(screen.getByText('discovery')).toBeDefined();
-    expect(screen.getByText(/web_search/i)).toBeDefined();
+    // Tool Ledger check
+    await waitFor(() => {
+      expect(screen.queryByText(/Decision/i)).toBeTruthy();
+    }, { timeout: 3000 });
   });
 });

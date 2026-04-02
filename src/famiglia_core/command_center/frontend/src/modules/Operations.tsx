@@ -31,7 +31,6 @@ interface Conversation {
 }
 
 export function Operations({ graphs: _graphs, selectedGraph: _selectedGraph, setSelectedGraph: _setSelectedGraph, initialTasks: _initialTasks }: OperationsProps) {
-  const [viewMode, setViewMode] = useState<'specific' | 'global'>('specific');
   const [opsMode, setOpsMode] = useState<'pipelines' | 'sop'>('pipelines');
   const [isCreatingSOP, setIsCreatingSOP] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -116,21 +115,6 @@ export function Operations({ graphs: _graphs, selectedGraph: _selectedGraph, set
                 <p className="font-label text-xs text-tertiary uppercase tracking-[0.4em] mt-2 opacity-60">
                   Autonomous Strategic Trajectory // 0xOPS
                 </p>
-              </div>
-
-              <div className="flex glass-module p-1 border border-outline-variant/10">
-                <button 
-                  onClick={() => setViewMode('specific')}
-                  className={`px-6 py-2 font-label text-[10px] uppercase tracking-widest transition-all ${viewMode === 'specific' ? 'bg-primary text-black' : 'text-outline hover:text-on-surface'}`}
-                >
-                  Specific View
-                </button>
-                <button 
-                  onClick={() => setViewMode('global')}
-                  className={`px-6 py-2 font-label text-[10px] uppercase tracking-widest transition-all ${viewMode === 'global' ? 'bg-primary text-black' : 'text-outline hover:text-on-surface'}`}
-                >
-                  Global Sync
-                </button>
               </div>
             </div>
 

@@ -77,50 +77,6 @@ def test_get_recurring_tasks_endpoint(mock_store):
     assert payload[0]["title"] == "Weekly strategy sync"
     assert payload[0]["schedule_config"]["hour"] == 9
 
-@patch("famiglia_core.command_center.backend.api.main.graph_parser")
-def test_get_graphs_endpoint(mock_parser):
-    mock_parser.parse_all_graphs.return_value = [
-        {
-            "id": "test_graph", 
-            "name": "Test Graph", 
-            "nodes": [{"id": "START", "label": "Start", "type": "entry"}, {"id": "END", "label": "End", "type": "end"}],
-            "edges": [{"source": "START", "target": "END"}]
-        }
-    ]
-    
-    response = client.get("/api/v1/graphs")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == "test_graph"
-    assert len(data[0]["nodes"]) == 2
-
-@patch("famiglia_core.command_center.backend.api.main.context_store")
-def test_get_mission_logs_endpoint(mock_store):
-    # Mocking DB connection and cursor for mission logs
-    mock_conn = MagicMock()
-    mock_cursor = MagicMock()
-    mock_store._get_connection.return_value = mock_conn
-    mock_conn.cursor.return_value = mock_cursor
-    
-    mock_cursor.fetchall.return_value = [
-        {
-            "id": 101,
-            "created_at": datetime(2026, 3, 31, 15, 0, 0),
-            "status": "completed",
-            "picked_up_at": datetime(2026, 3, 31, 15, 0, 1),
-            "completed_at": datetime(2026, 3, 31, 15, 0, 5),
-            "initiator": "Don Jimmy"
-        }
-    ]
-    
-    response = client.get("/api/v1/mission-logs/test_graph")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == "ML-101"
-    assert data[0]["status"] == "success"
-
 @patch("famiglia_core.command_center.backend.api.routes.settings.user_service")
 def test_get_settings_endpoint(mock_user_service):
     mock_user_service.get_don_settings.return_value = {

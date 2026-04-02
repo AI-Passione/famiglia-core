@@ -141,12 +141,25 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
           {viewMode === 'specific' && selectedGraph ? (
             <GraphVisualizer graph={selectedGraph} onExecute={handleExecute} isExecuting={isExecuting} />
           ) : (
-            <div className="bg-surface-container-low p-12 border border-outline-variant/10 text-center">
-              <span className="material-symbols-outlined text-4xl text-outline/40 mb-4">analytics</span>
-              <h3 className="font-headline text-xl text-on-surface">Global Operational View</h3>
-              <p className="font-body text-sm text-outline max-w-md mx-auto mt-2">
-                Select a specific Operational Graph from the tabs above to visualize its logic or initiate a new autonomous pipeline.
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
+                <span className="material-symbols-outlined text-3xl text-tertiary mb-2">assignment</span>
+                <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Neural Mission Logs</h4>
+                <p className="font-headline text-4xl text-on-surface">{totalMissionLogs}</p>
+                <div className="h-1 w-12 bg-tertiary/30 mx-auto rounded-full"></div>
+              </div>
+              <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
+                <span className="material-symbols-outlined text-3xl text-secondary mb-2">forum</span>
+                <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Strategic Dialogues</h4>
+                <p className="font-headline text-4xl text-on-surface">{totalConversations}</p>
+                <div className="h-1 w-12 bg-secondary/30 mx-auto rounded-full"></div>
+              </div>
+              <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
+                <span className="material-symbols-outlined text-3xl text-primary mb-2">construction</span>
+                <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Tool Executions</h4>
+                <p className="font-headline text-4xl text-on-surface">{totalActions}</p>
+                <div className="h-1 w-12 bg-primary/30 mx-auto rounded-full"></div>
+              </div>
             </div>
           )}
 
@@ -202,15 +215,6 @@ function OperationsHeader({
             : `High-fidelity logic mapping for the '${selectedGraph?.name}' autonomous pipeline.`}
         </p>
       </div>
-      <button
-        onClick={() => setViewMode(viewMode === 'global' ? 'specific' : 'global')}
-        className={`px-4 py-2 border font-label text-[10px] uppercase tracking-widest transition-all ${viewMode === 'global'
-            ? 'bg-primary/10 text-primary border-primary/40'
-            : 'bg-surface-container-high/30 text-outline border-outline-variant/20 hover:text-on-surface hover:border-outline-variant/60'
-          }`}
-      >
-        {viewMode === 'global' ? 'Back to Visualizer' : 'View Global History'}
-      </button>
     </div>
   );
 }
@@ -342,7 +346,7 @@ function AgentActionLedger({
           <tbody className="divide-y divide-outline-variant/5">
             {actions?.map((action) => (
               <tr key={action.id} className="hover:bg-surface-container-highest/20 transition-colors group">
-                <td className="px-8 py-5 font-mono text-[11px] text-tertiary">A-{action.id}</td>
+                <td className="px-8 py-5 font-mono text-[11px] text-tertiary">{action.id}</td>
                 <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60">
                   {new Date(action.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </td>
@@ -692,7 +696,7 @@ function MissionLogFeed({
           <tbody className="divide-y divide-outline-variant/5">
             {tasks?.map((task) => (
               <tr key={task.id} className="hover:bg-surface-container-highest/20 transition-colors group">
-                <td className="px-8 py-5 font-mono text-[11px] text-tertiary">T-{task.id}</td>
+                <td className="px-8 py-5 font-mono text-[11px] text-tertiary">{task.id}</td>
                 <td className="px-8 py-5 font-body text-xs text-on-surface font-medium truncate max-w-[200px]">{task.title}</td>
                 <td className="px-8 py-5">
                   <div className="flex items-center space-x-2 bg-surface-container-highest/40 px-3 py-1.5 border border-outline-variant/10 max-w-[300px]">
@@ -791,7 +795,7 @@ function StrategicDialogue({
           <tbody className="divide-y divide-outline-variant/5">
             {conversations?.map((conv) => (
               <tr key={conv.id} className="hover:bg-surface-container-highest/20 transition-colors group">
-                <td className="px-8 py-5 font-mono text-[11px] text-secondary">C-{conv.id}</td>
+                <td className="px-8 py-5 font-mono text-[11px] text-secondary">{conv.id}</td>
                 <td className="px-8 py-5 font-label text-[10px] text-on-surface uppercase tracking-widest">{conv.conversation_key}</td>
                 <td className="px-8 py-5 font-label text-[10px] text-secondary uppercase tracking-widest font-bold">
                   {conv.latest_agent || "Anonymous"}

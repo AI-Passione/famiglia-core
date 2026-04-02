@@ -34,6 +34,15 @@ describe('SOP Hub Integration', () => {
       if (url.includes('/sop/workflows')) {
         return Promise.resolve({ ok: true, json: async () => mockWorkflows });
       }
+      if (url.includes('/actions')) {
+        return Promise.resolve({ ok: true, json: async () => ({ actions: [], total: 0 }) });
+      }
+      if (url.includes('/operations/mission-logs/all')) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+      if (url.includes('/chat/conversations')) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
       return Promise.resolve({ 
         ok: true, 
         json: async () => ({ actions: [], total: 0 }) 

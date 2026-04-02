@@ -13,6 +13,23 @@ interface OperationsProps {
   initialTasks: Task[];
 }
 
+interface MissionLog {
+  id: string;
+  graph_id: string;
+  timestamp: string;
+  status: 'success' | 'failure' | 'running';
+  duration: string;
+  initiator: string;
+}
+
+interface Conversation {
+  id: number;
+  conversation_key: string;
+  updated_at: string;
+  latest_message: string;
+  latest_agent: string;
+}
+
 export function Operations({ graphs: _graphs, selectedGraph: _selectedGraph, setSelectedGraph: _setSelectedGraph, initialTasks: _initialTasks }: OperationsProps) {
   const [viewMode, setViewMode] = useState<'specific' | 'global'>('specific');
   const [opsMode, setOpsMode] = useState<'pipelines' | 'sop'>('pipelines');
@@ -21,26 +38,44 @@ export function Operations({ graphs: _graphs, selectedGraph: _selectedGraph, set
   const [editingSOP, setEditingSOP] = useState<SOPWorkflow | null>(null);
   const [sopRefreshKey, setSopRefreshKey] = useState(0);
 
-  // Agent Action Ledger State
+  // Dashboard Feeds State
   const [actions, setActions] = useState<ActionLog[]>([]);
-  const [loadingActions, setLoadingActions] = useState(true);
+  const [missionLogs, setMissionLogs] = useState<MissionLog[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDashboardData = async () => {
+    try {
+      const [actionsRes, logsRes, convsRes] = await Promise.all([
+        fetch(`${API_BASE}/actions?limit=50`),
+        fetch(`${API_BASE}/operations/mission-logs/all`),
+        fetch(`${API_BASE}/chat/conversations`)
+      ]);
+
+      if (actionsRes.ok) {
+        const data = await actionsRes.json();
+        setActions(data.actions || []);
+      }
+      if (logsRes.ok) {
+        const data = await logsRes.json();
+        setMissionLogs(data || []);
+      }
+      if (convsRes.ok) {
+        const data = await convsRes.json();
+        setConversations(data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching dashboard SITREP:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchActions = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/actions?limit=50`);
-        if (res.ok) {
-          const data = await res.json();
-          // API returns { actions: ActionLog[], totalCount: number }
-          setActions(data.actions || []);
-        }
-      } catch (err) {
-        console.error("Error fetching actions:", err);
-      } finally {
-        setLoadingActions(false);
-      }
-    };
-    fetchActions();
+    fetchDashboardData();
+    // Auto-refresh every 30 seconds as requested by the Don
+    const interval = setInterval(fetchDashboardData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -103,18 +138,6 @@ export function Operations({ graphs: _graphs, selectedGraph: _selectedGraph, set
             <div className="grid grid-cols-12 gap-8">
               {/* Left Column: Mission Logs & Dialogue */}
               <div className="col-span-12 lg:col-span-7 space-y-12">
-                {/* Agent Dialogue Section */}
-                <section className="space-y-6">
-                  <div className="flex items-center space-x-4">
-                    <span className="material-symbols-outlined text-primary text-xl">forum</span>
-                    <h4 data-testid="strategic-dialogue-header" className="font-label text-xs uppercase tracking-[0.3em] text-on-surface-variant">Strategic Dialogue</h4>
-                    <div className="h-[1px] flex-1 bg-outline-variant/20"></div>
-                  </div>
-                  <div className="glass-module border border-outline-variant/10 p-6 h-[400px] flex items-center justify-center">
-                    <p className="font-body text-outline italic opacity-50">Inter-agent negotiation logs initializing...</p>
-                  </div>
-                </section>
-
                 {/* Mission Execution Logs */}
                 <section className="space-y-6">
                   <div className="flex items-center space-x-4">
@@ -122,8 +145,99 @@ export function Operations({ graphs: _graphs, selectedGraph: _selectedGraph, set
                     <h4 data-testid="mission-logs-header" className="font-label text-xs uppercase tracking-[0.3em] text-on-surface-variant">Mission Execution Logs</h4>
                     <div className="h-[1px] flex-1 bg-outline-variant/20"></div>
                   </div>
-                  <div className="glass-module border border-outline-variant/10 p-6 h-[300px] flex items-center justify-center">
-                    <p className="font-body text-outline italic opacity-50">Central command stream pending connection...</p>
+                  
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {loading ? (
+                      <div className="glass-module border border-outline-variant/10 p-6 flex justify-center">
+                        <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                      </div>
+                    ) : missionLogs.length === 0 ? (
+                      <div className="glass-module border border-outline-variant/10 p-6 flex items-center justify-center">
+                        <p className="font-body text-outline italic opacity-50 text-sm">No mission execution history found...</p>
+                      </div>
+                    ) : (
+                      missionLogs.map((log) => (
+                        <motion.div
+                          key={log.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="glass-module border border-outline-variant/10 p-4 hover:border-primary/30 transition-all group"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                              <div className="flex items-center space-x-3">
+                                <span className="font-mono text-[10px] text-primary">{log.id}</span>
+                                <span className={`px-2 py-0.5 rounded-full font-label text-[8px] uppercase tracking-widest ${
+                                  log.status === 'success' ? 'bg-success/10 text-success' :
+                                  log.status === 'running' ? 'bg-primary/10 text-primary animate-pulse' :
+                                  'bg-error/10 text-error'
+                                }`}>
+                                  {log.status}
+                                </span>
+                              </div>
+                              <h5 className="font-headline text-on-surface group-hover:text-primary transition-colors">{log.graph_id}</h5>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-mono text-[9px] text-outline opacity-60">{log.timestamp}</p>
+                              <p className="font-label text-[8px] uppercase tracking-tighter text-outline-variant mt-1">Duration: {log.duration}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between border-t border-outline-variant/5 pt-3">
+                            <span className="font-label text-[9px] text-outline/50 uppercase tracking-widest">Initiator: {log.initiator}</span>
+                            <span className="material-symbols-outlined text-sm text-outline opacity-40 group-hover:opacity-100 transition-opacity">arrow_forward</span>
+                          </div>
+                        </motion.div>
+                      ))
+                    )}
+                  </div>
+                </section>
+
+                {/* Agent Dialogue Section */}
+                <section className="space-y-6">
+                  <div className="flex items-center space-x-4">
+                    <span className="material-symbols-outlined text-primary text-xl">forum</span>
+                    <h4 data-testid="strategic-dialogue-header" className="font-label text-xs uppercase tracking-[0.3em] text-on-surface-variant">Strategic Dialogue</h4>
+                    <div className="h-[1px] flex-1 bg-outline-variant/20"></div>
+                  </div>
+                  
+                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {loading ? (
+                      <div className="glass-module border border-outline-variant/10 p-6 flex justify-center">
+                        <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                      </div>
+                    ) : conversations.length === 0 ? (
+                      <div className="glass-module border border-outline-variant/10 p-6 flex items-center justify-center">
+                        <p className="font-body text-outline italic opacity-50 text-sm">Inter-agent negotiation logs pending...</p>
+                      </div>
+                    ) : (
+                      conversations.map((conv) => (
+                        <motion.div
+                          key={conv.id}
+                          initial={{ opacity: 0, scale: 0.98 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="glass-module border border-outline-variant/10 p-4 hover:bg-white/[0.02] transition-all cursor-pointer relative overflow-hidden"
+                        >
+                          <div className="absolute top-0 right-0 p-2 opacity-20">
+                            <span className="material-symbols-outlined text-xs">history</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center space-x-2">
+                              <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
+                              <p className="font-label text-[10px] text-primary uppercase tracking-widest">{conv.latest_agent || 'Unknown Agent'}</p>
+                            </div>
+                            <span className="font-mono text-[8px] text-outline-variant">
+                              {new Date(conv.updated_at).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <p className="font-body text-xs text-on-surface-variant line-clamp-2 leading-relaxed italic">
+                            "{conv.latest_message || 'No messages recorded'}"
+                          </p>
+                          <div className="mt-2 flex items-center space-x-2 opacity-40">
+                            <span className="font-mono text-[8px] uppercase tracking-tighter">Ref: {conv.conversation_key.split(':').pop()}</span>
+                          </div>
+                        </motion.div>
+                      ))
+                    )}
                   </div>
                 </section>
               </div>
@@ -146,7 +260,7 @@ export function Operations({ graphs: _graphs, selectedGraph: _selectedGraph, set
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                      {loadingActions ? (
+                      {loading ? (
                         <div className="flex items-center justify-center h-full">
                           <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                         </div>

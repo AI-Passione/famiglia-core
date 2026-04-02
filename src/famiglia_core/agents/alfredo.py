@@ -281,8 +281,8 @@ class Alfredo(BaseAgent):
             "complex search",
             "for @dr. rossini",
             "for rossini",
-            "for @riccado",
-            "for riccado",
+            "for @riccardo",
+            "for riccardo",
             "create the task",
             "queue it",
         )
@@ -304,7 +304,7 @@ class Alfredo(BaseAgent):
             "feature request",
             "coding",
             "rossini",
-            "riccado",
+            "riccardo",
             "simple search",
             "complex search",
             "minute",
@@ -441,8 +441,8 @@ class Alfredo(BaseAgent):
                 "Use the provided PRD to open GitHub project(s), milestone(s), and issues for the "
                 "feature request in the relevant repository. If anything fails, report an error "
                 "in Slack channel C0AGQPHEX7T (agents-coordination). After successful setup, "
-                "notify Riccado in C0AGQPHEX7T and queue a follow-up coding implementation task "
-                "for Riccado."
+                "notify Riccardo in C0AGQPHEX7T and queue a follow-up coding implementation task "
+                "for Riccardo."
             )
         if task_type == TASK_TYPE_CODING_CODE_ANALYSIS:
             return (
@@ -453,7 +453,7 @@ class Alfredo(BaseAgent):
             return (
                 "Read open GitHub issues by priority and implement them one by one. "
                 "Open PRs for completed work and post review requests in Slack channel C0AH64QTG2U "
-                "(tech-riccado)."
+                "(tech-riccardo)."
             )
         return task
 
@@ -522,7 +522,7 @@ class Alfredo(BaseAgent):
         eta_done = created.get("eta_completion_at") or "n/a"
         expected_label = {
             "rossini": "Dr. Rossini",
-            "riccado": "Riccado",
+            "riccardo": "Riccardo",
             "alfredo": "Alfredo",
         }.get(expected_agent, expected_agent)
         return (

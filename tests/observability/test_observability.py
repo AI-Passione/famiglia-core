@@ -16,7 +16,7 @@ def test_audit_log_action(mock_db_session):
     action_id = logger.log_action(
         agent_name="Alfredo",
         action_type="DelegateTask",
-        action_details={"target": "Riccado", "task": "Review PR"},
+        action_details={"target": "Riccardo", "task": "Review PR"},
         is_approval_required=True
     )
     

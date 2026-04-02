@@ -137,7 +137,7 @@ class SoulMigrator:
 
         archetypes = [
             {"name": "Butler", "source": "alfredo", "desc": "Handles orchestration, task tracking, and high-level service for Don Jimmy."},
-            {"name": "Data Engineer", "source": "riccado", "desc": "Focuses on infrastructure, data pipelines, and database operations."},
+            {"name": "Data Engineer", "source": "riccardo", "desc": "Focuses on infrastructure, data pipelines, and database operations."},
             {"name": "Product Strategist", "source": "rossini", "desc": "Provides high-level analysis, product direction, and market context."},
             {"name": "Data Analyst", "source": "kowalski", "desc": "Deep-dives into analytics, pattern recognition, and detailed reporting."},
             {"name": "Operations Support", "source": "bella", "desc": "Facilitates communication, general assistance, and logistics."},
@@ -168,7 +168,7 @@ class SoulMigrator:
 
         mapping = {
             "alfredo": "Butler", 
-            "riccado": "Data Engineer", 
+            "riccardo": "Data Engineer", 
             "rossini": "Product Strategist",
             "kowalski": "Data Analyst", "tommy": "Data Analyst", 
             "vito": "Advisor",
@@ -182,7 +182,7 @@ class SoulMigrator:
             "rossini": "/api/v1/images/dr_rossini.png",
             "giuseppina": "/api/v1/images/giuseppina.png",
             "kowalski": "/api/v1/images/kowalski.png",
-            "riccado": "/api/v1/images/riccardo.png",
+            "riccardo": "/api/v1/images/riccardo.png",
             "tommy": "/api/v1/images/tommy.png",
             "vito": "/api/v1/images/vito.png",
         }

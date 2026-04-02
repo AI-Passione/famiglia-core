@@ -22,7 +22,13 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
           <button
             type="button"
             key={item.id}
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => {
+              if (item.id === 'terminal') {
+                window.open('/terminal.html', '_blank');
+              } else {
+                setActiveTab(item.id);
+              }
+            }}
             className={`w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 ${activeTab === item.id
               ? 'translate-x-1 text-[#ffb3b5] font-bold bg-[#1c1b1b] border-l-4 border-[#4A0404]'
               : 'hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50'

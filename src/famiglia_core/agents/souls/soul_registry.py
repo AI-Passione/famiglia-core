@@ -5,7 +5,7 @@ from typing import Dict, List
 
 SOUL_REGISTRY: Dict[str, Dict[str, List[str]]] = {
     "alfredo": {"aliases": ["alfredo"]},
-    "riccado": {"aliases": ["riccado", "riccardo"]},
+    "riccardo": {"aliases": ["riccardo"]},
     "bella": {"aliases": ["bella"]},
     "rossini": {"aliases": ["dr rossini", "rossini"]},
     "vito": {"aliases": ["vito"]},

@@ -648,9 +648,9 @@ class EngineRoomService:
 
     def _has_github_app_credentials(self) -> bool:
         keys = [
-            "GITHUB_APP_ID_RICCADO",
-            "GITHUB_APP_INSTALLATION_ID_RICCADO",
-            "GITHUB_APP_PRIVATE_KEY_RICCADO",
+            "GITHUB_APP_ID_RICCARDO",
+            "GITHUB_APP_INSTALLATION_ID_RICCARDO",
+            "GITHUB_APP_PRIVATE_KEY_RICCARDO",
             "GITHUB_APP_ID_ROSSINI",
             "GITHUB_APP_INSTALLATION_ID_ROSSINI",
             "GITHUB_APP_PRIVATE_KEY_ROSSINI",

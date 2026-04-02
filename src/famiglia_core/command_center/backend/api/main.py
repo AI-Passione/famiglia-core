@@ -150,7 +150,7 @@ async def health():
 async def get_agents():
     stats = context_store.get_agent_interaction_stats()
     agents = []
-    famiglia_names = ["alfredo", "vito", "riccado", "rossini", "tommy", "bella", "kowalski"]
+    famiglia_names = ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski"]
     for name in famiglia_names:
         agent_stat = stats.get(name, {"msg_count": 0, "last_active": None})
         agents.append(AgentStatus(

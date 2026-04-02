@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Agent, ActionLog } from '../types';
-import { API_BASE } from '../config';
+import { BACKEND_BASE, API_BASE } from '../config';
 
 interface TerminalProps {
   agents: Agent[];
@@ -30,15 +30,15 @@ interface ChatState {
 }
 
 const AGENT_IMAGE_MAP: Record<string, string> = {
-  alfredo: '/images/alfredo.png',
-  riccardo: '/images/riccardo.png',
-  bella: '/images/bella.png',
-  rossini: '/images/dr_rossini.png',
-  vito: '/images/vito.png',
-  tommy: '/images/tommy.png',
-  kowalski: '/images/kowalski.png',
-  giuseppina: '/images/giuseppina.png',
-  don_jimmy: '/images/don_jimmy.png',
+  alfredo: `${BACKEND_BASE}/api/v1/images/alfredo.png`,
+  riccardo: `${BACKEND_BASE}/api/v1/images/riccardo.png`,
+  bella: `${BACKEND_BASE}/api/v1/images/bella.png`,
+  rossini: `${BACKEND_BASE}/api/v1/images/dr_rossini.png`,
+  vito: `${BACKEND_BASE}/api/v1/images/vito.png`,
+  tommy: `${BACKEND_BASE}/api/v1/images/tommy.png`,
+  kowalski: `${BACKEND_BASE}/api/v1/images/kowalski.png`,
+  giuseppina: `${BACKEND_BASE}/api/v1/images/giuseppina.png`,
+  don_jimmy: `${BACKEND_BASE}/api/v1/images/don_jimmy.png`,
 };
 
 const AGENT_ROLE_MAP: Record<string, string> = {
@@ -69,11 +69,10 @@ const STARRED_CHANNELS: ChannelDef[] = [
   { id: 'data-kowalski', label: 'data-kowalski', icon: '📊', description: 'Analytics, BI & data science', agent_id: 'kowalski', agentSpeaker: 'Kowalski', welcome: 'Don Jimmy, the data is ready. What requires analysis?' },
   { id: 'product-rossini', label: 'product-rossini', icon: '🔬', description: 'Product strategy & market research', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, I have been monitoring the market signals. What requires investigation?' },
   { id: 'research-insights', label: 'research-insights', icon: '✨', description: 'Research insights & intelligence briefs', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, the latest intelligence is compiled and ready for your review.' },
-  { id: 'tech-riccado', label: 'tech-riccado', icon: '🔧', description: 'Code reviews, DevOps & engineering', agent_id: 'riccado', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, the codebase is under my watch. What needs to be fixed or built?' },
+  { id: 'tech-riccardo', label: 'tech-riccardo', icon: '🔧', description: 'Code reviews, DevOps & engineering', agent_id: 'riccardo', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, the codebase is under my watch. What needs to be fixed or built?' },
 ];
 
 const ALL_CHANNELS: ChannelDef[] = [
-  { id: '_dev', label: '_dev', icon: '🛠️', description: 'Internal dev sandbox & experiments', agent_id: 'riccado', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, dev sandbox is active.' },
   { id: 'agents-coordination', label: 'agents-coordination', icon: '🤝', description: 'Multi-agent workflow coordination', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the agents are coordinated and awaiting orders.' },
   { id: 'all-la-passione-inc', label: 'all-la-passione-inc', icon: '🏛️', description: 'Family-wide announcements', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the entire Famiglia is listening.' },
   { id: 'social', label: 'social', icon: '📢', description: 'PR, brand & social strategy', agent_id: 'giuseppina', agentSpeaker: 'Giuseppina', welcome: 'Don Jimmy, the brand is spotless and the audience is ready. Shall we make some noise?' },
@@ -139,7 +138,7 @@ export function Terminal({ agents, actions }: TerminalProps) {
     if (activeChatId === 'all-la-passione-inc' && agents.length > 0) {
       const AMBIENT_LINES: Record<string, string> = {
         alfredo: 'The Famiglia is coordinated. Everything is moving with understated elegance.',
-        riccado: 'Codebase is stable. I have already fixed three things nobody noticed were broken.',
+        riccardo: 'Codebase is stable. I have already fixed three things nobody noticed were broken.',
         bella: 'All schedules updated and notes filed. The week looks well-organised, Don Jimmy.',
         rossini: 'Market signals are quiet but telling. I will have a brief ready shortly.',
         vito: 'Financial posture is sound. I am watching two positions with cautious optimism.',

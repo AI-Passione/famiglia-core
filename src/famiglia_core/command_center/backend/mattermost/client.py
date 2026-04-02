@@ -44,7 +44,7 @@ class MattermostQueueClient:
         self.agent_tokens = {
             "alfredo": os.getenv("MATTERMOST_BOT_TOKEN_ALFREDO"),
             "vito": os.getenv("MATTERMOST_BOT_TOKEN_VITO"),
-            "riccado": os.getenv("MATTERMOST_BOT_TOKEN_RICCADO"),
+            "riccardo": os.getenv("MATTERMOST_BOT_TOKEN_RICCARDO"),
             "rossini": os.getenv("MATTERMOST_BOT_TOKEN_ROSSINI"),
             "tommy": os.getenv("MATTERMOST_BOT_TOKEN_TOMMY"),
             "bella": os.getenv("MATTERMOST_BOT_TOKEN_BELLA"),

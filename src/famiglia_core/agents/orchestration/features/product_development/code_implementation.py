@@ -214,7 +214,7 @@ Do not include any other text outside the JSON block. Ensure the JSON is perfect
             
             for c in all_comments:
                 user = c.get("user", {}).get("login")
-                if user and "[bot]" not in user.lower() and "riccado" not in user.lower():
+                if user and "[bot]" not in user.lower() and "riccardo" not in user.lower():
                     # It's a human comment
                     human_feedback_items.append({
                         "id": c.get("id"),
@@ -388,7 +388,7 @@ Do not include any text outside the JSON block.
         try:
             slack_queue.enqueue_message(
                 agent=self.agent.agent_id,
-                channel="C0AH64QTG2U", # #tech-riccado channel ID
+                channel="C0AH64QTG2U", # #tech-riccardo channel ID
                 message=msg
                 # Removed thread_ts because it might belong to a different channel
             )

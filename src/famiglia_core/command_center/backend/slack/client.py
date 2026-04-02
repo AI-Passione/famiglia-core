@@ -49,7 +49,7 @@ class SlackQueueClient:
         self.agent_tokens = {
             "alfredo": os.getenv("SLACK_BOT_TOKEN_ALFREDO"),
             "vito": os.getenv("SLACK_BOT_TOKEN_VITO"),
-            "riccado": os.getenv("SLACK_BOT_TOKEN_RICCADO"),
+            "riccardo": os.getenv("SLACK_BOT_TOKEN_RICCARDO"),
             "rossini": os.getenv("SLACK_BOT_TOKEN_ROSSINI"),
             "tommy": os.getenv("SLACK_BOT_TOKEN_TOMMY"),
             "bella": os.getenv("SLACK_BOT_TOKEN_BELLA"),
@@ -121,7 +121,7 @@ class SlackQueueClient:
         self.agent_app_tokens = {
             "alfredo": os.getenv("SLACK_APP_TOKEN_ALFREDO"),
             "vito": os.getenv("SLACK_APP_TOKEN_VITO"),
-            "riccado": os.getenv("SLACK_APP_TOKEN_RICCADO"),
+            "riccardo": os.getenv("SLACK_APP_TOKEN_RICCARDO"),
             "rossini": os.getenv("SLACK_APP_TOKEN_ROSSINI"),
             "tommy": os.getenv("SLACK_APP_TOKEN_TOMMY"),
             "bella": os.getenv("SLACK_APP_TOKEN_BELLA"),

@@ -77,7 +77,7 @@ The `COMPLEX` and `SEARCH` prompts include strict rules:
 - **`tasks/`**: Backend workers for scheduled and recurring tasks.
 - **`utils/`**: Shared skills and workflow mixins that empower agents.
 - **`base_agent.py`**: The core foundation class for all agents.
-- **`alfredo.py`, `riccado.py`, etc.**: Individual agent class definitions.
+- **`alfredo.py`, `riccardo.py`, etc.**: Individual agent class definitions.
 
 ## Tools, Skills & Workflows (`src/agents/`)
 

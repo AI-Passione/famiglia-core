@@ -19,6 +19,7 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
   const [opsMode, setOpsMode] = useState<'pipelines' | 'sop'>('pipelines');
   const [isCreatingSOP, setIsCreatingSOP] = useState(false);
   const [editingSOP, setEditingSOP] = useState<SOPWorkflow | null>(null);
+  const [sopInitialMode, setSopInitialMode] = useState<'sop' | 'category'>('sop');
 
   // Agent Action Ledger State
   const [actions, setActions] = useState<ActionLog[]>([]);
@@ -182,7 +183,10 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
           ) : (
             <SOPManager 
               onEdit={(wf) => setEditingSOP(wf)} 
-              onCreate={() => setIsCreatingSOP(true)} 
+              onCreate={(mode) => {
+                setSopInitialMode(mode || 'sop');
+                setIsCreatingSOP(true);
+              }} 
             />
           )}
 
@@ -222,13 +226,14 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
         {(isCreatingSOP || editingSOP) && (
           <SOPBuilder
             workflow={editingSOP}
+            initialAddCategory={!editingSOP && sopInitialMode === 'category'}
             onClose={() => {
               setIsCreatingSOP(false);
               setEditingSOP(null);
+              setSopInitialMode('sop');
             }}
             onSave={() => {
-              // Refresh is handled inside SOPManager but we can force it here if needed
-              // or use a key to remount SOPManager
+              // Refresh is handled inside SOPManager
             }}
           />
         )}

@@ -7,9 +7,10 @@ interface SOPBuilderProps {
   workflow?: SOPWorkflow | null;
   onClose: () => void;
   onSave: () => void;
+  initialAddCategory?: boolean;
 }
 
-export function SOPBuilder({ workflow, onClose, onSave }: SOPBuilderProps) {
+export function SOPBuilder({ workflow, onClose, onSave, initialAddCategory }: SOPBuilderProps) {
   const [displayName, setDisplayName] = useState(workflow?.display_name || '');
   const [name, setName] = useState(workflow?.name || '');
   const [description, setDescription] = useState(workflow?.description || '');
@@ -17,6 +18,7 @@ export function SOPBuilder({ workflow, onClose, onSave }: SOPBuilderProps) {
   const [nodes, setNodes] = useState<Partial<SOPNode>[]>(workflow?.nodes || []);
   const [isSaving, setIsSaving] = useState(false);
   const [isManualId, setIsManualId] = useState(!!workflow?.name);
+  const [isAddingNewCategory, setIsAddingNewCategory] = useState(initialAddCategory || false);
 
   const handleDisplayNameChange = (val: string) => {
     setDisplayName(val);
@@ -32,7 +34,13 @@ export function SOPBuilder({ workflow, onClose, onSave }: SOPBuilderProps) {
     setIsManualId(true);
   };
 
-  const categories = ["General", "Market Research", "Product Development", "Analytics", "Executive"];
+  const categories = [
+    { label: "General", value: "General" },
+    { label: "Market Research", value: "market_research" },
+    { label: "Product Development", value: "product_development" },
+    { label: "Analytics", value: "analytics" },
+    { label: "Executive", value: "Executive" }
+  ];
 
   const handleAddNode = () => {
     setNodes(prev => [...prev, { node_name: '', description: '', node_type: 'task' }]);
@@ -171,16 +179,44 @@ export function SOPBuilder({ workflow, onClose, onSave }: SOPBuilderProps) {
             </div>
             <div className="col-span-4 space-y-6">
               <div className="space-y-2">
-                <label className="font-label text-[10px] text-outline uppercase tracking-widest pl-1">SOP Classification</label>
-                <select
-                  value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  className="w-full bg-surface-container-highest border border-outline-variant/10 px-4 py-[13px] font-label text-[10px] uppercase tracking-widest text-on-surface focus:outline-none focus:border-primary/40"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                <div className="flex justify-between items-center pr-1">
+                  <label className="font-label text-[10px] text-outline uppercase tracking-widest pl-1">SOP Classification</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingNewCategory(!isAddingNewCategory)}
+                    className="text-[8px] text-primary uppercase tracking-tighter hover:underline"
+                  >
+                    {isAddingNewCategory ? 'Select Existing' : '+ New Category'}
+                  </button>
+                </div>
+                {isAddingNewCategory ? (
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      autoFocus
+                      required
+                      value={category}
+                      onChange={e => setCategory(e.target.value)}
+                      placeholder="E.g. Strategy"
+                      className="w-full bg-surface-container-highest border border-primary/30 px-4 py-[11px] font-label text-[10px] uppercase tracking-widest text-on-surface focus:outline-none focus:border-primary/60 transition-all shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]"
+                    />
+                  </div>
+                ) : (
+                  <select
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    className="w-full bg-surface-container-highest border border-outline-variant/10 px-4 py-[13px] font-label text-[10px] uppercase tracking-widest text-on-surface focus:outline-none focus:border-primary/40 appearance-none cursor-pointer"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </option>
+                    ))}
+                    {!categories.some(c => c.value === category) && category && (
+                      <option value={category}>{category.replace(/_/g, ' ')}</option>
+                    )}
+                  </select>
+                )}
               </div>
             </div>
           </div>

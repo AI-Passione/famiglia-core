@@ -5,13 +5,14 @@ import { API_BASE } from '../config';
 
 interface SOPManagerProps {
   onEdit: (workflow: SOPWorkflow) => void;
-  onCreate: () => void;
+  onCreate: (mode: 'sop' | 'category') => void;
 }
 
 export function SOPManager({ onEdit, onCreate }: SOPManagerProps) {
   const [workflows, setWorkflows] = useState<SOPWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [executingId, setExecutingId] = useState<number | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const fetchWorkflows = useCallback(async () => {
     try {
@@ -72,13 +73,66 @@ export function SOPManager({ onEdit, onCreate }: SOPManagerProps) {
             Manual Governance & Structural Intelligence // 0xSOP
           </p>
         </div>
-        <button
-          onClick={onCreate}
-          className="bg-primary/10 text-primary border border-primary/20 px-6 py-2 font-label text-[10px] uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center space-x-2"
-        >
-          <span className="material-symbols-outlined text-sm">add</span>
-          <span>Draft New SOP</span>
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="bg-primary/10 text-primary border border-primary/20 px-6 py-2 font-label text-[10px] uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center space-x-2 relative z-20"
+          >
+            <span className="material-symbols-outlined text-sm">
+              {isMenuOpen ? 'close' : 'add'}
+            </span>
+            <span>Initialize Protocol</span>
+          </button>
+
+          <AnimatePresence>
+            {isMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 5, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute right-0 top-full mt-2 w-56 glass-module border border-outline-variant/30 py-2 z-30 shadow-2xl"
+              >
+                <button
+                  onClick={() => {
+                    onCreate('sop');
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full px-5 py-3 text-left hover:bg-primary/5 transition-colors group flex items-center justify-between"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-label text-[10px] text-on-surface uppercase tracking-widest group-hover:text-primary">Draft New SOP</span>
+                    <span className="font-body text-[8px] text-outline opacity-60">Standard Architectural Build</span>
+                  </div>
+                  <span className="material-symbols-outlined text-sm opacity-40 group-hover:opacity-100 group-hover:text-primary">architecture</span>
+                </button>
+                
+                <div className="h-[1px] bg-outline-variant/10 my-1 mx-4"></div>
+
+                <button
+                  onClick={() => {
+                    onCreate('category');
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full px-5 py-3 text-left hover:bg-primary/5 transition-colors group flex items-center justify-between"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-label text-[10px] text-on-surface uppercase tracking-widest group-hover:text-primary">Add New Category</span>
+                    <span className="font-body text-[8px] text-outline opacity-60">Initialize Structural Tier</span>
+                  </div>
+                  <span className="material-symbols-outlined text-sm opacity-40 group-hover:opacity-100 group-hover:text-primary">category</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Overlay to close menu */}
+          {isMenuOpen && (
+            <div 
+              className="fixed inset-0 z-10" 
+              onClick={() => setIsMenuOpen(false)}
+            />
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -118,7 +172,7 @@ export function SOPManager({ onEdit, onCreate }: SOPManagerProps) {
                   <span className="material-symbols-outlined text-4xl text-outline/30 mb-4 block">account_tree</span>
                   <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.4em]">No Structural Intelligence Detected</p>
                   <button 
-                    onClick={onCreate}
+                    onClick={() => onCreate('sop')}
                     className="mt-6 text-primary font-label text-[10px] uppercase tracking-widest hover:underline"
                   >
                     Initialize First Protocol

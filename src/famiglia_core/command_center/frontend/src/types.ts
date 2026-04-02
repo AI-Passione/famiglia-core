@@ -65,6 +65,20 @@ export interface PaginatedTasks {
   total: number;
 }
 
+export interface ConversationLog {
+  id: number;
+  conversation_key: string;
+  metadata?: Record<string, any> | null;
+  updated_at: string;
+  latest_message?: string | null;
+  latest_agent?: string | null;
+}
+
+export interface PaginatedConversations {
+  conversations: ConversationLog[];
+  total: number;
+}
+
 export interface RecurringTask {
   id: number;
   title: string;

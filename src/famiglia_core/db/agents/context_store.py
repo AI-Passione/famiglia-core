@@ -232,6 +232,45 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to fetch recent messages: {e}")
             return []
 
+    def list_conversations(self, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    """
+                    SELECT 
+                        c.id, 
+                        c.conversation_key, 
+                        c.metadata, 
+                        c.updated_at,
+                        (SELECT m.content FROM agent_messages m 
+                         WHERE m.conversation_id = c.id 
+                         ORDER BY m.created_at DESC LIMIT 1) as latest_message,
+                        (SELECT m.agent_name FROM agent_messages m 
+                         WHERE m.conversation_id = c.id 
+                         ORDER BY m.created_at DESC LIMIT 1) as latest_agent
+                    FROM agent_conversations c
+                    ORDER BY c.updated_at DESC
+                    LIMIT %s OFFSET %s
+                    """,
+                    (max(1, limit), max(0, offset)),
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to list conversations: {e}")
+            return []
+
+    def get_total_conversation_count(self) -> int:
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return 0
+                cursor.execute("SELECT COUNT(*) FROM agent_conversations")
+                row = cursor.fetchone()
+                return int(row["count"]) if row else 0
+        except Exception as e:
+            print(f"[ContextStore] Failed to count conversations: {e}")
+            return 0
+
     def search_messages(
         self,
         agent_name: str,

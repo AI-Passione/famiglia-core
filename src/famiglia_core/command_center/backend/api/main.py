@@ -119,6 +119,18 @@ class PaginatedActions(BaseModel):
     actions: List[ActionLog]
     total: int
 
+class ConversationLog(BaseModel):
+    id: int
+    conversation_key: str
+    metadata: Optional[Dict[str, Any]] = None
+    updated_at: datetime
+    latest_message: Optional[str] = None
+    latest_agent: Optional[str] = None
+
+class PaginatedConversations(BaseModel):
+    conversations: List[ConversationLog]
+    total: int
+
 # --- Core Informational Routes ---
 
 @app.get("/")
@@ -166,6 +178,12 @@ async def get_tasks(status: Optional[str] = None, limit: int = 50, offset: int =
     tasks = context_store.list_scheduled_tasks(statuses=statuses, limit=limit, offset=offset)
     total = context_store.get_total_task_count(statuses=statuses)
     return PaginatedTasks(tasks=tasks, total=total)
+
+@app.get("/api/v1/conversations", response_model=PaginatedConversations)
+async def get_conversations(limit: int = 50, offset: int = 0):
+    conversations = context_store.list_conversations(limit=limit, offset=offset)
+    total = context_store.get_total_conversation_count()
+    return PaginatedConversations(conversations=conversations, total=total)
 
 @app.get("/api/v1/recurring-tasks", response_model=List[RecurringTaskTemplate])
 async def get_recurring_tasks():

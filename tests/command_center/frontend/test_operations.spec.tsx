@@ -24,6 +24,12 @@ describe('Operations Component', () => {
           json: async () => ({ actions: [], total: 0 }),
         });
       }
+      if (url.includes('/conversations')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ conversations: [], total: 0 }),
+        });
+      }
       return Promise.resolve({
         ok: true,
         json: async () => ({ tasks: [], total: 0 }),
@@ -33,56 +39,39 @@ describe('Operations Component', () => {
 
   it('renders correctly with no selected graph', () => {
     render(<Operations graphs={mockGraphs} selectedGraph={null} setSelectedGraph={vi.fn()} initialTasks={[]} />);
-    expect(screen.getByText('Operational History')).toBeDefined();
-    // Use getAllByText for messages that might appear in multiple empty feeds
-    expect(screen.getAllByText(/Awaiting/)[0]).toBeDefined();
+    expect(screen.getByText('Operations')).toBeDefined();
+    
+    // Check for tripartite section headers
+    expect(screen.getByText('Mission Logs')).toBeDefined();
+    expect(screen.getByText('Strategic Dialogue')).toBeDefined();
+    expect(screen.getByText('Tool Action Ledger')).toBeDefined();
   });
 
-  it('fetches and displays tool actions when a graph is selected', async () => {
-    const mockActions = {
-      actions: [
-        { 
-          id: 1, 
-          timestamp: new Date().toISOString(), 
-          agent_name: 'Alfredo', 
-          action_type: 'web_search', 
-          action_details: { query: 'test' },
-          approval_status: 'APPROVED',
-          cost_usd: 0,
-          duration_seconds: 5,
-          completed_at: new Date().toISOString()
-        }
-      ],
-      total: 1
-    };
-    
-    // Override the global fetch for this specific test
+  it('fetches and displays tripartite feeds when a graph is selected', async () => {
+    const mockActions = { actions: [{ id: 1, timestamp: new Date().toISOString(), agent_name: 'Alfredo', action_type: 'web_search', action_details: {}, approval_status: 'APPROVED', cost_usd: 0, duration_seconds: 5, completed_at: new Date().toISOString() }], total: 1 };
+    const mockTasks = { tasks: [{ id: 1, title: 'Check market', task_payload: '...', status: 'completed', priority: 'medium', created_at: new Date().toISOString() }], total: 1 };
+    const mockConversations = { conversations: [{ id: 1, conversation_key: 'discovery', updated_at: new Date().toISOString(), latest_message: 'Found trends', latest_agent: 'Alfredo' }], total: 1 };
+
+    // Override fetch for this test
     vi.stubGlobal('fetch', vi.fn((url: string) => {
-      if (url.includes('/actions')) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => mockActions,
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => ({ tasks: [], total: 0 }),
-      });
+      if (url.includes('/actions')) return Promise.resolve({ ok: true, json: async () => mockActions });
+      if (url.includes('/conversations')) return Promise.resolve({ ok: true, json: async () => mockConversations });
+      return Promise.resolve({ ok: true, json: async () => mockTasks });
     }));
 
     render(<Operations graphs={mockGraphs} selectedGraph={mockGraphs[0]} setSelectedGraph={vi.fn()} initialTasks={[]} />);
     
     expect(screen.getByText(`Operations: ${mockGraphs[0].name}`)).toBeDefined();
     
-    // Wait for the action ID 'A-1' to appear
-    const actionIdElement = await screen.findByText(/A-1/i);
-    expect(actionIdElement).toBeDefined();
+    // Wait for all 3 sections to load data
+    await waitFor(() => {
+      expect(screen.getByText(/T-1/i)).toBeDefined(); // Mission Log ID
+      expect(screen.getByText(/C-1/i)).toBeDefined(); // Strategic Dialogue ID
+      expect(screen.getByText(/A-1/i)).toBeDefined(); // Tool Action ID
+    });
     
-    // Check for action type
+    expect(screen.getByText('Check market')).toBeDefined();
+    expect(screen.getByText('discovery')).toBeDefined();
     expect(screen.getByText(/web_search/i)).toBeDefined();
-    
-    // Use getAllByText for 'Alfredo' as it appears in the dropdown AND the table row
-    const alfredoElements = screen.getAllByText(/Alfredo/i);
-    expect(alfredoElements.length).toBeGreaterThanOrEqual(1);
   });
 });

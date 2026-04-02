@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { GraphDefinition, GraphNode, Task, PaginatedTasks, ActionLog, PaginatedActions } from '../types';
+import type { GraphDefinition, GraphNode, Task, PaginatedTasks, ActionLog, PaginatedActions, ConversationLog, PaginatedConversations } from '../types';
 import { API_BASE } from '../config';
 
 interface OperationsProps {
@@ -13,18 +13,23 @@ interface OperationsProps {
 export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTasks }: OperationsProps) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [viewMode, setViewMode] = useState<'specific' | 'global'>('specific');
-  
+
   // Agent Action Ledger State
   const [actions, setActions] = useState<ActionLog[]>([]);
   const [totalActions, setTotalActions] = useState(0);
   const [actionsPage, setActionsPage] = useState(1);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
-  
-  // System Task Feed State
-  const [systemTasks, setSystemTasks] = useState<Task[]>(initialTasks);
-  const [totalTasks, setTotalTasks] = useState(0);
-  const [tasksPage, setTasksPage] = useState(1);
-  
+
+  // System Task Feed State (Mission Logs)
+  const [missionLogs, setMissionLogs] = useState<Task[]>(initialTasks);
+  const [totalMissionLogs, setTotalMissionLogs] = useState(0);
+  const [missionLogsPage, setMissionLogsPage] = useState(1);
+
+  // Strategic Dialogue State
+  const [conversations, setConversations] = useState<ConversationLog[]>([]);
+  const [totalConversations, setTotalConversations] = useState(0);
+  const [conversationsPage, setConversationsPage] = useState(1);
+
   const PAGE_SIZE = 10;
 
   const fetchActions = useCallback(async (page: number, agent?: string) => {
@@ -32,7 +37,7 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
       const offset = (page - 1) * PAGE_SIZE;
       let url = `${API_BASE}/actions?limit=${PAGE_SIZE}&offset=${offset}`;
       if (agent) url += `&agent_name=${encodeURIComponent(agent)}`;
-      
+
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json() as PaginatedActions;
@@ -44,17 +49,31 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
     }
   }, []);
 
-  const fetchSystemTasks = useCallback(async (page: number) => {
+  const fetchMissionLogs = useCallback(async (page: number) => {
     try {
       const offset = (page - 1) * PAGE_SIZE;
       const res = await fetch(`${API_BASE}/tasks?limit=${PAGE_SIZE}&offset=${offset}`);
       if (res.ok) {
         const data = await res.json() as PaginatedTasks;
-        setSystemTasks(data.tasks);
-        setTotalTasks(data.total);
+        setMissionLogs(data.tasks);
+        setTotalMissionLogs(data.total);
       }
     } catch (err) {
-      console.error("Error fetching system tasks:", err);
+      console.error("Error fetching mission logs:", err);
+    }
+  }, []);
+
+  const fetchConversations = useCallback(async (page: number) => {
+    try {
+      const offset = (page - 1) * PAGE_SIZE;
+      const res = await fetch(`${API_BASE}/conversations?limit=${PAGE_SIZE}&offset=${offset}`);
+      if (res.ok) {
+        const data = await res.json() as PaginatedConversations;
+        setConversations(data.conversations);
+        setTotalConversations(data.total);
+      }
+    } catch (err) {
+      console.error("Error fetching conversations:", err);
     }
   }, []);
 
@@ -64,30 +83,32 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
       setViewMode('global');
     }
     fetchActions(actionsPage, selectedAgent);
-    fetchSystemTasks(tasksPage);
-  }, [fetchActions, fetchSystemTasks, selectedGraph, viewMode, actionsPage, tasksPage, selectedAgent]);
+    fetchMissionLogs(missionLogsPage);
+    fetchConversations(conversationsPage);
+  }, [fetchActions, fetchMissionLogs, fetchConversations, selectedGraph, viewMode, actionsPage, missionLogsPage, conversationsPage, selectedAgent]);
 
-  // Intelligent Polling: Refresh both feeds every 5s
+  // Intelligent Polling: Refresh all feeds every 5s
   useEffect(() => {
     const interval = setInterval(() => {
       fetchActions(actionsPage, selectedAgent);
-      fetchSystemTasks(tasksPage);
+      fetchMissionLogs(missionLogsPage);
+      fetchConversations(conversationsPage);
     }, 5000);
     return () => clearInterval(interval);
-  }, [actionsPage, tasksPage, selectedAgent, fetchActions, fetchSystemTasks]);
+  }, [actionsPage, missionLogsPage, conversationsPage, selectedAgent, fetchActions, fetchMissionLogs, fetchConversations]);
 
   const handleExecute = async () => {
     if (!selectedGraph || isExecuting) return;
-    
+
     setIsExecuting(true);
     try {
       const response = await fetch(`${API_BASE}/graphs/${selectedGraph.id}/execute`, {
         method: 'POST',
       });
-      
+
       if (response.ok) {
         setViewMode('specific');
-        setTimeout(() => fetchSystemTasks(1), 1000);
+        setTimeout(() => fetchMissionLogs(1), 1000);
       }
     } catch (err) {
       console.error("Error executing graph:", err);
@@ -97,7 +118,7 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -105,16 +126,16 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
     >
       <div className="space-y-8">
         <OperationsHeader selectedGraph={selectedGraph} viewMode={viewMode} setViewMode={setViewMode} />
-        <GraphSelector 
-          graphs={graphs} 
-          selectedGraph={selectedGraph} 
+        <GraphSelector
+          graphs={graphs}
+          selectedGraph={selectedGraph}
           setSelectedGraph={(g) => {
             setSelectedGraph(g);
             setViewMode('specific');
-          }} 
+          }}
         />
       </div>
-      
+
       <div className="grid grid-cols-12 gap-8">
         <div className="col-span-12 space-y-12">
           {viewMode === 'specific' && selectedGraph ? (
@@ -129,8 +150,23 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
             </div>
           )}
 
-          {/* New Tier: Tool Action Ledger */}
-          <AgentActionLedger 
+          <MissionLogFeed
+            tasks={missionLogs}
+            total={totalMissionLogs}
+            currentPage={missionLogsPage}
+            setCurrentPage={setMissionLogsPage}
+            pageSize={PAGE_SIZE}
+          />
+
+          <StrategicDialogue
+            conversations={conversations}
+            total={totalConversations}
+            currentPage={conversationsPage}
+            setCurrentPage={setConversationsPage}
+            pageSize={PAGE_SIZE}
+          />
+
+          <AgentActionLedger
             actions={actions}
             total={totalActions}
             currentPage={actionsPage}
@@ -139,25 +175,17 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
             selectedAgent={selectedAgent}
             setSelectedAgent={setSelectedAgent}
           />
-          
-          <SystemTaskFeed 
-            tasks={systemTasks} 
-            total={totalTasks} 
-            currentPage={tasksPage} 
-            setCurrentPage={setTasksPage}
-            pageSize={PAGE_SIZE}
-          />
         </div>
       </div>
     </motion.div>
   );
 }
 
-function OperationsHeader({ 
-  selectedGraph, 
-  viewMode, 
-  setViewMode 
-}: { 
+function OperationsHeader({
+  selectedGraph,
+  viewMode,
+  setViewMode
+}: {
   selectedGraph: GraphDefinition | null;
   viewMode: 'specific' | 'global';
   setViewMode: (m: 'specific' | 'global') => void;
@@ -166,21 +194,20 @@ function OperationsHeader({
     <div className="flex justify-between items-end">
       <div>
         <h2 className="font-headline text-4xl text-on-surface mb-2 tracking-tight">
-          {viewMode === 'global' ? 'Operational History' : `Operations: ${selectedGraph?.name}`}
+          {viewMode === 'global' ? 'Operations' : `Operations: ${selectedGraph?.name}`}
         </h2>
         <p className="font-body text-[#a38b88] max-w-2xl text-sm leading-relaxed">
-          {viewMode === 'global' 
+          {viewMode === 'global'
             ? 'Unified execution stream for all autonomous pipelines across the project.'
             : `High-fidelity logic mapping for the '${selectedGraph?.name}' autonomous pipeline.`}
         </p>
       </div>
-      <button 
+      <button
         onClick={() => setViewMode(viewMode === 'global' ? 'specific' : 'global')}
-        className={`px-4 py-2 border font-label text-[10px] uppercase tracking-widest transition-all ${
-          viewMode === 'global' 
-            ? 'bg-primary/10 text-primary border-primary/40' 
+        className={`px-4 py-2 border font-label text-[10px] uppercase tracking-widest transition-all ${viewMode === 'global'
+            ? 'bg-primary/10 text-primary border-primary/40'
             : 'bg-surface-container-high/30 text-outline border-outline-variant/20 hover:text-on-surface hover:border-outline-variant/60'
-        }`}
+          }`}
       >
         {viewMode === 'global' ? 'Back to Visualizer' : 'View Global History'}
       </button>
@@ -188,7 +215,7 @@ function OperationsHeader({
   );
 }
 
-function GraphSelector({ graphs, selectedGraph, setSelectedGraph }: { 
+function GraphSelector({ graphs, selectedGraph, setSelectedGraph }: {
   graphs: GraphDefinition[];
   selectedGraph: GraphDefinition | null;
   setSelectedGraph: (g: GraphDefinition) => void;
@@ -217,11 +244,10 @@ function GraphSelector({ graphs, selectedGraph, setSelectedGraph }: {
                 <button
                   key={graph.id}
                   onClick={() => setSelectedGraph(graph)}
-                  className={`px-6 py-2 border transition-all duration-300 font-label text-[10px] uppercase tracking-widest ${
-                    isActive 
-                      ? 'bg-secondary/10 text-secondary border-secondary/50 shadow-[0_0_15px_rgba(234,195,74,0.1)]' 
+                  className={`px-6 py-2 border transition-all duration-300 font-label text-[10px] uppercase tracking-widest ${isActive
+                      ? 'bg-secondary/10 text-secondary border-secondary/50 shadow-[0_0_15px_rgba(234,195,74,0.1)]'
                       : 'bg-surface-container-low/30 text-outline border-outline-variant/20 hover:border-outline-variant/50 hover:text-on-surface'
-                  }`}
+                    }`}
                 >
                   {graph.name}
                 </button>
@@ -267,7 +293,7 @@ function AgentActionLedger({
           {/* Agent Filter */}
           <div className="flex items-center space-x-3">
             <span className="font-label text-[9px] text-outline uppercase tracking-widest">Filter:</span>
-            <select 
+            <select
               value={selectedAgent}
               onChange={(e) => setSelectedAgent(e.target.value)}
               className="bg-surface-container-highest border border-outline-variant/20 text-on-surface font-label text-[10px] uppercase px-3 py-1.5 focus:outline-none focus:border-primary/40"
@@ -282,14 +308,14 @@ function AgentActionLedger({
           <div className="flex items-center space-x-4">
             <span className="font-label text-[10px] text-outline uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</span>
             <div className="flex space-x-2">
-              <button 
+              <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
                 className="p-2 border border-outline-variant/20 hover:border-primary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
               >
                 <span className="material-symbols-outlined text-sm text-primary">chevron_left</span>
               </button>
-              <button 
+              <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage >= totalPages}
                 className="p-2 border border-outline-variant/20 hover:border-primary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
@@ -300,7 +326,7 @@ function AgentActionLedger({
           </div>
         </div>
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -318,7 +344,7 @@ function AgentActionLedger({
               <tr key={action.id} className="hover:bg-surface-container-highest/20 transition-colors group">
                 <td className="px-8 py-5 font-mono text-[11px] text-tertiary">A-{action.id}</td>
                 <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60">
-                   {new Date(action.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  {new Date(action.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </td>
                 <td className="px-8 py-5 font-label text-[10px] text-primary uppercase tracking-widest font-bold">
                   {action.agent_name}
@@ -337,13 +363,12 @@ function AgentActionLedger({
                   </div>
                 </td>
                 <td className="px-8 py-5">
-                  <span className={`px-3 py-1 text-[9px] font-label uppercase tracking-tighter border ${
-                    action.approval_status === 'APPROVED' 
-                      ? 'bg-primary/10 text-primary border-primary/20' 
+                  <span className={`px-3 py-1 text-[9px] font-label uppercase tracking-tighter border ${action.approval_status === 'APPROVED'
+                      ? 'bg-primary/10 text-primary border-primary/20'
                       : action.completed_at
-                      ? 'bg-secondary/10 text-secondary border-secondary/20'
-                      : 'bg-surface-container-high text-outline border-outline-variant/10'
-                  }`}>
+                        ? 'bg-secondary/10 text-secondary border-secondary/20'
+                        : 'bg-surface-container-high text-outline border-outline-variant/10'
+                    }`}>
                     {action.approval_status || (action.completed_at ? "COMPLETE" : "ACTIVE")}
                   </span>
                 </td>
@@ -352,7 +377,7 @@ function AgentActionLedger({
           </tbody>
         </table>
       </div>
-      
+
       {actions.length === 0 && (
         <div className="p-20 text-center">
           <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting granular action signals...</p>
@@ -362,7 +387,7 @@ function AgentActionLedger({
   );
 }
 
-function GraphVisualizer({ graph, onExecute, isExecuting }: { 
+function GraphVisualizer({ graph, onExecute, isExecuting }: {
   graph: GraphDefinition | null;
   onExecute: () => void;
   isExecuting: boolean;
@@ -371,7 +396,7 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const positions = useMemo(() => {
     if (!graph) return {};
-    
+
     const nodeLevels: Record<string, number> = {};
     const adjacency: Record<string, string[]> = {};
     graph.edges.forEach(e => {
@@ -387,11 +412,11 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
       const { id, level } = queue.shift()!;
       if (visited.has(id)) continue;
       visited.add(id);
-      
+
       if (nodeLevels[id] === undefined || level > nodeLevels[id]) {
         nodeLevels[id] = level;
       }
-      
+
       (adjacency[id] || []).forEach(target => {
         if (!visited.has(target)) {
           queue.push({ id: target, level: level + 1 });
@@ -413,7 +438,7 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
     const Y_SPACING = 55;
     const X_SPACING = 110;
     const BASE_Y = 40;
-    const CENTER_X = 300; 
+    const CENTER_X = 300;
 
     Object.entries(levelGroups).forEach(([levelStr, ids]) => {
       const level = parseInt(levelStr);
@@ -440,7 +465,7 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
   };
 
   return (
-    <section 
+    <section
       className="bg-surface-container-low p-8 border border-outline-variant/10 relative group"
       onMouseMove={handleMouseMove}
     >
@@ -461,7 +486,7 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
               <polygon points="0 0, 8 3, 0 6" fill="#eac34a" />
             </marker>
           </defs>
-          
+
           {graph.edges.map((edge, i) => {
             const p1 = positions[edge.source];
             const p2 = positions[edge.target];
@@ -469,10 +494,10 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
 
             return (
               <g key={`edge-${i}`}>
-                <path 
-                  d={`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`} 
-                  stroke="#554240" 
-                  strokeWidth="1.5" 
+                <path
+                  d={`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`}
+                  stroke="#554240"
+                  strokeWidth="1.5"
                   strokeDasharray={edge.label ? "4 4" : ""}
                   markerEnd="url(#arrowhead)"
                   className="transition-all duration-300 opacity-60 group-hover:opacity-100"
@@ -487,39 +512,39 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
           {graph.nodes.map((node) => {
             const pos = positions[node.id];
             if (!pos) return null;
-            
+
             const isEntry = node.type === 'entry';
             const isEnd = node.type === 'end';
             const isHovered = hoveredNode?.id === node.id;
 
             return (
-              <g 
-                key={node.id} 
+              <g
+                key={node.id}
                 className="cursor-pointer transition-all duration-300"
                 onMouseEnter={() => setHoveredNode(node)}
                 onMouseLeave={() => setHoveredNode(null)}
               >
                 {isEntry || isEnd ? (
-                  <circle 
-                    cx={pos.x} cy={pos.y} r="8" 
-                    fill="#1c1b1b" 
-                    stroke="#ffb3b5" 
+                  <circle
+                    cx={pos.x} cy={pos.y} r="8"
+                    fill="#1c1b1b"
+                    stroke="#ffb3b5"
                     strokeWidth="2"
                     className={`${isHovered ? 'opacity-100 scale-110' : 'opacity-60'} transition-all`}
                   />
                 ) : (
-                  <rect 
-                    x={pos.x - 50} y={pos.y - 15} width="100" height="30" 
-                    fill="#1c1b1b" 
+                  <rect
+                    x={pos.x - 50} y={pos.y - 15} width="100" height="30"
+                    fill="#1c1b1b"
                     stroke={isHovered ? "#eac34a" : "#554240"}
                     strokeWidth={isHovered ? "2" : "1"}
                     rx="2"
                     className={`${isHovered ? 'shadow-[0_0_15px_rgba(234,195,74,0.2)]' : ''} transition-all`}
                   />
                 )}
-                <text 
-                  x={pos.x} y={isEntry || isEnd ? pos.y + 25 : pos.y + 4} 
-                  textAnchor="middle" 
+                <text
+                  x={pos.x} y={isEntry || isEnd ? pos.y + 25 : pos.y + 4}
+                  textAnchor="middle"
                   fill={isEntry || isEnd ? "#ffb3b5" : "#eac34a"}
                   fontSize="8"
                   className={`tracking-widest uppercase font-bold transition-all ${isHovered ? 'opacity-100' : 'opacity-80'}`}
@@ -557,7 +582,7 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
                   </div>
                   <div className={`w-3 h-3 rounded-full ${hoveredNode.type === 'entry' ? 'bg-[#ffb3b5]' : 'bg-[#eac34a]'} animate-pulse shadow-[0_0_10px_rgba(234,195,74,0.3)]`}></div>
                 </div>
-                
+
                 <div className="pt-4 border-t border-outline-variant/10">
                   <p className="font-body text-[#a38b88] text-[10px] leading-relaxed italic">
                     {`Autonomous execution unit for '${hoveredNode.label}' within the pipeline. Synchronizing state with Postgres checkpointer.`}
@@ -575,7 +600,7 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
                   </div>
                 </div>
               </div>
-              
+
               <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-tertiary/30"></div>
               <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-tertiary/30"></div>
             </motion.div>
@@ -593,12 +618,11 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
       </div>
 
       <div className="mt-6 flex justify-end">
-        <button 
+        <button
           onClick={onExecute}
           disabled={isExecuting}
-          className={`bg-[#4A0404] text-[#ffb3b5] px-10 py-3 font-bold text-xs uppercase tracking-[0.4em] transition-all active:scale-95 shadow-2xl border border-primary/20 ${
-            isExecuting ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-125'
-          }`}
+          className={`bg-[#4A0404] text-[#ffb3b5] px-10 py-3 font-bold text-xs uppercase tracking-[0.4em] transition-all active:scale-95 shadow-2xl border border-primary/20 ${isExecuting ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-125'
+            }`}
         >
           {isExecuting ? 'DISPATCHING...' : 'EXECUTE GRAPH'}
         </button>
@@ -607,16 +631,16 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
   );
 }
 
-function SystemTaskFeed({ 
-  tasks, 
-  total, 
-  currentPage, 
+function MissionLogFeed({
+  tasks,
+  total,
+  currentPage,
   setCurrentPage,
-  pageSize 
-}: { 
-  tasks: Task[]; 
-  total: number; 
-  currentPage: number; 
+  pageSize
+}: {
+  tasks: Task[];
+  total: number;
+  currentPage: number;
   setCurrentPage: (p: number) => void;
   pageSize: number;
 }) {
@@ -626,9 +650,9 @@ function SystemTaskFeed({
     <section className="bg-surface-container-low border border-outline-variant/10 overflow-hidden">
       <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/30">
         <div>
-          <h3 className="font-headline text-2xl text-on-surface">System Operations Feed</h3>
+          <h3 className="font-headline text-2xl text-on-surface">Mission Logs</h3>
           <p className="font-label text-[10px] text-tertiary uppercase tracking-[0.2em] mt-1 opacity-70">
-            Raw Task Instance Stream // 0xDEEP
+            Autonomous Neural Trajectory // 0xDEEP
           </p>
         </div>
         <div className="flex items-center space-x-4">
@@ -636,14 +660,14 @@ function SystemTaskFeed({
             <span className="font-label text-[10px] text-outline uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</span>
           </div>
           <div className="flex space-x-2">
-            <button 
+            <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
               className="p-2 border border-outline-variant/20 hover:border-tertiary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
             >
               <span className="material-symbols-outlined text-sm text-tertiary">chevron_left</span>
             </button>
-            <button 
+            <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage >= totalPages}
               className="p-2 border border-outline-variant/20 hover:border-tertiary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
@@ -653,7 +677,7 @@ function SystemTaskFeed({
           </div>
         </div>
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -677,30 +701,121 @@ function SystemTaskFeed({
                   </div>
                 </td>
                 <td className="px-8 py-5">
-                  <span className={`px-3 py-1 text-[9px] font-label uppercase tracking-tighter border ${
-                    task.status === 'completed' 
-                      ? 'bg-primary/10 text-primary border-primary/20' 
+                  <span className={`px-3 py-1 text-[9px] font-label uppercase tracking-tighter border ${task.status === 'completed'
+                      ? 'bg-primary/10 text-primary border-primary/20'
                       : task.status === 'in_progress'
-                      ? 'bg-secondary/10 text-secondary border-secondary/20 animate-pulse'
-                      : task.status === 'failed'
-                      ? 'bg-error/10 text-error border-error/20'
-                      : 'bg-surface-container-high text-outline border-outline-variant/10'
-                  }`}>
+                        ? 'bg-secondary/10 text-secondary border-secondary/20 animate-pulse'
+                        : task.status === 'failed'
+                          ? 'bg-error/10 text-error border-error/20'
+                          : 'bg-surface-container-high text-outline border-outline-variant/10'
+                    }`}>
                     {task.status}
                   </span>
                 </td>
                 <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60 whitespace-nowrap">
-                   {new Date(task.created_at).toLocaleString('en-US', { hour12: false, month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }).toUpperCase()}
+                  {new Date(task.created_at).toLocaleString('en-US', { hour12: false, month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }).toUpperCase()}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      
+
       {tasks.length === 0 && (
         <div className="p-20 text-center">
-          <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting neural task signals...</p>
+          <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting neural mission signals...</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function StrategicDialogue({
+  conversations,
+  total,
+  currentPage,
+  setCurrentPage,
+  pageSize
+}: {
+  conversations: ConversationLog[];
+  total: number;
+  currentPage: number;
+  setCurrentPage: (p: number) => void;
+  pageSize: number;
+}) {
+  const totalPages = Math.ceil(total / pageSize);
+
+  return (
+    <section className="bg-surface-container-low border border-outline-variant/10 overflow-hidden">
+      <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/30">
+        <div>
+          <h3 className="font-headline text-2xl text-on-surface">Strategic Dialogue</h3>
+          <p className="font-label text-[10px] text-secondary uppercase tracking-[0.2em] mt-1 opacity-70">
+            Agent Intelligence Ledger // 0xCHAT
+          </p>
+        </div>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <span className="font-label text-[10px] text-outline uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</span>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="p-2 border border-outline-variant/20 hover:border-secondary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+            >
+              <span className="material-symbols-outlined text-sm text-secondary">chevron_left</span>
+            </button>
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage >= totalPages}
+              className="p-2 border border-outline-variant/20 hover:border-secondary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+            >
+              <span className="material-symbols-outlined text-sm text-secondary">chevron_right</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-surface-container-high/50 border-b border-outline-variant/10">
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">ID</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Conversation Key</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Lead Agent</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Latest Snippet</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Updated At</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-outline-variant/5">
+            {conversations?.map((conv) => (
+              <tr key={conv.id} className="hover:bg-surface-container-highest/20 transition-colors group">
+                <td className="px-8 py-5 font-mono text-[11px] text-secondary">C-{conv.id}</td>
+                <td className="px-8 py-5 font-label text-[10px] text-on-surface uppercase tracking-widest">{conv.conversation_key}</td>
+                <td className="px-8 py-5 font-label text-[10px] text-secondary uppercase tracking-widest font-bold">
+                  {conv.latest_agent || "Anonymous"}
+                </td>
+                <td className="px-8 py-5">
+                  <div className="flex items-center space-x-2 bg-surface-container-highest/40 px-3 py-1.5 border border-outline-variant/10 max-w-[400px]">
+                    <span className="material-symbols-outlined text-[10px] text-outline/40">forum</span>
+                    <p className="font-body text-[10px] text-[#a38b88] truncate italic">
+                      "{conv.latest_message || "Awaiting strategy exchange..."}"
+                    </p>
+                  </div>
+                </td>
+                <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60 whitespace-nowrap">
+                  {new Date(conv.updated_at).toLocaleString('en-US', { hour12: false, month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }).toUpperCase()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {conversations.length === 0 && (
+        <div className="p-20 text-center">
+          <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting strategic verbal signals...</p>
         </div>
       )}
     </section>

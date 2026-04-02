@@ -16,7 +16,7 @@ from famiglia_core.db.agents.context_store import context_store
 from famiglia_core.db.init_db import init_db
 from famiglia_core.agents.alfredo import Alfredo
 from famiglia_core.agents.vito import Vito
-from famiglia_core.agents.riccado import Riccado
+from famiglia_core.agents.riccardo import Riccardo
 from famiglia_core.agents.rossini import Rossini
 from famiglia_core.agents.tommy import Tommy
 from famiglia_core.agents.bella import Bella
@@ -77,7 +77,7 @@ def main():
     agents = {
         "alfredo": Alfredo(),
         "vito": Vito(),
-        "riccado": Riccado(),
+        "riccardo": Riccardo(),
         "rossini": Rossini(),
         "tommy": Tommy(),
         "bella": Bella(),
@@ -260,7 +260,7 @@ def main():
     
     mm_started = 0
     # Log missing tokens for Mattermost agents to match Slack style
-    all_agent_keys = ["alfredo", "vito", "riccado", "rossini", "tommy", "bella", "kowalski"]
+    all_agent_keys = ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski"]
     for a_key in all_agent_keys:
         if not os.getenv(f"MATTERMOST_BOT_TOKEN_{a_key.upper()}"):
             print(f"[Mattermost] [{a_key}] no bot token found; listener will not start.")

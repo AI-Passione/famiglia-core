@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { GraphDefinition, MissionLogEntry, GraphNode, Task, PaginatedTasks } from '../types';
+import type { GraphDefinition, GraphNode, Task, PaginatedTasks, ActionLog, PaginatedActions } from '../types';
 import { API_BASE } from '../config';
 
 interface OperationsProps {
@@ -11,29 +11,38 @@ interface OperationsProps {
 }
 
 export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTasks }: OperationsProps) {
-  const [logs, setLogs] = useState<MissionLogEntry[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [viewMode, setViewMode] = useState<'specific' | 'global'>('specific');
+  
+  // Agent Action Ledger State
+  const [actions, setActions] = useState<ActionLog[]>([]);
+  const [totalActions, setTotalActions] = useState(0);
+  const [actionsPage, setActionsPage] = useState(1);
+  const [selectedAgent, setSelectedAgent] = useState<string>('');
+  
+  // System Task Feed State
   const [systemTasks, setSystemTasks] = useState<Task[]>(initialTasks);
   const [totalTasks, setTotalTasks] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [tasksPage, setTasksPage] = useState(1);
+  
   const PAGE_SIZE = 10;
 
-  const fetchLogs = useCallback(async () => {
+  const fetchActions = useCallback(async (page: number, agent?: string) => {
     try {
-      const endpoint = viewMode === 'specific' && selectedGraph 
-        ? `${API_BASE}/mission-logs/${selectedGraph.id}` 
-        : `${API_BASE}/mission-logs/all`;
+      const offset = (page - 1) * PAGE_SIZE;
+      let url = `${API_BASE}/actions?limit=${PAGE_SIZE}&offset=${offset}`;
+      if (agent) url += `&agent_name=${encodeURIComponent(agent)}`;
       
-      const res = await fetch(endpoint);
+      const res = await fetch(url);
       if (res.ok) {
-        const data = await res.json();
-        setLogs(data);
+        const data = await res.json() as PaginatedActions;
+        setActions(data.actions);
+        setTotalActions(data.total);
       }
     } catch (err) {
-      console.error("Error fetching mission logs:", err);
+      console.error("Error fetching agent actions:", err);
     }
-  }, [selectedGraph, viewMode]);
+  }, []);
 
   const fetchSystemTasks = useCallback(async (page: number) => {
     try {
@@ -54,18 +63,18 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
     if (!selectedGraph && viewMode === 'specific') {
       setViewMode('global');
     }
-    fetchLogs();
-    fetchSystemTasks(currentPage);
-  }, [fetchLogs, fetchSystemTasks, selectedGraph, viewMode, currentPage]);
+    fetchActions(actionsPage, selectedAgent);
+    fetchSystemTasks(tasksPage);
+  }, [fetchActions, fetchSystemTasks, selectedGraph, viewMode, actionsPage, tasksPage, selectedAgent]);
 
-  // Intelligent Polling: Refresh current page every 5s
+  // Intelligent Polling: Refresh both feeds every 5s
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchLogs();
-      fetchSystemTasks(currentPage);
+      fetchActions(actionsPage, selectedAgent);
+      fetchSystemTasks(tasksPage);
     }, 5000);
     return () => clearInterval(interval);
-  }, [logs, fetchLogs, fetchSystemTasks, currentPage]);
+  }, [actionsPage, tasksPage, selectedAgent, fetchActions, fetchSystemTasks]);
 
   const handleExecute = async () => {
     if (!selectedGraph || isExecuting) return;
@@ -77,9 +86,8 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
       });
       
       if (response.ok) {
-        // Switch to specific view for the executed graph and refresh logs
         setViewMode('specific');
-        setTimeout(fetchLogs, 1000);
+        setTimeout(() => fetchSystemTasks(1), 1000);
       }
     } catch (err) {
       console.error("Error executing graph:", err);
@@ -120,13 +128,23 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
               </p>
             </div>
           )}
-          <MissionLogs logs={logs} viewMode={viewMode} />
+
+          {/* New Tier: Tool Action Ledger */}
+          <AgentActionLedger 
+            actions={actions}
+            total={totalActions}
+            currentPage={actionsPage}
+            setCurrentPage={setActionsPage}
+            pageSize={PAGE_SIZE}
+            selectedAgent={selectedAgent}
+            setSelectedAgent={setSelectedAgent}
+          />
           
           <SystemTaskFeed 
             tasks={systemTasks} 
             total={totalTasks} 
-            currentPage={currentPage} 
-            setCurrentPage={setCurrentPage}
+            currentPage={tasksPage} 
+            setCurrentPage={setTasksPage}
             pageSize={PAGE_SIZE}
           />
         </div>
@@ -216,6 +234,132 @@ function GraphSelector({ graphs, selectedGraph, setSelectedGraph }: {
   );
 }
 
+function AgentActionLedger({
+  actions,
+  total,
+  currentPage,
+  setCurrentPage,
+  pageSize,
+  selectedAgent,
+  setSelectedAgent
+}: {
+  actions: ActionLog[];
+  total: number;
+  currentPage: number;
+  setCurrentPage: (p: number) => void;
+  pageSize: number;
+  selectedAgent: string;
+  setSelectedAgent: (a: string) => void;
+}) {
+  const totalPages = Math.ceil(total / pageSize);
+  const AGENTS = ["Alfredo", "Vito", "Riccado", "Rossini", "Tommy", "Bella", "Kowalski"];
+
+  return (
+    <section className="bg-surface-container-low border border-outline-variant/10 overflow-hidden">
+      <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/30">
+        <div>
+          <h3 className="font-headline text-2xl text-on-surface">Tool Action Ledger</h3>
+          <p className="font-label text-[10px] text-tertiary uppercase tracking-[0.2em] mt-1 opacity-70">
+            Granular Mechanical Execution Stream // 0xTOOL
+          </p>
+        </div>
+        <div className="flex items-center space-x-6">
+          {/* Agent Filter */}
+          <div className="flex items-center space-x-3">
+            <span className="font-label text-[9px] text-outline uppercase tracking-widest">Filter:</span>
+            <select 
+              value={selectedAgent}
+              onChange={(e) => setSelectedAgent(e.target.value)}
+              className="bg-surface-container-highest border border-outline-variant/20 text-on-surface font-label text-[10px] uppercase px-3 py-1.5 focus:outline-none focus:border-primary/40"
+            >
+              <option value="">All Agents</option>
+              {AGENTS.map(agent => (
+                <option key={agent} value={agent}>{agent}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <span className="font-label text-[10px] text-outline uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</span>
+            <div className="flex space-x-2">
+              <button 
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="p-2 border border-outline-variant/20 hover:border-primary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+              >
+                <span className="material-symbols-outlined text-sm text-primary">chevron_left</span>
+              </button>
+              <button 
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage >= totalPages}
+                className="p-2 border border-outline-variant/20 hover:border-primary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+              >
+                <span className="material-symbols-outlined text-sm text-primary">chevron_right</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-surface-container-high/50 border-b border-outline-variant/10">
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Timestamp</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Agent</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Action</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Details</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-outline-variant/5">
+            {actions.map((action) => (
+              <tr key={action.id} className="hover:bg-surface-container-highest/20 transition-colors group">
+                <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60">
+                   {new Date(action.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </td>
+                <td className="px-8 py-5 font-label text-[10px] text-primary uppercase tracking-widest font-bold">
+                  {action.agent_name}
+                </td>
+                <td className="px-8 py-5">
+                  <span className="bg-surface-container-highest px-3 py-1 rounded-sm border border-outline-variant/10 font-mono text-[10px] text-on-surface">
+                    {action.action_type}
+                  </span>
+                </td>
+                <td className="px-8 py-5">
+                  <div className="flex items-center space-x-2 bg-surface-container-highest/40 px-3 py-1.5 border border-outline-variant/10 max-w-[300px]">
+                    <span className="material-symbols-outlined text-[10px] text-outline/40">data_object</span>
+                    <span className="font-mono text-[9px] text-[#a38b88] truncate">
+                      {JSON.stringify(action.action_details || {})}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-8 py-5">
+                  <span className={`px-3 py-1 text-[9px] font-label uppercase tracking-tighter border ${
+                    action.approval_status === 'APPROVED' 
+                      ? 'bg-primary/10 text-primary border-primary/20' 
+                      : action.completed_at
+                      ? 'bg-secondary/10 text-secondary border-secondary/20'
+                      : 'bg-surface-container-high text-outline border-outline-variant/10'
+                  }`}>
+                    {action.approval_status || (action.completed_at ? "COMPLETE" : "ACTIVE")}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      {actions.length === 0 && (
+        <div className="p-20 text-center">
+          <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting granular action signals...</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function GraphVisualizer({ graph, onExecute, isExecuting }: { 
   graph: GraphDefinition | null;
   onExecute: () => void;
@@ -267,7 +411,7 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
     const Y_SPACING = 55;
     const X_SPACING = 110;
     const BASE_Y = 40;
-    const CENTER_X = 300; // Increased SVG horizontal space
+    const CENTER_X = 300; 
 
     Object.entries(levelGroups).forEach(([levelStr, ids]) => {
       const level = parseInt(levelStr);
@@ -308,7 +452,6 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
         </div>
       </div>
 
-      {/* Dynamic SVG Flowchart Visualizer */}
       <div className="min-h-[480px] w-full bg-surface-container-lowest relative flex items-center justify-center border-b border-outline-variant/10 overflow-hidden p-4 cursor-crosshair">
         <svg className="w-full h-full opacity-80" viewBox="0 0 600 480" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -387,7 +530,6 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
           })}
         </svg>
 
-        {/* Node Tooltip */}
         <AnimatePresence>
           {hoveredNode && (
             <motion.div
@@ -432,7 +574,6 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
                 </div>
               </div>
               
-              {/* Decorative corner accents */}
               <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-tertiary/30"></div>
               <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-tertiary/30"></div>
             </motion.div>
@@ -460,76 +601,6 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
           {isExecuting ? 'DISPATCHING...' : 'EXECUTE GRAPH'}
         </button>
       </div>
-    </section>
-  );
-}
-
-function MissionLogs({ logs, viewMode }: { logs: MissionLogEntry[], viewMode: 'specific' | 'global' }) {
-  return (
-    <section className="bg-surface-container-low border border-outline-variant/10 overflow-hidden">
-      <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/30">
-        <div>
-          <h3 className="font-headline text-2xl text-on-surface">
-            {viewMode === 'global' ? 'Global Command History' : 'Mission Logs'}
-          </h3>
-          <p className="font-label text-[10px] text-tertiary uppercase tracking-[0.2em] mt-1 opacity-70">
-            {viewMode === 'global' ? 'Across all Orchestration Features' : 'Operational Execution History'} // 0xAF
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-          <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest">Live Stream</span>
-        </div>
-      </div>
-      
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-surface-container-high/50 border-b border-outline-variant/10">
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">ID</th>
-              {viewMode === 'global' && (
-                <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Graph</th>
-              )}
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Timestamp</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Status</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Duration</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Initiator</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-outline-variant/5">
-            {logs.map((log) => (
-              <tr key={log.id} className="hover:bg-surface-container-highest/20 transition-colors group">
-                <td className="px-8 py-5 font-mono text-[11px] text-tertiary">{log.id}</td>
-                {viewMode === 'global' && (
-                  <td className="px-8 py-5 font-label text-[10px] text-primary uppercase tracking-widest">
-                    {log.graph_id}
-                  </td>
-                )}
-                <td className="px-8 py-5 font-body text-xs text-on-surface-variant opacity-80">{log.timestamp}</td>
-                <td className="px-8 py-5">
-                  <span className={`px-3 py-1 text-[9px] font-label uppercase tracking-tighter border ${
-                    log.status === 'success' 
-                      ? 'bg-primary/10 text-primary border-primary/20' 
-                      : log.status === 'running'
-                      ? 'bg-secondary/10 text-secondary border-secondary/20 animate-pulse'
-                      : 'bg-error/10 text-error border-error/20'
-                  }`}>
-                    {log.status === 'running' ? '● In Progress' : log.status}
-                  </span>
-                </td>
-                <td className="px-8 py-5 font-body text-xs text-[#a38b88]">{log.duration}</td>
-                <td className="px-8 py-5 font-label text-[10px] text-on-surface uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">{log.initiator}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      
-      {logs.length === 0 && (
-        <div className="p-20 text-center">
-          <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting connection to deep archives...</p>
-        </div>
-      )}
     </section>
   );
 }

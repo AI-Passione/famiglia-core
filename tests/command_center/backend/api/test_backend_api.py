@@ -38,20 +38,23 @@ def test_get_actions_endpoint(mock_store):
     mock_store.list_agent_actions.return_value = [
         {
             "id": 1,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(timezone.utc),
             "agent_name": "alfredo",
             "action_type": "web_search",
             "action_details": {"query": "test"},
             "approval_status": "approved",
             "cost_usd": 0.0,
             "duration_seconds": 2,
-            "completed_at": datetime.now(timezone.utc).isoformat()
+            "completed_at": datetime.now(timezone.utc)
         }
     ]
+    mock_store.get_total_agent_action_count.return_value = 1
     
     response = client.get("/api/v1/actions")
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    data = response.json()
+    assert len(data["actions"]) == 1
+    assert data["total"] == 1
 
 @patch("famiglia_core.command_center.backend.api.main.context_store")
 def test_get_recurring_tasks_endpoint(mock_store):

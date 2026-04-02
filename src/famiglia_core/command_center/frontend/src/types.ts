@@ -43,6 +43,23 @@ export interface Task {
   metadata?: Record<string, unknown> | null;
 }
 
+export interface ActionLog {
+  id: number;
+  timestamp: string;
+  agent_name: string;
+  action_type: string;
+  action_details: Record<string, any> | null;
+  approval_status: string | null;
+  cost_usd: number;
+  duration_seconds: number | null;
+  completed_at: string | null;
+}
+
+export interface PaginatedActions {
+  actions: ActionLog[];
+  total: number;
+}
+
 export interface PaginatedTasks {
   tasks: Task[];
   total: number;

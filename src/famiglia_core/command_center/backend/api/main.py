@@ -115,6 +115,10 @@ class PaginatedTasks(BaseModel):
     tasks: List[TaskInstance]
     total: int
 
+class PaginatedActions(BaseModel):
+    actions: List[ActionLog]
+    total: int
+
 # --- Core Informational Routes ---
 
 @app.get("/")
@@ -144,10 +148,17 @@ async def get_agents():
         ))
     return agents
 
-@app.get("/api/v1/actions", response_model=List[ActionLog])
-async def get_actions(limit: int = 50):
-    actions = context_store.list_agent_actions(limit=limit)
-    return actions
+@app.get("/api/v1/actions", response_model=PaginatedActions)
+async def get_actions(limit: int = 50, offset: int = 0, agent_name: Optional[str] = None):
+    actions_data = context_store.list_agent_actions(limit=limit, offset=offset, agent_name=agent_name)
+    total = context_store.get_total_agent_action_count(agent_name=agent_name)
+    
+    # Map database results to ActionLog models
+    actions = []
+    for row in actions_data:
+        actions.append(ActionLog(**row))
+        
+    return PaginatedActions(actions=actions, total=total)
 
 @app.get("/api/v1/tasks", response_model=PaginatedTasks)
 async def get_tasks(status: Optional[str] = None, limit: int = 50, offset: int = 0):

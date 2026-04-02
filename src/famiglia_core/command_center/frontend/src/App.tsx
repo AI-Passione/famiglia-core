@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type {
   Agent,
-  Action,
   Task,
   RecurringTask,
   GraphDefinition,
   AppSettings,
   PaginatedTasks,
+  PaginatedActions,
+  ActionLog,
 } from './types';
 import { TopNav } from './modules/ui/TopNav';
 import { Sidebar } from './modules/ui/Sidebar';
@@ -49,7 +50,7 @@ function getInitialSettings(): AppSettings {
 
 function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [actions, setActions] = useState<Action[]>([]);
+  const [actions, setActions] = useState<ActionLog[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>([]);
   const [graphs, setGraphs] = useState<GraphDefinition[]>([]);
@@ -141,7 +142,10 @@ function App() {
         ]);
         
         if (agentsRes.ok) setAgents(await agentsRes.json());
-        if (actionsRes.ok) setActions(await actionsRes.json());
+        if (actionsRes.ok) {
+          const data = await actionsRes.json() as PaginatedActions;
+          setActions(data.actions);
+        }
         if (tasksRes.ok) {
           const data = await tasksRes.json() as PaginatedTasks;
           setTasks(data.tasks);

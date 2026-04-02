@@ -39,6 +39,59 @@ async def get_graph(graph_id: str):
     
     raise HTTPException(status_code=404, detail="Graph not found")
 
+@router.get("/mission-logs/all", response_model=List[MissionLog])
+async def get_all_mission_logs():
+    """Fetch global execution history for all SOP graphs from task_instances."""
+    try:
+        with context_store.db_session(commit=False) as cursor:
+            if cursor is None:
+                return []
+                
+            query = """
+                SELECT 
+                    id, 
+                    metadata->>'graph_id' as graph_id,
+                    created_at, 
+                    status, 
+                    picked_up_at, 
+                    completed_at, 
+                    created_by_name as initiator
+                FROM task_instances
+                WHERE metadata->>'task_type' = 'sop_execution'
+                ORDER BY created_at DESC
+                LIMIT 40
+            """
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            
+            logs = []
+            for row in rows:
+                duration_str = "N/A"
+                if row["picked_up_at"] and row["completed_at"]:
+                    diff = row["completed_at"] - row["picked_up_at"]
+                    duration_str = f"{diff.total_seconds():.1f}s"
+                elif row["status"] == "in_progress" and row["picked_up_at"]:
+                    diff = datetime.now(timezone.utc) - row["picked_up_at"]
+                    duration_str = f"{diff.total_seconds():.1f}s+"
+                
+                status = row["status"]
+                if status == "completed": status = "success"
+                elif status == "failed": status = "failure"
+                elif status == "in_progress": status = "running"
+                
+                logs.append(MissionLog(
+                    id=f"ML-{row['id']:03d}",
+                    graph_id=row["graph_id"] or "unspecified",
+                    timestamp=row["created_at"].strftime("%Y-%m-%d %H:%M:%S"),
+                    status=status,
+                    duration=duration_str,
+                    initiator=row["initiator"] or "System"
+                ))
+            return logs
+    except Exception as e:
+        print(f"[SOP API] Error fetching all mission logs: {e}")
+        return []
+
 @router.get("/mission-logs/{graph_id}", response_model=List[MissionLog])
 async def get_mission_logs(graph_id: str):
     """Fetch execution history for a specific graph from task_instances."""

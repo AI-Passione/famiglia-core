@@ -12,19 +12,40 @@ interface SOPProps {
 export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
   const [logs, setLogs] = useState<MissionLogEntry[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [viewMode, setViewMode] = useState<'specific' | 'global'>('specific');
 
-  const fetchLogs = useCallback(() => {
-    if (selectedGraph) {
-      fetch(`${API_BASE}/mission-logs/${selectedGraph.id}`)
-        .then(res => res.json())
-        .then(data => setLogs(data))
-        .catch(err => console.error("Error fetching mission logs:", err));
+  const fetchLogs = useCallback(async () => {
+    try {
+      const endpoint = viewMode === 'specific' && selectedGraph 
+        ? `${API_BASE}/mission-logs/${selectedGraph.id}` 
+        : `${API_BASE}/mission-logs/all`;
+      
+      const res = await fetch(endpoint);
+      if (res.ok) {
+        const data = await res.json();
+        setLogs(data);
+      }
+    } catch (err) {
+      console.error("Error fetching mission logs:", err);
     }
-  }, [selectedGraph]);
+  }, [selectedGraph, viewMode]);
 
+  // Initial fetch and view mode sync
   useEffect(() => {
+    if (!selectedGraph && viewMode === 'specific') {
+      setViewMode('global');
+    }
     fetchLogs();
-  }, [fetchLogs]);
+  }, [fetchLogs, selectedGraph, viewMode]);
+
+  // Intelligent Polling: Refresh every 5s if any mission is 'running'
+  useEffect(() => {
+    const hasRunningMissions = logs.some(log => log.status === 'running');
+    if (hasRunningMissions) {
+      const interval = setInterval(fetchLogs, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [logs, fetchLogs]);
 
   const handleExecute = async () => {
     if (!selectedGraph || isExecuting) return;
@@ -34,13 +55,11 @@ export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
       const response = await fetch(`${API_BASE}/graphs/${selectedGraph.id}/execute`, {
         method: 'POST',
       });
-      const data = await response.json();
       
       if (response.ok) {
-        // Optimistically add a "running" log entry or just refresh
+        // Switch to specific view for the executed graph and refresh logs
+        setViewMode('specific');
         setTimeout(fetchLogs, 1000);
-      } else {
-        console.error("Execution failed:", data.detail);
       }
     } catch (err) {
       console.error("Error executing graph:", err);
@@ -57,31 +76,68 @@ export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
       className="space-y-12"
     >
       <div className="space-y-8">
-        <SOPHeader selectedGraph={selectedGraph} />
-        <GraphSelector graphs={graphs} selectedGraph={selectedGraph} setSelectedGraph={setSelectedGraph} />
+        <SOPHeader selectedGraph={selectedGraph} viewMode={viewMode} setViewMode={setViewMode} />
+        <GraphSelector 
+          graphs={graphs} 
+          selectedGraph={selectedGraph} 
+          setSelectedGraph={(g) => {
+            setSelectedGraph(g);
+            setViewMode('specific');
+          }} 
+        />
       </div>
       
       <div className="grid grid-cols-12 gap-8">
         <div className="col-span-12 space-y-12">
-          <GraphVisualizer graph={selectedGraph} onExecute={handleExecute} isExecuting={isExecuting} />
-          <MissionLogs logs={logs} />
+          {viewMode === 'specific' && selectedGraph ? (
+            <GraphVisualizer graph={selectedGraph} onExecute={handleExecute} isExecuting={isExecuting} />
+          ) : (
+            <div className="bg-surface-container-low p-12 border border-outline-variant/10 text-center">
+              <span className="material-symbols-outlined text-4xl text-outline/40 mb-4">analytics</span>
+              <h3 className="font-headline text-xl text-on-surface">Global Operational View</h3>
+              <p className="font-body text-sm text-outline max-w-md mx-auto mt-2">
+                Select a specific SOP from the tabs above to visualize its logic or initiate a new autonomous pipeline.
+              </p>
+            </div>
+          )}
+          <MissionLogs logs={logs} viewMode={viewMode} />
         </div>
       </div>
     </motion.div>
   );
 }
 
-function SOPHeader({ selectedGraph }: { selectedGraph: GraphDefinition | null }) {
+function SOPHeader({ 
+  selectedGraph, 
+  viewMode, 
+  setViewMode 
+}: { 
+  selectedGraph: GraphDefinition | null;
+  viewMode: 'specific' | 'global';
+  setViewMode: (m: 'specific' | 'global') => void;
+}) {
   return (
-    <div>
-      <h2 className="font-headline text-4xl text-on-surface mb-2 tracking-tight">
-        SOP: {selectedGraph ? selectedGraph.name : 'Standard Operation Procedure'}
-      </h2>
-      <p className="font-body text-[#a38b88] max-w-2xl text-sm leading-relaxed">
-        {selectedGraph 
-          ? `High-fidelity logic mapping for the '${selectedGraph.name}' autonomous pipeline.`
-          : 'High-fidelity logic mapping and autonomous pipeline orchestration for the Famiglia\'s digital assets.'}
-      </p>
+    <div className="flex justify-between items-end">
+      <div>
+        <h2 className="font-headline text-4xl text-on-surface mb-2 tracking-tight">
+          {viewMode === 'global' ? 'Operational History' : `SOP: ${selectedGraph?.name}`}
+        </h2>
+        <p className="font-body text-[#a38b88] max-w-2xl text-sm leading-relaxed">
+          {viewMode === 'global' 
+            ? 'Unified execution stream for all autonomous pipelines across the project.'
+            : `High-fidelity logic mapping for the '${selectedGraph?.name}' autonomous pipeline.`}
+        </p>
+      </div>
+      <button 
+        onClick={() => setViewMode(viewMode === 'global' ? 'specific' : 'global')}
+        className={`px-4 py-2 border font-label text-[10px] uppercase tracking-widest transition-all ${
+          viewMode === 'global' 
+            ? 'bg-primary/10 text-primary border-primary/40' 
+            : 'bg-surface-container-high/30 text-outline border-outline-variant/20 hover:text-on-surface hover:border-outline-variant/60'
+        }`}
+      >
+        {viewMode === 'global' ? 'Back to Visualizer' : 'View Global History'}
+      </button>
     </div>
   );
 }
@@ -91,51 +147,43 @@ function GraphSelector({ graphs, selectedGraph, setSelectedGraph }: {
   selectedGraph: GraphDefinition | null;
   setSelectedGraph: (g: GraphDefinition) => void;
 }) {
-  const categories = [
-    {
-      name: "Market Research",
-      ids: ["market_research"]
-    },
-    {
-      name: "Product Development",
-      ids: ["prd_drafting", "prd_review", "milestone_creation", "grooming", "code_implementation"]
-    }
-  ];
+  const groups = useMemo(() => {
+    const map: Record<string, GraphDefinition[]> = {};
+    graphs.forEach(g => {
+      const cat = g.category || "General";
+      if (!map[cat]) map[cat] = [];
+      map[cat].push(g);
+    });
+    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+  }, [graphs]);
 
   return (
     <div className="space-y-6">
-      {categories.map((category) => {
-        const categoryGraphs = category.ids
-          .map(id => graphs.find(g => g.id === id))
-          .filter((g): g is GraphDefinition => !!g);
-        if (categoryGraphs.length === 0) return null;
-
-        return (
-          <div key={category.name} className="space-y-3">
-            <h4 className="font-label text-[10px] text-outline uppercase tracking-[0.2em] opacity-60">
-              {category.name}
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {categoryGraphs.map((graph) => {
-                const isActive = selectedGraph?.id === graph.id;
-                return (
-                  <button
-                    key={graph.id}
-                    onClick={() => setSelectedGraph(graph)}
-                    className={`px-6 py-2 border transition-all duration-300 font-label text-[10px] uppercase tracking-widest ${
-                      isActive 
-                        ? 'bg-secondary/10 text-secondary border-secondary/50 shadow-[0_0_15px_rgba(234,195,74,0.1)]' 
-                        : 'bg-surface-container-low/30 text-outline border-outline-variant/20 hover:border-outline-variant/50 hover:text-on-surface'
-                    }`}
-                  >
-                    {graph.name}
-                  </button>
-                );
-              })}
-            </div>
+      {groups.map(([category, categoryGraphs]) => (
+        <div key={category} className="space-y-3">
+          <h4 className="font-label text-[10px] text-outline uppercase tracking-[0.2em] opacity-60">
+            {category}
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {categoryGraphs.map((graph) => {
+              const isActive = selectedGraph?.id === graph.id;
+              return (
+                <button
+                  key={graph.id}
+                  onClick={() => setSelectedGraph(graph)}
+                  className={`px-6 py-2 border transition-all duration-300 font-label text-[10px] uppercase tracking-widest ${
+                    isActive 
+                      ? 'bg-secondary/10 text-secondary border-secondary/50 shadow-[0_0_15px_rgba(234,195,74,0.1)]' 
+                      : 'bg-surface-container-low/30 text-outline border-outline-variant/20 hover:border-outline-variant/50 hover:text-on-surface'
+                  }`}
+                >
+                  {graph.name}
+                </button>
+              );
+            })}
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }
@@ -388,13 +436,17 @@ function GraphVisualizer({ graph, onExecute, isExecuting }: {
   );
 }
 
-function MissionLogs({ logs }: { logs: MissionLogEntry[] }) {
+function MissionLogs({ logs, viewMode }: { logs: MissionLogEntry[], viewMode: 'specific' | 'global' }) {
   return (
     <section className="bg-surface-container-low border border-outline-variant/10 overflow-hidden">
       <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/30">
         <div>
-          <h3 className="font-headline text-2xl text-on-surface">Mission Logs</h3>
-          <p className="font-label text-[10px] text-tertiary uppercase tracking-[0.2em] mt-1 opacity-70">Operational Execution History // 0xAF</p>
+          <h3 className="font-headline text-2xl text-on-surface">
+            {viewMode === 'global' ? 'Global Command History' : 'Mission Logs'}
+          </h3>
+          <p className="font-label text-[10px] text-tertiary uppercase tracking-[0.2em] mt-1 opacity-70">
+            {viewMode === 'global' ? 'Across all Orchestration Features' : 'Operational Execution History'} // 0xAF
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
@@ -407,6 +459,9 @@ function MissionLogs({ logs }: { logs: MissionLogEntry[] }) {
           <thead>
             <tr className="bg-surface-container-high/50 border-b border-outline-variant/10">
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">ID</th>
+              {viewMode === 'global' && (
+                <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Graph</th>
+              )}
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Timestamp</th>
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Status</th>
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Duration</th>
@@ -417,6 +472,11 @@ function MissionLogs({ logs }: { logs: MissionLogEntry[] }) {
             {logs.map((log) => (
               <tr key={log.id} className="hover:bg-surface-container-highest/20 transition-colors group">
                 <td className="px-8 py-5 font-mono text-[11px] text-tertiary">{log.id}</td>
+                {viewMode === 'global' && (
+                  <td className="px-8 py-5 font-label text-[10px] text-primary uppercase tracking-widest">
+                    {log.graph_id}
+                  </td>
+                )}
                 <td className="px-8 py-5 font-body text-xs text-on-surface-variant opacity-80">{log.timestamp}</td>
                 <td className="px-8 py-5">
                   <span className={`px-3 py-1 text-[9px] font-label uppercase tracking-tighter border ${

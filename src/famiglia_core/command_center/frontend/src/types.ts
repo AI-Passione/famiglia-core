@@ -71,6 +71,7 @@ export interface GraphEdge {
 export interface GraphDefinition {
   id: string;
   name: string;
+  category?: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
 }

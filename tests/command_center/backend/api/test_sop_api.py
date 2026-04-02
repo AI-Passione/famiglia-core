@@ -32,10 +32,10 @@ def test_get_mission_logs_endpoint(mock_store):
     mock_cursor.fetchall.return_value = [
         {
             "id": 101,
-            "created_at": datetime(2026, 3, 31, 15, 0, 0),
+            "created_at": datetime(2026, 3, 31, 15, 0, 0, tzinfo=timezone.utc),
             "status": "completed",
-            "picked_up_at": datetime(2026, 3, 31, 15, 0, 1),
-            "completed_at": datetime(2026, 3, 31, 15, 0, 5),
+            "picked_up_at": datetime(2026, 3, 31, 15, 0, 1, tzinfo=timezone.utc),
+            "completed_at": datetime(2026, 3, 31, 15, 0, 5, tzinfo=timezone.utc),
             "initiator": "Don"
         }
     ]
@@ -46,6 +46,32 @@ def test_get_mission_logs_endpoint(mock_store):
     assert len(data) == 1
     assert data[0]["id"] == "ML-101"
     assert data[0]["status"] == "success"
+
+@patch("famiglia_core.command_center.backend.api.routes.sop.context_store")
+def test_get_all_mission_logs_endpoint(mock_store):
+    # Mocking DB session for global mission logs
+    mock_cursor = MagicMock()
+    mock_store.db_session.return_value.__enter__.return_value = mock_cursor
+    
+    mock_cursor.fetchall.return_value = [
+        {
+            "id": 202,
+            "graph_id": "prd_drafting",
+            "created_at": datetime(2026, 4, 1, 10, 0, 0, tzinfo=timezone.utc),
+            "status": "in_progress",
+            "picked_up_at": datetime(2026, 4, 1, 10, 0, 1, tzinfo=timezone.utc),
+            "completed_at": None,
+            "initiator": "Don"
+        }
+    ]
+    
+    response = client.get("/api/v1/mission-logs/all")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == "ML-202"
+    assert data[0]["graph_id"] == "prd_drafting"
+    assert data[0]["status"] == "running"
 
 @patch("famiglia_core.command_center.backend.api.routes.sop.context_store")
 @patch("famiglia_core.command_center.backend.api.routes.sop.os.walk")

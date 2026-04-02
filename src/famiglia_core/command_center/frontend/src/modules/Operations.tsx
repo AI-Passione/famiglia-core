@@ -305,6 +305,7 @@ function AgentActionLedger({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-surface-container-high/50 border-b border-outline-variant/10">
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">ID</th>
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Timestamp</th>
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Agent</th>
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Action</th>
@@ -313,8 +314,9 @@ function AgentActionLedger({
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant/5">
-            {actions.map((action) => (
+            {actions?.map((action) => (
               <tr key={action.id} className="hover:bg-surface-container-highest/20 transition-colors group">
+                <td className="px-8 py-5 font-mono text-[11px] text-tertiary">A-{action.id}</td>
                 <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60">
                    {new Date(action.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </td>
@@ -664,7 +666,7 @@ function SystemTaskFeed({
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant/5">
-            {tasks.map((task) => (
+            {tasks?.map((task) => (
               <tr key={task.id} className="hover:bg-surface-container-highest/20 transition-colors group">
                 <td className="px-8 py-5 font-mono text-[11px] text-tertiary">T-{task.id}</td>
                 <td className="px-8 py-5 font-body text-xs text-on-surface font-medium truncate max-w-[200px]">{task.title}</td>

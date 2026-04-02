@@ -86,16 +86,17 @@ async def chat_stream(
 
     async def event_generator():
         queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
 
         def on_intermediate(text: str):
-            # Put intermediate chunks in the queue
-            asyncio.run_coroutine_threadsafe(
+            # Put intermediate chunks in the queue thread-safely
+            loop.call_soon_threadsafe(
+                asyncio.run_coroutine_threadsafe,
                 queue.put(StreamChunk(type="intermediate", content=text).model_dump_json()),
-                asyncio.get_event_loop()
+                loop
             )
 
         # Start agent task in a separate thread to prevent blocking
-        loop = asyncio.get_event_loop()
         task = loop.run_in_executor(
             None, 
             agent_obj.complete_task, 
@@ -108,6 +109,7 @@ async def chat_stream(
         # Yield from queue until task is done
         while not task.done() or not queue.empty():
             try:
+                # Use a small timeout to keep checking task status
                 chunk = await asyncio.wait_for(queue.get(), timeout=0.1)
                 yield f"data: {chunk}\n\n"
             except asyncio.TimeoutError:

@@ -275,6 +275,7 @@ export interface SOPNode {
 export interface SOPWorkflow {
   id: number;
   name: string;
+  display_name: string | null;
   description: string | null;
   category: string;
   node_order: string[];
@@ -285,6 +286,7 @@ export interface SOPWorkflow {
 
 export interface SOPWorkflowCreate {
   name: string;
+  display_name: string | null;
   description: string | null;
   category: string;
   nodes: Omit<SOPNode, 'id' | 'workflow_id'>[];

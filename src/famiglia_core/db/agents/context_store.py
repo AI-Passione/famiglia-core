@@ -1054,21 +1054,23 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to fetch SOP workflow {workflow_id}: {e}")
             return None
 
-    def create_sop_workflow(self, name: str, description: Optional[str] = None, category: Optional[str] = "General") -> Optional[Dict[str, Any]]:
+    def create_sop_workflow(self, name: str, display_name: Optional[str] = None, description: Optional[str] = None, category: Optional[str] = "General") -> Optional[Dict[str, Any]]:
         try:
+            display_name = display_name or name
             with self.db_session() as cursor:
                 if cursor is None: return None
                 cursor.execute(
                     """
-                    INSERT INTO workflows (name, description, category, created_at, updated_at)
-                    VALUES (%s, %s, %s, NOW(), NOW())
+                    INSERT INTO workflows (name, display_name, description, category, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, NOW(), NOW())
                     ON CONFLICT (name) DO UPDATE SET
+                        display_name = COALESCE(EXCLUDED.display_name, workflows.display_name),
                         description = COALESCE(EXCLUDED.description, workflows.description),
                         category = COALESCE(EXCLUDED.category, workflows.category),
                         updated_at = NOW()
                     RETURNING *
                     """,
-                    (name, description, category),
+                    (name, display_name, description, category),
                 )
                 return cursor.fetchone()
         except Exception as e:
@@ -1110,7 +1112,7 @@ class AgentContextStore:
             return False
 
     def update_sop_workflow_metadata(self, workflow_id: int, **kwargs) -> bool:
-        allowed_fields = {"name", "description", "category"}
+        allowed_fields = {"name", "display_name", "description", "category"}
         update_fields = {k: v for k, v in kwargs.items() if k in allowed_fields}
         if not update_fields:
             return False

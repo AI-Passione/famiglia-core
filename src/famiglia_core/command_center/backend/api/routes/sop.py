@@ -20,6 +20,7 @@ class SOPNode(SOPNodeBase):
 
 class SOPWorkflowBase(BaseModel):
     name: str
+    display_name: Optional[str] = None
     description: Optional[str] = None
     category: str = "General"
 
@@ -64,6 +65,7 @@ async def create_workflow(payload: SOPWorkflowCreate):
     """Create a new SOP workflow with its nodes."""
     workflow = context_store.create_sop_workflow(
         name=payload.name,
+        display_name=payload.display_name,
         description=payload.description,
         category=payload.category
     )
@@ -82,6 +84,7 @@ async def update_workflow(workflow_id: int, payload: SOPWorkflowCreate):
     success = context_store.update_sop_workflow_metadata(
         workflow_id,
         name=payload.name,
+        display_name=payload.display_name,
         description=payload.description,
         category=payload.category
     )

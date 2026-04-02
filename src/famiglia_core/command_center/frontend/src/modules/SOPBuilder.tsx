@@ -10,11 +10,27 @@ interface SOPBuilderProps {
 }
 
 export function SOPBuilder({ workflow, onClose, onSave }: SOPBuilderProps) {
+  const [displayName, setDisplayName] = useState(workflow?.display_name || '');
   const [name, setName] = useState(workflow?.name || '');
   const [description, setDescription] = useState(workflow?.description || '');
   const [category, setCategory] = useState(workflow?.category || 'General');
   const [nodes, setNodes] = useState<Partial<SOPNode>[]>(workflow?.nodes || []);
   const [isSaving, setIsSaving] = useState(false);
+  const [isManualId, setIsManualId] = useState(!!workflow?.name);
+
+  const handleDisplayNameChange = (val: string) => {
+    setDisplayName(val);
+    if (!isManualId) {
+      // Auto-generate internal ID (uppercase snake_case)
+      const slug = val.trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+      setName(slug);
+    }
+  };
+
+  const handleNameChange = (val: string) => {
+    setName(val.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, ''));
+    setIsManualId(true);
+  };
 
   const categories = ["General", "Market Research", "Product Development", "Analytics", "Executive"];
 
@@ -41,7 +57,8 @@ export function SOPBuilder({ workflow, onClose, onSave }: SOPBuilderProps) {
     setIsSaving(true);
     try {
       const payload = {
-        name,
+        name: name || displayName.toUpperCase().replace(/\s+/g, '_'),
+        display_name: displayName,
         description,
         category,
         nodes: nodes.map(n => ({
@@ -107,16 +124,40 @@ export function SOPBuilder({ workflow, onClose, onSave }: SOPBuilderProps) {
           <div className="grid grid-cols-12 gap-8">
             <div className="col-span-8 space-y-6">
               <div className="space-y-2">
-                <label className="font-label text-[10px] text-outline uppercase tracking-widest pl-1">Protocol Identification</label>
+                <label className="font-label text-[10px] text-outline uppercase tracking-widest pl-1">Protocol Display Name</label>
+                <input
+                  type="text"
+                  required
+                  value={displayName}
+                  onChange={e => handleDisplayNameChange(e.target.value)}
+                  placeholder="E.g. Daily Market Summary Alpha"
+                  className="w-full bg-surface-container-highest/30 border border-outline-variant/10 px-4 py-3 font-headline text-lg text-on-surface focus:outline-none focus:border-primary/40 focus:bg-surface-container-highest/50 transition-all font-semibold"
+                />
+              </div>
+              
+              <div className="space-y-2 opacity-80">
+                <div className="flex justify-between items-center pr-1">
+                  <label className="font-label text-[8px] text-outline uppercase tracking-widest pl-1">Internal Reference ID</label>
+                  {isManualId && (
+                    <button 
+                      type="button" 
+                      onClick={() => setIsManualId(false)}
+                      className="text-[8px] text-primary uppercase tracking-tighter hover:underline"
+                    >
+                      Reset to Auto
+                    </button>
+                  )}
+                </div>
                 <input
                   type="text"
                   required
                   value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="E.g. Daily Market Summary Alpha"
-                  className="w-full bg-surface-container-highest/30 border border-outline-variant/10 px-4 py-3 font-body text-sm text-on-surface focus:outline-none focus:border-primary/40 focus:bg-surface-container-highest/50 transition-all"
+                  onChange={e => handleNameChange(e.target.value)}
+                  placeholder="MARKET_SUMMARY_ALPHA"
+                  className="w-full bg-surface-container-highest/20 border border-outline-variant/10 px-4 py-2 font-mono text-[10px] text-tertiary focus:outline-none focus:border-primary/30 transition-all"
                 />
               </div>
+
               <div className="space-y-2">
                 <label className="font-label text-[10px] text-outline uppercase tracking-widest pl-1">Functional Narrative</label>
                 <textarea

@@ -124,8 +124,11 @@ export function SOPManager({ onEdit, onCreate }: SOPManagerProps) {
 
                   <div>
                     <h4 className="font-headline text-xl text-on-surface group-hover:text-primary transition-colors">
-                      {workflow.name}
+                      {workflow.display_name || workflow.name}
                     </h4>
+                    <p className="font-mono text-[8px] text-outline uppercase tracking-wider opacity-60">
+                      ID: {workflow.name}
+                    </p>
                     <p className="font-body text-xs text-[#a38b88] mt-2 line-clamp-2 leading-relaxed">
                       {workflow.description || "No description provided for this autonomous protocol."}
                     </p>

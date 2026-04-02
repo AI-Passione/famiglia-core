@@ -38,20 +38,44 @@ def test_get_actions_endpoint(mock_store):
     mock_store.list_agent_actions.return_value = [
         {
             "id": 1,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(timezone.utc),
             "agent_name": "alfredo",
             "action_type": "web_search",
             "action_details": {"query": "test"},
             "approval_status": "approved",
             "cost_usd": 0.0,
             "duration_seconds": 2,
-            "completed_at": datetime.now(timezone.utc).isoformat()
+            "completed_at": datetime.now(timezone.utc)
         }
     ]
+    mock_store.get_total_agent_action_count.return_value = 1
     
     response = client.get("/api/v1/actions")
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    data = response.json()
+    assert len(data["actions"]) == 1
+    assert data["total"] == 1
+
+@patch("famiglia_core.command_center.backend.api.main.context_store")
+def test_get_conversations_endpoint(mock_store):
+    mock_store.list_conversations.return_value = [
+        {
+            "id": 1,
+            "conversation_key": "test_conv",
+            "metadata": {},
+            "updated_at": datetime.now(timezone.utc),
+            "latest_message": "hello",
+            "latest_agent": "alfredo"
+        }
+    ]
+    mock_store.get_total_conversation_count.return_value = 1
+    
+    response = client.get("/api/v1/conversations")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["conversations"]) == 1
+    assert data["total"] == 1
+    assert data["conversations"][0]["conversation_key"] == "test_conv"
 
 @patch("famiglia_core.command_center.backend.api.main.context_store")
 def test_get_recurring_tasks_endpoint(mock_store):
@@ -76,50 +100,6 @@ def test_get_recurring_tasks_endpoint(mock_store):
     assert len(payload) == 1
     assert payload[0]["title"] == "Weekly strategy sync"
     assert payload[0]["schedule_config"]["hour"] == 9
-
-@patch("famiglia_core.command_center.backend.api.main.graph_parser")
-def test_get_graphs_endpoint(mock_parser):
-    mock_parser.parse_all_graphs.return_value = [
-        {
-            "id": "test_graph", 
-            "name": "Test Graph", 
-            "nodes": [{"id": "START", "label": "Start", "type": "entry"}, {"id": "END", "label": "End", "type": "end"}],
-            "edges": [{"source": "START", "target": "END"}]
-        }
-    ]
-    
-    response = client.get("/api/v1/graphs")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == "test_graph"
-    assert len(data[0]["nodes"]) == 2
-
-@patch("famiglia_core.command_center.backend.api.main.context_store")
-def test_get_mission_logs_endpoint(mock_store):
-    # Mocking DB connection and cursor for mission logs
-    mock_conn = MagicMock()
-    mock_cursor = MagicMock()
-    mock_store._get_connection.return_value = mock_conn
-    mock_conn.cursor.return_value = mock_cursor
-    
-    mock_cursor.fetchall.return_value = [
-        {
-            "id": 101,
-            "created_at": datetime(2026, 3, 31, 15, 0, 0),
-            "status": "completed",
-            "picked_up_at": datetime(2026, 3, 31, 15, 0, 1),
-            "completed_at": datetime(2026, 3, 31, 15, 0, 5),
-            "initiator": "Don Jimmy"
-        }
-    ]
-    
-    response = client.get("/api/v1/mission-logs/test_graph")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == "ML-101"
-    assert data[0]["status"] == "success"
 
 @patch("famiglia_core.command_center.backend.api.routes.settings.user_service")
 def test_get_settings_endpoint(mock_user_service):

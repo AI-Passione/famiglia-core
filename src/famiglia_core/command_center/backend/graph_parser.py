@@ -16,6 +16,7 @@ class GraphEdge(BaseModel):
 class GraphDefinition(BaseModel):
     id: str
     name: str
+    category: str = "General"
     nodes: List[GraphNode]
     edges: List[GraphEdge]
 
@@ -28,16 +29,24 @@ class GraphParser:
         if not os.path.exists(self.features_dir):
             return graphs
 
-        for filename in os.listdir(self.features_dir):
-            if filename.endswith(".py") and filename != "__init__.py":
-                file_path = os.path.join(self.features_dir, filename)
-                graph_def = self.parse_file(file_path)
-                if graph_def:
-                    graphs.append(graph_def)
+        for root, dirs, files in os.walk(self.features_dir):
+            if "__pycache__" in dirs:
+                dirs.remove("__pycache__")
+            
+            # Category name from subdirectory
+            rel_path = os.path.relpath(root, self.features_dir)
+            category = "General" if rel_path == "." else rel_path.replace("_", " ").title()
+            
+            for filename in files:
+                if filename.endswith(".py") and filename != "__init__.py":
+                    file_path = os.path.join(root, filename)
+                    graph_def = self.parse_file(file_path, category=category)
+                    if graph_def:
+                        graphs.append(graph_def)
         
         return graphs
 
-    def parse_file(self, file_path: str) -> Optional[GraphDefinition]:
+    def parse_file(self, file_path: str, category: str = "General") -> Optional[GraphDefinition]:
         with open(file_path, "r") as f:
             content = f.read()
 
@@ -114,6 +123,7 @@ class GraphParser:
         return GraphDefinition(
             id=graph_id,
             name=graph_name,
+            category=category,
             nodes=nodes,
             edges=edges
         )

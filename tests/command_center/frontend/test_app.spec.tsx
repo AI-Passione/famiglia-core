@@ -13,8 +13,8 @@ vi.mock('@/modules/SituationRoom', () => ({
 vi.mock('@/modules/EngineRoom', () => ({
   EngineRoom: () => <div data-testid="engine-room-page">Engine Room</div>
 }));
-vi.mock('@/modules/SOP', () => ({
-  SOP: () => <div data-testid="sop-page">SOP Page</div>
+vi.mock('@/modules/Operations', () => ({
+  Operations: () => <div data-testid="operations-page">Operations Page</div>
 }));
 vi.mock('@/modules/Connections', () => ({
   Connections: () => <div data-testid="connections-page">Connections Page</div>
@@ -93,12 +93,12 @@ describe('App Component', () => {
       expect(screen.getByTestId('engine-room-page')).toBeDefined();
     });
     
-    // Find the SOP link in the Sidebar (assuming Sidebar uses these names)
-    const sopLink = screen.getByText('SOP');
-    fireEvent.click(sopLink);
+    // Find the Operations link in the Sidebar (assuming Sidebar uses these names)
+    const operationsLink = screen.getByText('Operations');
+    fireEvent.click(operationsLink);
     
     await waitFor(() => {
-      expect(screen.getByTestId('sop-page')).toBeDefined();
+      expect(screen.getByTestId('operations-page')).toBeDefined();
     });
 
     const connectionsLink = screen.getByText('Connections');

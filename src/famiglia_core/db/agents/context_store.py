@@ -232,6 +232,45 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to fetch recent messages: {e}")
             return []
 
+    def list_conversations(self, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    """
+                    SELECT 
+                        c.id, 
+                        c.conversation_key, 
+                        c.metadata, 
+                        c.updated_at,
+                        (SELECT m.content FROM agent_messages m 
+                         WHERE m.conversation_id = c.id 
+                         ORDER BY m.created_at DESC LIMIT 1) as latest_message,
+                        (SELECT m.agent_name FROM agent_messages m 
+                         WHERE m.conversation_id = c.id 
+                         ORDER BY m.created_at DESC LIMIT 1) as latest_agent
+                    FROM agent_conversations c
+                    ORDER BY c.updated_at DESC
+                    LIMIT %s OFFSET %s
+                    """,
+                    (max(1, limit), max(0, offset)),
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to list conversations: {e}")
+            return []
+
+    def get_total_conversation_count(self) -> int:
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return 0
+                cursor.execute("SELECT COUNT(*) FROM agent_conversations")
+                row = cursor.fetchone()
+                return int(row["count"]) if row else 0
+        except Exception as e:
+            print(f"[ContextStore] Failed to count conversations: {e}")
+            return 0
+
     def search_messages(
         self,
         agent_name: str,
@@ -488,6 +527,7 @@ class AgentContextStore:
         self,
         statuses: Optional[List[str]] = None,
         limit: int = 100,
+        offset: int = 0,
     ) -> List[Dict[str, Any]]:
         normalized_statuses = self._normalize_statuses(statuses)
         query = "SELECT * FROM task_instances"
@@ -496,17 +536,18 @@ class AgentContextStore:
             query += " WHERE status = ANY(%s)"
             params.append(normalized_statuses)
         query += """
-            ORDER BY
+            ORDER BY 
                 CASE priority
                     WHEN 'critical' THEN 0
                     WHEN 'high' THEN 1
                     WHEN 'medium' THEN 2
                     ELSE 3
                 END,
-                eta_pickup_at ASC
-            LIMIT %s
+                created_at DESC
+            LIMIT %s OFFSET %s
         """
         params.append(max(1, min(limit, 500)))
+        params.append(max(0, offset))
 
         try:
             with self.db_session(commit=False) as cursor:
@@ -516,6 +557,24 @@ class AgentContextStore:
         except Exception as e:
             print(f"[ContextStore] Failed to list task instances: {e}")
             return []
+
+    def get_total_task_count(self, statuses: Optional[List[str]] = None) -> int:
+        normalized_statuses = self._normalize_statuses(statuses)
+        query = "SELECT COUNT(*) FROM task_instances"
+        params = []
+        if normalized_statuses:
+            query += " WHERE status = ANY(%s)"
+            params.append(normalized_statuses)
+            
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return 0
+                cursor.execute(query, params)
+                row = cursor.fetchone()
+                return int(row["count"]) if row else 0
+        except Exception as e:
+            print(f"[ContextStore] Failed to count task instances: {e}")
+            return 0
 
     def claim_next_scheduled_task(self, eligible_agents: List[str]) -> Optional[Dict[str, Any]]:
         if not self.enabled or not eligible_agents:
@@ -678,15 +737,43 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to get agent interaction stats: {e}")
             return {}
 
-    def list_agent_actions(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def list_agent_actions(self, limit: int = 50, offset: int = 0, agent_name: Optional[str] = None) -> List[Dict[str, Any]]:
+        query = "SELECT * FROM agent_actions"
+        params = []
+        
+        if agent_name:
+            query += " WHERE LOWER(agent_name) = LOWER(%s)"
+            params.append(agent_name)
+            
+        query += " ORDER BY timestamp DESC LIMIT %s OFFSET %s"
+        params.extend([max(1, limit), max(0, offset)])
+        
         try:
             with self.db_session(commit=False) as cursor:
                 if cursor is None: return []
-                cursor.execute("SELECT * FROM agent_actions ORDER BY timestamp DESC LIMIT %s", (max(1, limit),))
+                cursor.execute(query, params)
                 return list(cursor.fetchall())
         except Exception as e:
             print(f"[ContextStore] Failed to list agent actions: {e}")
             return []
+
+    def get_total_agent_action_count(self, agent_name: Optional[str] = None) -> int:
+        query = "SELECT COUNT(*) FROM agent_actions"
+        params = []
+        
+        if agent_name:
+            query += " WHERE LOWER(agent_name) = LOWER(%s)"
+            params.append(agent_name)
+            
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return 0
+                cursor.execute(query, params)
+                row = cursor.fetchone()
+                return int(row["count"]) if row else 0
+        except Exception as e:
+            print(f"[ContextStore] Failed to count agent actions: {e}")
+            return 0
 
     def list_newsletters(self, limit: int = 20) -> List[Dict[str, Any]]:
         try:

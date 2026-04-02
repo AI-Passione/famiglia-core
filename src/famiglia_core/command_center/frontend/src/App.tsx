@@ -1,18 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type {
   Agent,
-  Action,
   Task,
   RecurringTask,
   GraphDefinition,
   AppSettings,
+  PaginatedTasks,
+  PaginatedActions,
+  ActionLog,
 } from './types';
 import { TopNav } from './modules/ui/TopNav';
 import { Sidebar } from './modules/ui/Sidebar';
 import { Agenda } from './modules/Agenda';
 import { SituationRoom } from './modules/SituationRoom';
 import { EngineRoom } from './modules/EngineRoom';
-import { SOP } from './modules/SOP';
+import { Operations } from './modules/Operations';
 import { Intelligences } from './modules/Intelligences';
 import { Connections } from './modules/Connections';
 import { Settings } from './modules/Settings';
@@ -48,7 +50,7 @@ function getInitialSettings(): AppSettings {
 
 function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [actions, setActions] = useState<Action[]>([]);
+  const [actions, setActions] = useState<ActionLog[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>([]);
   const [graphs, setGraphs] = useState<GraphDefinition[]>([]);
@@ -140,8 +142,14 @@ function App() {
         ]);
         
         if (agentsRes.ok) setAgents(await agentsRes.json());
-        if (actionsRes.ok) setActions(await actionsRes.json());
-        if (tasksRes.ok) setTasks(await tasksRes.json());
+        if (actionsRes.ok) {
+          const data = await actionsRes.json() as PaginatedActions;
+          setActions(data.actions);
+        }
+        if (tasksRes.ok) {
+          const data = await tasksRes.json() as PaginatedTasks;
+          setTasks(data.tasks);
+        }
         if (recurringTasksRes.ok) setRecurringTasks(await recurringTasksRes.json());
       } catch (err) {
         console.error("Failed to fetch data:", err);
@@ -198,11 +206,12 @@ function App() {
             {activeTab === 'engine_room' && (
               <EngineRoom />
             )}
-            {activeTab === 'sop' && (
-              <SOP 
+            {activeTab === 'operations' && (
+              <Operations 
                 graphs={graphs} 
                 selectedGraph={selectedGraph} 
                 setSelectedGraph={setSelectedGraph} 
+                initialTasks={tasks}
               />
             )}
             {activeTab === 'intelligences' && (
@@ -225,7 +234,7 @@ function App() {
               <Settings settings={settings} onSettingsChange={setSettings} />
             )}
             {/* Fallback for other tabs */}
-            {!['agenda', 'situation_room', 'engine_room', 'sop', 'famiglia', 'lounge', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
+            {!['agenda', 'situation_room', 'engine_room', 'operations', 'famiglia', 'lounge', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center py-40 opacity-40">
                 <span className="material-symbols-outlined text-6xl mb-4">construction</span>
                 <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>

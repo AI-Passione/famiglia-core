@@ -18,7 +18,6 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
     activeChatId, 
     setActiveChatId, 
     chats, 
-    setChats, 
     input, 
     setInput, 
     sendMessage,

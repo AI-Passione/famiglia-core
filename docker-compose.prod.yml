@@ -66,6 +66,11 @@ services:
       - MATTERMOST_BOT_TOKEN_SYSTEM=${MATTERMOST_BOT_TOKEN_SYSTEM}
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
@@ -87,7 +92,9 @@ services:
       - "80:80"
     depends_on:
       app:
-        condition: service_started
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine

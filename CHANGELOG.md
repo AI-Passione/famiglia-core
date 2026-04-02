@@ -1,4 +1,12 @@
-# [1.4.0](https://github.com/AI-Passione/famiglia-core/compare/v1.3.0...v1.4.0) (2026-04-01)
+# [1.5.0](https://github.com/AI-Passione/famiglia-core/compare/v1.4.0...v1.5.0) (2026-04-02)
+
+### Features
+
+* **SOP Hub 1.0**: Implement structural tier persistence with `workflow_categories` database support and a category-driven UI rendering architecture.
+* **Mission Command 2.0**: Overhaul the Operations dashboard into a tripartite command center featuring real-time Mission logs, Strategic Dialogue, and a Tool Action Ledger.
+* **Operational Stability**: Implement a comprehensive frontend test suite with Vitest and React Testing Library, utilizing `data-testid` targeting and global animation mocking for 100% CI reliability.
+* **Initialize Protocol**: Introduce a unified multi-action interaction menu for rapid SOP drafting and structural category expansion.
+
 
 
 ### Features

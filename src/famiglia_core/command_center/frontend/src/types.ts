@@ -264,6 +264,18 @@ export interface EngineRoomSnapshot {
   };
 }
 
+export interface Category {
+  id: number;
+  name: string;
+  display_name: string;
+  created_at: string;
+}
+
+export interface CategoryCreate {
+  name: string;
+  display_name: string;
+}
+
 export interface SOPNode {
   id?: number;
   workflow_id?: number;
@@ -277,7 +289,9 @@ export interface SOPWorkflow {
   name: string;
   display_name: string | null;
   description: string | null;
-  category: string;
+  category_id?: number;
+  category_name?: string;
+  category_display_name?: string;
   node_order: string[];
   nodes: SOPNode[];
   created_at: string;
@@ -288,6 +302,6 @@ export interface SOPWorkflowCreate {
   name: string;
   display_name: string | null;
   description: string | null;
-  category: string;
+  category_id?: number;
   nodes: Omit<SOPNode, 'id' | 'workflow_id'>[];
 }

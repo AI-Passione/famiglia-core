@@ -9,6 +9,17 @@ router = APIRouter(prefix="/sop", tags=["SOP"])
 
 # --- Models ---
 
+class CategoryBase(BaseModel):
+    name: str
+    display_name: str
+
+class CategoryCreate(CategoryBase):
+    pass
+
+class Category(CategoryBase):
+    id: int
+    created_at: datetime
+
 class SOPNodeBase(BaseModel):
     node_name: str
     description: Optional[str] = None
@@ -22,7 +33,7 @@ class SOPWorkflowBase(BaseModel):
     name: str
     display_name: Optional[str] = None
     description: Optional[str] = None
-    category: str = "General"
+    category_id: Optional[int] = None
 
 class SOPWorkflowCreate(SOPWorkflowBase):
     nodes: List[SOPNodeBase] = []
@@ -31,6 +42,8 @@ class SOPWorkflow(SOPWorkflowBase):
     id: int
     node_order: List[str] = []
     nodes: List[SOPNode] = []
+    category_name: Optional[str] = None
+    category_display_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -38,12 +51,30 @@ class ExecutionResponse(BaseModel):
     task_id: int
     message: str
 
-# --- Routes ---
+# --- Category Routes ---
+
+@router.get("/categories", response_model=List[Category])
+async def list_categories():
+    """List all SOP workflow categories."""
+    return context_store.list_workflow_categories()
+
+@router.post("/categories", response_model=Category)
+async def create_category(payload: CategoryCreate):
+    """Create a new SOP workflow category."""
+    category = context_store.create_workflow_category(
+        name=payload.name,
+        display_name=payload.display_name
+    )
+    if not category:
+        raise HTTPException(status_code=500, detail="Failed to create category")
+    return category
+
+# --- Workflow Routes ---
 
 @router.get("/workflows", response_model=List[SOPWorkflow])
-async def list_workflows(category: Optional[str] = None):
+async def list_workflows(category_id: Optional[int] = None):
     """List all SOP workflows, optionally filtered by category."""
-    workflows_data = context_store.list_sop_workflows(category=category)
+    workflows_data = context_store.list_sop_workflows(category_id=category_id)
     result = []
     for wf in workflows_data:
         # Fetch nodes for each workflow to satisfy the response model
@@ -67,7 +98,7 @@ async def create_workflow(payload: SOPWorkflowCreate):
         name=payload.name,
         display_name=payload.display_name,
         description=payload.description,
-        category=payload.category
+        category_id=payload.category_id
     )
     if not workflow:
         raise HTTPException(status_code=500, detail="Failed to create SOP workflow")
@@ -86,7 +117,7 @@ async def update_workflow(workflow_id: int, payload: SOPWorkflowCreate):
         name=payload.name,
         display_name=payload.display_name,
         description=payload.description,
-        category=payload.category
+        category_id=payload.category_id
     )
     
     # Even if metadata didn't change, we might want to sync nodes
@@ -114,13 +145,12 @@ async def execute_sop(workflow_id: int):
         raise HTTPException(status_code=404, detail="SOP Workflow not found")
     
     # Create a task instance to trigger the workflow
-    # In a real scenario, this would be picked up by an orchestration agent
     task = context_store.create_scheduled_task(
         title=f"SOP Execution: {workflow['name']}",
-        task_payload=f"Executing Standard Operating Procedure: {workflow['name']}. Category: {workflow['category']}",
+        task_payload=f"Executing Standard Operating Procedure: {workflow['name']}. Category: {workflow.get('category_display_name', 'General')}",
         priority="high",
         created_by_type="human_user",
-        created_by_name="Don", # Defaulting to Don
+        created_by_name="Don", 
         metadata={
             "workflow_id": workflow_id,
             "task_type": "sop_execution",

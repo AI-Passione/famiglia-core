@@ -50,3 +50,41 @@ Object.defineProperty(window, 'localStorage', {
     clear: () => localStorageStore.clear(),
   },
 });
+
+// Mock Framer Motion to disable animations during tests
+vi.mock('framer-motion', async () => {
+  const React = await import('react');
+  const actual = await vi.importActual('framer-motion') as any;
+  
+  const mockComponent = (tag: string) => {
+    return React.forwardRef(({ children, ...props }: any, ref: any) => {
+      // Filter out motion-specific props
+      const filteredProps = { ...props };
+      const motionProps = ['initial', 'animate', 'exit', 'transition', 'variants', 'whileHover', 'whileTap', 'whileDrag', 'whileFocus', 'whileInView', 'onAnimationStart', 'onAnimationComplete', 'onUpdate', 'onPan', 'onPanStart', 'onPanEnd', 'onTap', 'onTapStart', 'onTapCancel'];
+      motionProps.forEach(p => delete filteredProps[p]);
+      
+      return React.createElement(tag, { ...filteredProps, ref }, children);
+    });
+  };
+
+  return {
+    ...actual,
+    motion: {
+      div: mockComponent('div'),
+      span: mockComponent('span'),
+      button: mockComponent('button'),
+      h1: mockComponent('h1'),
+      h2: mockComponent('h2'),
+      h3: mockComponent('h3'),
+      h4: mockComponent('h4'),
+      p: mockComponent('p'),
+      section: mockComponent('section'),
+      ul: mockComponent('ul'),
+      li: mockComponent('li'),
+      nav: mockComponent('nav'),
+      svg: mockComponent('svg'),
+      path: mockComponent('path'),
+    },
+    AnimatePresence: ({ children }: any) => React.createElement(React.Fragment, null, children),
+  };
+});

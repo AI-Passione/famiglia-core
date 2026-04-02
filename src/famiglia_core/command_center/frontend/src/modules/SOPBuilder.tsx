@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import type { SOPWorkflow, SOPNode } from '../types';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { SOPWorkflow, SOPNode, Category } from '../types';
 import { API_BASE } from '../config';
 
 interface SOPBuilderProps {
@@ -10,68 +10,68 @@ interface SOPBuilderProps {
   initialAddCategory?: boolean;
 }
 
-export function SOPBuilder({ workflow, onClose, onSave, initialAddCategory }: SOPBuilderProps) {
+export function SOPBuilder({ workflow, onClose, onSave }: SOPBuilderProps) {
   const [displayName, setDisplayName] = useState(workflow?.display_name || '');
   const [name, setName] = useState(workflow?.name || '');
   const [description, setDescription] = useState(workflow?.description || '');
-  const [category, setCategory] = useState(workflow?.category || 'General');
+  const [categoryId, setCategoryId] = useState<number | undefined>(workflow?.category_id);
   const [nodes, setNodes] = useState<Partial<SOPNode>[]>(workflow?.nodes || []);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isManualId, setIsManualId] = useState(!!workflow?.name);
-  const [isAddingNewCategory, setIsAddingNewCategory] = useState(initialAddCategory || false);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/sop/categories`);
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+        if (!categoryId && data.length > 0) {
+          setCategoryId(data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  }, [categoryId]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const handleDisplayNameChange = (val: string) => {
     setDisplayName(val);
     if (!isManualId) {
-      // Auto-generate internal ID (uppercase snake_case)
-      const slug = val.trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
-      setName(slug);
+      setName(val.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''));
     }
   };
 
-  const handleNameChange = (val: string) => {
-    setName(val.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, ''));
-    setIsManualId(true);
-  };
-
-  const categories = [
-    { label: "General", value: "General" },
-    { label: "Market Research", value: "market_research" },
-    { label: "Product Development", value: "product_development" },
-    { label: "Analytics", value: "analytics" },
-    { label: "Executive", value: "Executive" }
-  ];
-
   const handleAddNode = () => {
-    setNodes(prev => [...prev, { node_name: '', description: '', node_type: 'task' }]);
+    setNodes([...nodes, { node_name: '', description: '', node_type: 'task' }]);
   };
 
   const handleRemoveNode = (idx: number) => {
-    setNodes(prev => prev.filter((_, i) => i !== idx));
+    setNodes(nodes.filter((_, i) => i !== idx));
   };
 
   const handleNodeChange = (idx: number, field: keyof SOPNode, value: string) => {
-    setNodes(prev => {
-      const next = [...prev];
-      next[idx] = { ...next[idx], [field]: value };
-      return next;
-    });
+    const newNodes = [...nodes];
+    newNodes[idx] = { ...newNodes[idx], [field]: value };
+    setNodes(newNodes);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || nodes.length === 0) return;
-
     setIsSaving(true);
     try {
       const payload = {
-        name: name || displayName.toUpperCase().replace(/\s+/g, '_'),
+        name,
         display_name: displayName,
         description,
-        category,
+        category_id: categoryId,
         nodes: nodes.map(n => ({
-          node_name: n.node_name || 'Unnamed Node',
-          description: n.description || '',
+          node_name: n.node_name,
+          description: n.description,
           node_type: n.node_type || 'task'
         }))
       };
@@ -80,8 +80,10 @@ export function SOPBuilder({ workflow, onClose, onSave, initialAddCategory }: SO
         ? `${API_BASE}/sop/workflows/${workflow.id}`
         : `${API_BASE}/sop/workflows`;
       
+      const method = workflow ? 'PUT' : 'POST';
+
       const res = await fetch(url, {
-        method: workflow ? 'PUT' : 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -102,224 +104,185 @@ export function SOPBuilder({ workflow, onClose, onSave, initialAddCategory }: SO
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md"
+      className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md p-8 overflow-y-auto custom-scrollbar"
     >
-      <motion.div
-        initial={{ scale: 0.95, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.95, y: 20 }}
-        className="w-full max-w-4xl max-h-[90vh] glass-module border border-outline-variant/20 overflow-hidden flex flex-col shadow-2xl"
-      >
-        <div className="p-8 border-b border-outline-variant/10 flex justify-between items-start bg-surface-container-high/30">
+      <div className="max-w-5xl mx-auto space-y-12 pb-24">
+        {/* Header */}
+        <div className="flex justify-between items-start pt-12">
           <div>
-            <h3 className="font-headline text-3xl text-primary">
-              {workflow ? 'Modify SOP Architecture' : 'Initialize SOP Architecture'}
-            </h3>
-            <p className="font-label text-[10px] text-tertiary uppercase tracking-[0.2em] mt-2 opacity-70">
-              Defining New Structural Logic // {workflow ? `0xUPDATE-${workflow.id}` : '0xNEW_PROTOCOL'}
+            <h2 className="font-headline text-4xl text-primary">SOP Architect</h2>
+            <p className="font-label text-xs text-tertiary uppercase tracking-[0.4em] mt-2 opacity-60">
+              Structural Intelligence Protocol Initialization // 0xBUILD
             </p>
           </div>
           <button 
             onClick={onClose}
-            className="p-2 text-outline hover:text-on-surface transition-colors"
+            className="text-outline hover:text-on-surface transition-colors"
           >
-            <span className="material-symbols-outlined">close</span>
+            <span className="material-symbols-outlined text-4xl">close</span>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-10">
-          {/* Metadata Section */}
-          <div className="grid grid-cols-12 gap-8">
-            <div className="col-span-8 space-y-6">
-              <div className="space-y-2">
-                <label className="font-label text-[10px] text-outline uppercase tracking-widest pl-1">Protocol Display Name</label>
-                <input
-                  type="text"
-                  required
-                  value={displayName}
-                  onChange={e => handleDisplayNameChange(e.target.value)}
-                  placeholder="E.g. Daily Market Summary Alpha"
-                  className="w-full bg-surface-container-highest/30 border border-outline-variant/10 px-4 py-3 font-headline text-lg text-on-surface focus:outline-none focus:border-primary/40 focus:bg-surface-container-highest/50 transition-all font-semibold"
-                />
-              </div>
-              
-              <div className="space-y-2 opacity-80">
-                <div className="flex justify-between items-center pr-1">
-                  <label className="font-label text-[8px] text-outline uppercase tracking-widest pl-1">Internal Reference ID</label>
-                  {isManualId && (
-                    <button 
-                      type="button" 
-                      onClick={() => setIsManualId(false)}
-                      className="text-[8px] text-primary uppercase tracking-tighter hover:underline"
-                    >
-                      Reset to Auto
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={e => handleNameChange(e.target.value)}
-                  placeholder="MARKET_SUMMARY_ALPHA"
-                  className="w-full bg-surface-container-highest/20 border border-outline-variant/10 px-4 py-2 font-mono text-[10px] text-tertiary focus:outline-none focus:border-primary/30 transition-all"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="font-label text-[10px] text-outline uppercase tracking-widest pl-1">Functional Narrative</label>
-                <textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Describe the autonomous intent of this protocol..."
-                  rows={2}
-                  className="w-full bg-surface-container-highest/30 border border-outline-variant/10 px-4 py-3 font-body text-sm text-[#a38b88] focus:outline-none focus:border-primary/40 focus:bg-surface-container-highest/50 transition-all resize-none"
-                />
-              </div>
-            </div>
-            <div className="col-span-4 space-y-6">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center pr-1">
-                  <label className="font-label text-[10px] text-outline uppercase tracking-widest pl-1">SOP Classification</label>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingNewCategory(!isAddingNewCategory)}
-                    className="text-[8px] text-primary uppercase tracking-tighter hover:underline"
-                  >
-                    {isAddingNewCategory ? 'Select Existing' : '+ New Category'}
-                  </button>
-                </div>
-                {isAddingNewCategory ? (
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      autoFocus
-                      required
-                      value={category}
-                      onChange={e => setCategory(e.target.value)}
-                      placeholder="E.g. Strategy"
-                      className="w-full bg-surface-container-highest border border-primary/30 px-4 py-[11px] font-label text-[10px] uppercase tracking-widest text-on-surface focus:outline-none focus:border-primary/60 transition-all shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]"
-                    />
-                  </div>
-                ) : (
+        <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-12">
+          {/* Metadata Sidebar */}
+          <div className="col-span-12 lg:col-span-4 space-y-10">
+            <section className="glass-module border border-outline-variant/10 p-8 space-y-8">
+              <div className="space-y-4">
+                <label className="font-label text-[10px] text-outline uppercase tracking-widest block">Protocol Category</label>
+                <div className="relative group">
                   <select
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                    className="w-full bg-surface-container-highest border border-outline-variant/10 px-4 py-[13px] font-label text-[10px] uppercase tracking-widest text-on-surface focus:outline-none focus:border-primary/40 appearance-none cursor-pointer"
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(Number(e.target.value))}
+                    className="w-full bg-surface-container-highest border border-outline-variant/20 px-4 py-3 font-body text-sm text-on-surface focus:outline-none focus:border-primary/50 transition-all appearance-none pr-10"
                   >
                     {categories.map(cat => (
-                      <option key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </option>
+                      <option key={cat.id} value={cat.id}>{cat.display_name}</option>
                     ))}
-                    {!categories.some(c => c.value === category) && category && (
-                      <option value={category}>{category.replace(/_/g, ' ')}</option>
-                    )}
                   </select>
-                )}
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-lg">expand_more</span>
+                </div>
               </div>
-            </div>
+
+              <div className="space-y-4">
+                <label className="font-label text-[10px] text-outline uppercase tracking-widest block">Display Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="E.g. PRD Review Strategy"
+                  value={displayName}
+                  onChange={e => handleDisplayNameChange(e.target.value)}
+                  className="w-full bg-surface-container-highest border border-outline-variant/20 px-4 py-3 font-headline text-lg text-on-surface focus:outline-none focus:border-primary/50 transition-all"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="font-label text-[10px] text-outline uppercase tracking-widest block">Technical Slug</label>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsManualId(!isManualId)}
+                    className="font-mono text-[8px] text-primary uppercase tracking-widest hover:underline"
+                  >
+                    {isManualId ? 'Unlock Auto' : 'Manual Edit'}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  disabled={!isManualId}
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="w-full bg-black/20 border border-outline-variant/10 px-4 py-2 font-mono text-xs text-secondary focus:outline-none focus:border-secondary/50 disabled:opacity-50 transition-all"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <label className="font-label text-[10px] text-outline uppercase tracking-widest block">Description</label>
+                <textarea
+                  rows={4}
+                  placeholder="Define the strategic objective of this SOP..."
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  className="w-full bg-surface-container-highest border border-outline-variant/20 px-4 py-3 font-body text-sm text-on-surface focus:outline-none focus:border-primary/50 transition-all resize-none"
+                />
+              </div>
+            </section>
           </div>
 
-          {/* Node Builder Section */}
-          <div className="space-y-6">
-            <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
-              <h4 className="font-headline text-xl text-[#ffb3b5]">Logic Sequence Builder</h4>
+          {/* Logic Node Area */}
+          <div className="col-span-12 lg:col-span-8 space-y-10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span className="material-symbols-outlined text-primary text-xl">account_tree</span>
+                <h4 className="font-label text-sm uppercase tracking-[0.3em] text-on-surface">Execution Sequence</h4>
+              </div>
               <button
                 type="button"
                 onClick={handleAddNode}
-                className="bg-tertiary/10 text-tertiary border border-tertiary/20 px-4 py-1.5 font-label text-[9px] uppercase tracking-widest hover:bg-tertiary/20 transition-all flex items-center space-x-2"
+                className="bg-primary/10 text-primary border border-primary/20 px-6 py-2 font-label text-[10px] uppercase tracking-widest hover:bg-primary/20 transition-all flex items-center space-x-2"
               >
-                <span className="material-symbols-outlined text-xs">add_circle</span>
-                <span>Inject Node</span>
+                <span className="material-symbols-outlined text-sm">add</span>
+                <span>Insert Node</span>
               </button>
             </div>
 
             <div className="space-y-4">
-              {nodes.map((node, idx) => (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  key={idx}
-                  className="bg-surface-container-high/30 border border-outline-variant/10 p-5 flex items-start space-x-6 group relative"
-                >
-                  <div className="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant/20 flex items-center justify-center font-mono text-[10px] text-tertiary mt-2">
-                    {idx + 1}
-                  </div>
-                  <div className="flex-1 grid grid-cols-12 gap-4">
-                    <div className="col-span-4 space-y-1">
-                      <label className="font-label text-[8px] text-outline uppercase tracking-tighter">Node ID</label>
-                      <input
-                        type="text"
-                        value={node.node_name}
-                        onChange={e => handleNodeChange(idx, 'node_name', e.target.value)}
-                        placeholder="FETCH_ASSETS"
-                        className="w-full bg-surface-container-highest/50 border border-outline-variant/10 px-3 py-2 font-mono text-[10px] text-on-surface focus:outline-none focus:border-primary/30"
-                      />
-                    </div>
-                    <div className="col-span-6 space-y-1">
-                      <label className="font-label text-[8px] text-outline uppercase tracking-tighter">Instruction Detail</label>
-                      <input
-                        type="text"
-                        value={node.description || ''}
-                        onChange={e => handleNodeChange(idx, 'description', e.target.value)}
-                        placeholder="Retrieve latest market data from..."
-                        className="w-full bg-surface-container-highest/50 border border-outline-variant/10 px-3 py-2 font-body text-[10px] text-[#a38b88] focus:outline-none focus:border-primary/30"
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <label className="font-label text-[8px] text-outline uppercase tracking-tighter">Type</label>
-                      <select
-                        value={node.node_type}
-                        onChange={e => handleNodeChange(idx, 'node_type', e.target.value)}
-                        className="w-full bg-surface-container-highest/50 border border-outline-variant/10 px-2 py-2 font-label text-[9px] uppercase tracking-tighter text-on-surface focus:outline-none focus:border-primary/30"
-                      >
-                        <option value="task">TASK</option>
-                        <option value="conditional">FORK</option>
-                        <option value="entry">START</option>
-                        <option value="end">END</option>
-                      </select>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveNode(idx)}
-                    className="p-1.5 text-outline hover:text-error transition-colors mt-6 opacity-0 group-hover:opacity-100"
+              <AnimatePresence>
+                {nodes.map((node, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="glass-module border border-outline-variant/10 p-6 space-y-4 relative group"
                   >
-                    <span className="material-symbols-outlined text-[18px]">delete_sweep</span>
-                  </button>
-                </motion.div>
-              ))}
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center space-x-4">
+                        <span className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-mono text-[10px] text-primary">
+                          {idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Node Designation"
+                          value={node.node_name}
+                          onChange={e => handleNodeChange(idx, 'node_name', e.target.value)}
+                          className="bg-transparent border-b border-outline-variant/20 focus:border-primary/50 focus:outline-none font-headline text-lg text-on-surface transition-all w-64"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveNode(idx)}
+                        className="text-outline opacity-0 group-hover:opacity-100 hover:text-error transition-all"
+                      >
+                        <span className="material-symbols-outlined">delete</span>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-12 gap-6">
+                      <div className="col-span-9">
+                        <input
+                          type="text"
+                          placeholder="Instructional metadata..."
+                          value={node.description || ''}
+                          onChange={e => handleNodeChange(idx, 'description', e.target.value)}
+                          className="w-full bg-black/10 border border-outline-variant/10 px-4 py-2 font-body text-xs text-outline focus:outline-none focus:border-primary/30 transition-all"
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <select
+                          value={node.node_type}
+                          onChange={e => handleNodeChange(idx, 'node_type', e.target.value)}
+                          className="w-full bg-black/10 border border-outline-variant/10 px-3 py-2 font-mono text-[10px] uppercase text-tertiary focus:outline-none"
+                        >
+                          <option value="task">Autonomous Task</option>
+                          <option value="condition">Logical Pivot</option>
+                          <option value="human">Manual Override</option>
+                        </select>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
 
               {nodes.length === 0 && (
-                <div className="text-center py-12 bg-surface-container-highest/10 border border-dashed border-outline-variant/10">
-                  <p className="font-label text-[10px] text-outline uppercase tracking-widest italic">Sequence Empty. Waiting for logic injection.</p>
+                <div className="py-20 text-center border border-dashed border-outline-variant/20 opacity-40">
+                  <p className="font-label text-[10px] uppercase tracking-widest">No Logic Nodes Defined</p>
                 </div>
               )}
             </div>
+
+            <div className="flex justify-end pt-8">
+              <button
+                type="submit"
+                disabled={isSaving || nodes.length === 0}
+                className="bg-primary text-black px-12 py-4 font-bold text-xs uppercase tracking-[0.4em] disabled:opacity-30 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 transition-all shadow-glow"
+              >
+                {isSaving ? 'Establishing Protocol...' : (workflow ? 'Synchronize Protocol' : 'Initialize Protocol')}
+              </button>
+            </div>
           </div>
         </form>
-
-        <div className="p-8 border-t border-outline-variant/10 bg-surface-container-high/30 flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-8 py-2.5 font-label text-[10px] uppercase tracking-widest text-outline hover:text-on-surface transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={isSaving || !name || nodes.length === 0}
-            className="bg-primary text-black px-12 py-2.5 font-bold text-[11px] uppercase tracking-[0.3em] disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 transition-all shadow-xl"
-          >
-            {isSaving ? 'ARCHIVING...' : 'COMMIT ARCHITECTURE'}
-          </button>
-        </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

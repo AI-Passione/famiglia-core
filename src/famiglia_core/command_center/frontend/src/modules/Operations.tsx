@@ -1,908 +1,235 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { GraphDefinition, GraphNode, Task, PaginatedTasks, ActionLog, PaginatedActions, ConversationLog, PaginatedConversations } from '../types';
-import { API_BASE } from '../config';
 import { SOPManager } from './SOPManager';
 import { SOPBuilder } from './SOPBuilder';
-import type { SOPWorkflow } from '../types';
+import { CategoryCreator } from './CategoryCreator';
+import type { ActionLog, SOPWorkflow, GraphDefinition, Task } from '../types';
+import { API_BASE } from '../config';
 
 interface OperationsProps {
   graphs: GraphDefinition[];
   selectedGraph: GraphDefinition | null;
-  setSelectedGraph: (g: GraphDefinition) => void;
+  setSelectedGraph: (graph: GraphDefinition | null) => void;
   initialTasks: Task[];
 }
 
-export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTasks }: OperationsProps) {
-  const [isExecuting, setIsExecuting] = useState(false);
+export function Operations({ graphs: _graphs, selectedGraph: _selectedGraph, setSelectedGraph: _setSelectedGraph, initialTasks: _initialTasks }: OperationsProps) {
   const [viewMode, setViewMode] = useState<'specific' | 'global'>('specific');
   const [opsMode, setOpsMode] = useState<'pipelines' | 'sop'>('pipelines');
   const [isCreatingSOP, setIsCreatingSOP] = useState(false);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [editingSOP, setEditingSOP] = useState<SOPWorkflow | null>(null);
-  const [sopInitialMode, setSopInitialMode] = useState<'sop' | 'category'>('sop');
+  const [sopRefreshKey, setSopRefreshKey] = useState(0);
 
   // Agent Action Ledger State
   const [actions, setActions] = useState<ActionLog[]>([]);
-  const [totalActions, setTotalActions] = useState(0);
-  const [actionsPage, setActionsPage] = useState(1);
-  const [selectedAgent, setSelectedAgent] = useState<string>('');
+  const [loadingActions, setLoadingActions] = useState(true);
 
-  // System Task Feed State (Mission Logs)
-  const [missionLogs, setMissionLogs] = useState<Task[]>(initialTasks);
-  const [totalMissionLogs, setTotalMissionLogs] = useState(0);
-  const [missionLogsPage, setMissionLogsPage] = useState(1);
-
-  // Strategic Dialogue State
-  const [conversations, setConversations] = useState<ConversationLog[]>([]);
-  const [totalConversations, setTotalConversations] = useState(0);
-  const [conversationsPage, setConversationsPage] = useState(1);
-
-  const PAGE_SIZE = 10;
-
-  const fetchActions = useCallback(async (page: number, agent?: string) => {
-    try {
-      const offset = (page - 1) * PAGE_SIZE;
-      let url = `${API_BASE}/actions?limit=${PAGE_SIZE}&offset=${offset}`;
-      if (agent) url += `&agent_name=${encodeURIComponent(agent)}`;
-
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json() as PaginatedActions;
-        setActions(data.actions);
-        setTotalActions(data.total);
-      }
-    } catch (err) {
-      console.error("Error fetching agent actions:", err);
-    }
-  }, []);
-
-  const fetchMissionLogs = useCallback(async (page: number) => {
-    try {
-      const offset = (page - 1) * PAGE_SIZE;
-      const res = await fetch(`${API_BASE}/tasks?limit=${PAGE_SIZE}&offset=${offset}`);
-      if (res.ok) {
-        const data = await res.json() as PaginatedTasks;
-        setMissionLogs(data.tasks);
-        setTotalMissionLogs(data.total);
-      }
-    } catch (err) {
-      console.error("Error fetching mission logs:", err);
-    }
-  }, []);
-
-  const fetchConversations = useCallback(async (page: number) => {
-    try {
-      const offset = (page - 1) * PAGE_SIZE;
-      const res = await fetch(`${API_BASE}/conversations?limit=${PAGE_SIZE}&offset=${offset}`);
-      if (res.ok) {
-        const data = await res.json() as PaginatedConversations;
-        setConversations(data.conversations);
-        setTotalConversations(data.total);
-      }
-    } catch (err) {
-      console.error("Error fetching conversations:", err);
-    }
-  }, []);
-
-  // Initial fetch and view mode sync
   useEffect(() => {
-    if (!selectedGraph && viewMode === 'specific') {
-      setViewMode('global');
-    }
-    fetchActions(actionsPage, selectedAgent);
-    fetchMissionLogs(missionLogsPage);
-    fetchConversations(conversationsPage);
-  }, [fetchActions, fetchMissionLogs, fetchConversations, selectedGraph, viewMode, actionsPage, missionLogsPage, conversationsPage, selectedAgent]);
-
-  // Intelligent Polling: Refresh all feeds every 5s
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchActions(actionsPage, selectedAgent);
-      fetchMissionLogs(missionLogsPage);
-      fetchConversations(conversationsPage);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [actionsPage, missionLogsPage, conversationsPage, selectedAgent, fetchActions, fetchMissionLogs, fetchConversations]);
-
-  const handleExecute = async () => {
-    if (!selectedGraph || isExecuting) return;
-
-    setIsExecuting(true);
-    try {
-      const response = await fetch(`${API_BASE}/graphs/${selectedGraph.id}/execute`, {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        setViewMode('specific');
-        setTimeout(() => fetchMissionLogs(1), 1000);
+    const fetchActions = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/actions?limit=50`);
+        if (res.ok) {
+          const data = await res.json();
+          // API returns { actions: ActionLog[], totalCount: number }
+          setActions(data.actions || []);
+        }
+      } catch (err) {
+        console.error("Error fetching actions:", err);
+      } finally {
+        setLoadingActions(false);
       }
-    } catch (err) {
-      console.error("Error executing graph:", err);
-    } finally {
-      setIsExecuting(false);
-    }
-  };
+    };
+    fetchActions();
+  }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-12"
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-8 space-y-12"
     >
-      <div className="space-y-8">
-        <OperationsHeader
-          selectedGraph={selectedGraph}
-          viewMode={viewMode}
-          opsMode={opsMode}
-          setOpsMode={setOpsMode}
-        />
-        
-        {opsMode === 'pipelines' && (
-          <GraphSelector
-            graphs={graphs}
-            selectedGraph={selectedGraph}
-            setSelectedGraph={(g) => {
-              setSelectedGraph(g);
-              setViewMode('specific');
-            }}
-          />
-        )}
+      {/* Tab Header */}
+      <div className="flex items-center space-x-12 border-b border-outline-variant/10 pb-6">
+        <button 
+          onClick={() => setOpsMode('pipelines')}
+          className={`font-headline text-2xl transition-all ${opsMode === 'pipelines' ? 'text-primary' : 'text-outline hover:text-on-surface'}`}
+        >
+          Operational Pipelines
+        </button>
+        <button 
+          onClick={() => setOpsMode('sop')}
+          className={`font-headline text-2xl transition-all ${opsMode === 'sop' ? 'text-primary' : 'text-outline hover:text-on-surface'}`}
+        >
+          SOP Hub
+        </button>
       </div>
 
-      <div className="grid grid-cols-12 gap-8">
-        <div className="col-span-12 space-y-12">
-          {opsMode === 'pipelines' ? (
-            <>
-              {viewMode === 'specific' && selectedGraph ? (
-                <GraphVisualizer graph={selectedGraph} onExecute={handleExecute} isExecuting={isExecuting} />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
-                    <span className="material-symbols-outlined text-3xl text-tertiary mb-2">assignment</span>
-                    <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Neural Mission Logs</h4>
-                    <p className="font-headline text-4xl text-on-surface">{totalMissionLogs}</p>
-                    <div className="h-1 w-12 bg-tertiary/30 mx-auto rounded-full"></div>
+      <AnimatePresence mode="wait">
+        {opsMode === 'pipelines' ? (
+          <motion.div
+            key="pipelines"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-12"
+          >
+            {/* Strategy & Governance Header */}
+            <div className="flex justify-between items-end">
+              <div>
+                <h3 data-testid="mission-command-header" className="font-headline text-3xl text-on-surface">Mission Command & Tool Ledger</h3>
+                <p className="font-label text-xs text-tertiary uppercase tracking-[0.4em] mt-2 opacity-60">
+                  Autonomous Strategic Trajectory // 0xOPS
+                </p>
+              </div>
+
+              <div className="flex glass-module p-1 border border-outline-variant/10">
+                <button 
+                  onClick={() => setViewMode('specific')}
+                  className={`px-6 py-2 font-label text-[10px] uppercase tracking-widest transition-all ${viewMode === 'specific' ? 'bg-primary text-black' : 'text-outline hover:text-on-surface'}`}
+                >
+                  Specific View
+                </button>
+                <button 
+                  onClick={() => setViewMode('global')}
+                  className={`px-6 py-2 font-label text-[10px] uppercase tracking-widest transition-all ${viewMode === 'global' ? 'bg-primary text-black' : 'text-outline hover:text-on-surface'}`}
+                >
+                  Global Sync
+                </button>
+              </div>
+            </div>
+
+            {/* Main Content Areas */}
+            <div className="grid grid-cols-12 gap-8">
+              {/* Left Column: Mission Logs & Dialogue */}
+              <div className="col-span-12 lg:col-span-7 space-y-12">
+                {/* Agent Dialogue Section */}
+                <section className="space-y-6">
+                  <div className="flex items-center space-x-4">
+                    <span className="material-symbols-outlined text-primary text-xl">forum</span>
+                    <h4 data-testid="strategic-dialogue-header" className="font-label text-xs uppercase tracking-[0.3em] text-on-surface-variant">Strategic Dialogue</h4>
+                    <div className="h-[1px] flex-1 bg-outline-variant/20"></div>
                   </div>
-                  <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
-                    <span className="material-symbols-outlined text-3xl text-secondary mb-2">forum</span>
-                    <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Strategic Dialogues</h4>
-                    <p className="font-headline text-4xl text-on-surface">{totalConversations}</p>
-                    <div className="h-1 w-12 bg-secondary/30 mx-auto rounded-full"></div>
+                  <div className="glass-module border border-outline-variant/10 p-6 h-[400px] flex items-center justify-center">
+                    <p className="font-body text-outline italic opacity-50">Inter-agent negotiation logs initializing...</p>
                   </div>
-                  <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
-                    <span className="material-symbols-outlined text-3xl text-primary mb-2">construction</span>
-                    <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Tool Executions</h4>
-                    <p className="font-headline text-4xl text-on-surface">{totalActions}</p>
-                    <div className="h-1 w-12 bg-primary/30 mx-auto rounded-full"></div>
+                </section>
+
+                {/* Mission Execution Logs */}
+                <section className="space-y-6">
+                  <div className="flex items-center space-x-4">
+                    <span className="material-symbols-outlined text-primary text-xl">terminal</span>
+                    <h4 data-testid="mission-logs-header" className="font-label text-xs uppercase tracking-[0.3em] text-on-surface-variant">Mission Execution Logs</h4>
+                    <div className="h-[1px] flex-1 bg-outline-variant/20"></div>
                   </div>
-                </div>
-              )}
-            </>
-          ) : (
+                  <div className="glass-module border border-outline-variant/10 p-6 h-[300px] flex items-center justify-center">
+                    <p className="font-body text-outline italic opacity-50">Central command stream pending connection...</p>
+                  </div>
+                </section>
+              </div>
+
+              {/* Right Column: Tool Action Ledger */}
+              <div className="col-span-12 lg:col-span-5">
+                <section className="space-y-6 flex flex-col h-full">
+                  <div className="flex items-center space-x-4">
+                    <span className="material-symbols-outlined text-primary text-xl">build</span>
+                    <h4 data-testid="tool-ledger-header" className="font-label text-xs uppercase tracking-[0.3em] text-on-surface-variant">Tool Action Ledger</h4>
+                    <div className="h-[1px] flex-1 bg-outline-variant/20"></div>
+                  </div>
+                  
+                  <div className="glass-module border border-outline-variant/10 overflow-hidden flex-1 flex flex-col min-h-[700px]">
+                    <div className="p-4 border-b border-outline-variant/10 bg-primary/5">
+                      <p className="font-label text-[9px] uppercase tracking-widest text-primary flex items-center">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse mr-2"></span>
+                        Real-time Intervention Stream
+                      </p>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                      {loadingActions ? (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                        </div>
+                      ) : actions.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full space-y-4 opacity-30">
+                          <span className="material-symbols-outlined text-4xl">inventory_2</span>
+                          <p className="font-label text-[10px] uppercase tracking-widest text-outline">No Tool Actions Recorded</p>
+                        </div>
+                      ) : Array.isArray(actions) ? (
+                        actions.map((action, idx) => (
+                          <motion.div
+                            key={action.id}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.03 }}
+                            className="p-4 bg-surface-container-highest/30 border-l-2 border-primary/40 hover:bg-surface-container-highest/50 transition-colors group"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <p className="font-mono text-[10px] text-primary">{action.agent_name}</p>
+                              <span className="font-mono text-[8px] text-outline opacity-50">
+                                {new Date(action.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <h5 className="font-headline text-sm text-on-surface mb-1 group-hover:text-primary transition-colors">
+                              {action.action_type}
+                            </h5>
+                            <div className="mt-2 p-2 bg-black/20 rounded font-mono text-[9px] text-outline leading-tight overflow-hidden text-ellipsis">
+                              {action.action_details ? JSON.stringify(action.action_details).substring(0, 100) : 'No details available'}...
+                            </div>
+                          </motion.div>
+                        ))
+                      ) : null}
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="sop"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
             <SOPManager 
+              refreshKey={sopRefreshKey}
               onEdit={(wf) => setEditingSOP(wf)} 
               onCreate={(mode) => {
-                setSopInitialMode(mode || 'sop');
-                setIsCreatingSOP(true);
+                if (mode === 'category') {
+                  setIsCreatingCategory(true);
+                } else {
+                  setIsCreatingSOP(true);
+                }
               }} 
             />
-          )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          {opsMode === 'pipelines' && (
-            <>
-              <MissionLogFeed
-                tasks={missionLogs}
-                total={totalMissionLogs}
-                currentPage={missionLogsPage}
-                setCurrentPage={setMissionLogsPage}
-                pageSize={PAGE_SIZE}
-              />
-
-              <StrategicDialogue
-                conversations={conversations}
-                total={totalConversations}
-                currentPage={conversationsPage}
-                setCurrentPage={setConversationsPage}
-                pageSize={PAGE_SIZE}
-              />
-
-              <AgentActionLedger
-                actions={actions}
-                total={totalActions}
-                currentPage={actionsPage}
-                setCurrentPage={setActionsPage}
-                pageSize={PAGE_SIZE}
-                selectedAgent={selectedAgent}
-                setSelectedAgent={setSelectedAgent}
-              />
-            </>
-          )}
-        </div>
-      </div>
-
+      {/* Persistence Modals */}
       <AnimatePresence>
         {(isCreatingSOP || editingSOP) && (
           <SOPBuilder
             workflow={editingSOP}
-            initialAddCategory={!editingSOP && sopInitialMode === 'category'}
             onClose={() => {
               setIsCreatingSOP(false);
               setEditingSOP(null);
-              setSopInitialMode('sop');
+              setSopRefreshKey(prev => prev + 1);
             }}
             onSave={() => {
-              // Refresh is handled inside SOPManager
+              setSopRefreshKey(prev => prev + 1);
             }}
+          />
+        )}
+
+        {isCreatingCategory && (
+          <CategoryCreator
+            onClose={() => setIsCreatingCategory(false)}
+            onSave={() => setSopRefreshKey(prev => prev + 1)}
           />
         )}
       </AnimatePresence>
     </motion.div>
-  );
-}
-
-function OperationsHeader({
-  selectedGraph,
-  viewMode,
-  opsMode,
-  setOpsMode,
-}: {
-  selectedGraph: GraphDefinition | null;
-  viewMode: 'specific' | 'global';
-  opsMode: 'pipelines' | 'sop';
-  setOpsMode: (m: 'pipelines' | 'sop') => void;
-}) {
-  return (
-    <div className="flex justify-between items-end">
-      <div>
-        <h2 className="font-headline text-4xl text-on-surface mb-2 tracking-tight">
-          {opsMode === 'pipelines' 
-            ? (viewMode === 'global' ? 'Operations' : `Operations: ${selectedGraph?.name}`)
-            : 'SOP Hub'}
-        </h2>
-        <p className="font-body text-[#a38b88] max-w-2xl text-sm leading-relaxed">
-          {opsMode === 'pipelines'
-            ? (viewMode === 'global'
-              ? 'Unified execution stream for all autonomous pipelines across the project.'
-              : `High-fidelity logic mapping for the '${selectedGraph?.name}' autonomous pipeline.`)
-            : 'Formal structural governance and manual override protocols for the Don.'}
-        </p>
-      </div>
-
-      <div className="flex bg-surface-container-high/50 p-1 border border-outline-variant/10 rounded-sm">
-        <button
-          onClick={() => setOpsMode('pipelines')}
-          className={`px-4 py-1.5 font-label text-[9px] uppercase tracking-widest transition-all ${
-            opsMode === 'pipelines' 
-              ? 'bg-primary/20 text-primary border border-primary/20 shadow-[0_0_10px_rgba(255,179,181,0.1)]' 
-              : 'text-outline hover:text-on-surface'
-          }`}
-        >
-          Live Pipelines
-        </button>
-        <button
-          onClick={() => setOpsMode('sop')}
-          className={`px-4 py-1.5 font-label text-[9px] uppercase tracking-widest transition-all ${
-            opsMode === 'sop' 
-              ? 'bg-primary/20 text-primary border border-primary/20 shadow-[0_0_10px_rgba(255,179,181,0.1)]' 
-              : 'text-outline hover:text-on-surface'
-          }`}
-        >
-          Manual SOPs
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function GraphSelector({ graphs, selectedGraph, setSelectedGraph }: {
-  graphs: GraphDefinition[];
-  selectedGraph: GraphDefinition | null;
-  setSelectedGraph: (g: GraphDefinition) => void;
-}) {
-  const groups = useMemo(() => {
-    const map: Record<string, GraphDefinition[]> = {};
-    graphs.forEach(g => {
-      const cat = g.category || "General";
-      if (!map[cat]) map[cat] = [];
-      map[cat].push(g);
-    });
-    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
-  }, [graphs]);
-
-  return (
-    <div className="space-y-6">
-      {groups.map(([category, categoryGraphs]) => (
-        <div key={category} className="space-y-3">
-          <h4 className="font-label text-[10px] text-outline uppercase tracking-[0.2em] opacity-60">
-            {category}
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {categoryGraphs.map((graph) => {
-              const isActive = selectedGraph?.id === graph.id;
-              return (
-                <button
-                  key={graph.id}
-                  onClick={() => setSelectedGraph(graph)}
-                  className={`px-6 py-2 border transition-all duration-300 font-label text-[10px] uppercase tracking-widest ${isActive
-                      ? 'bg-secondary/10 text-secondary border-secondary/50 shadow-[0_0_15px_rgba(234,195,74,0.1)]'
-                      : 'bg-surface-container-low/30 text-outline border-outline-variant/20 hover:border-outline-variant/50 hover:text-on-surface'
-                    }`}
-                >
-                  {graph.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AgentActionLedger({
-  actions,
-  total,
-  currentPage,
-  setCurrentPage,
-  pageSize,
-  selectedAgent,
-  setSelectedAgent
-}: {
-  actions: ActionLog[];
-  total: number;
-  currentPage: number;
-  setCurrentPage: (p: number) => void;
-  pageSize: number;
-  selectedAgent: string;
-  setSelectedAgent: (a: string) => void;
-}) {
-  const totalPages = Math.ceil(total / pageSize);
-  const AGENTS = ["Alfredo", "Vito", "Riccado", "Rossini", "Tommy", "Bella", "Kowalski"];
-
-  return (
-    <section className="bg-surface-container-low border border-outline-variant/10 overflow-hidden">
-      <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/30">
-        <div>
-          <h3 className="font-headline text-2xl text-on-surface">Tool Action Ledger</h3>
-          <p className="font-label text-[10px] text-tertiary uppercase tracking-[0.2em] mt-1 opacity-70">
-            Granular Mechanical Execution Stream // 0xTOOL
-          </p>
-        </div>
-        <div className="flex items-center space-x-6">
-          {/* Agent Filter */}
-          <div className="flex items-center space-x-3">
-            <span className="font-label text-[9px] text-outline uppercase tracking-widest">Filter:</span>
-            <select
-              value={selectedAgent}
-              onChange={(e) => setSelectedAgent(e.target.value)}
-              className="bg-surface-container-highest border border-outline-variant/20 text-on-surface font-label text-[10px] uppercase px-3 py-1.5 focus:outline-none focus:border-primary/40"
-            >
-              <option value="">All Agents</option>
-              {AGENTS.map(agent => (
-                <option key={agent} value={agent}>{agent}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <span className="font-label text-[10px] text-outline uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</span>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="p-2 border border-outline-variant/20 hover:border-primary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
-              >
-                <span className="material-symbols-outlined text-sm text-primary">chevron_left</span>
-              </button>
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage >= totalPages}
-                className="p-2 border border-outline-variant/20 hover:border-primary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
-              >
-                <span className="material-symbols-outlined text-sm text-primary">chevron_right</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-surface-container-high/50 border-b border-outline-variant/10">
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">ID</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Date</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Timestamp</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Agent</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Action</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Details</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-outline-variant/5">
-            {actions?.map((action) => (
-              <tr key={action.id} className="hover:bg-surface-container-highest/20 transition-colors group">
-                <td className="px-8 py-5 font-mono text-[11px] text-tertiary">{action.id}</td>
-                <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60 whitespace-nowrap">
-                  {new Date(action.timestamp).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase()}
-                </td>
-                <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60">
-                  {new Date(action.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </td>
-                <td className="px-8 py-5 font-label text-[10px] text-primary uppercase tracking-widest font-bold">
-                  {action.agent_name}
-                </td>
-                <td className="px-8 py-5">
-                  <span className="bg-surface-container-highest px-3 py-1 rounded-sm border border-outline-variant/10 font-mono text-[10px] text-on-surface">
-                    {action.action_type}
-                  </span>
-                </td>
-                <td className="px-8 py-5">
-                  <div className="flex items-center space-x-2 bg-surface-container-highest/40 px-3 py-1.5 border border-outline-variant/10 max-w-[300px]">
-                    <span className="material-symbols-outlined text-[10px] text-outline/40">data_object</span>
-                    <span className="font-mono text-[9px] text-[#a38b88] truncate">
-                      {JSON.stringify(action.action_details || {})}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-8 py-5">
-                  <span className={`px-3 py-1 text-[9px] font-label uppercase tracking-tighter border ${action.approval_status === 'APPROVED'
-                      ? 'bg-primary/10 text-primary border-primary/20'
-                      : action.completed_at
-                        ? 'bg-secondary/10 text-secondary border-secondary/20'
-                        : 'bg-surface-container-high text-outline border-outline-variant/10'
-                    }`}>
-                    {action.approval_status || (action.completed_at ? "COMPLETE" : "ACTIVE")}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {actions.length === 0 && (
-        <div className="p-20 text-center">
-          <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting granular action signals...</p>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function GraphVisualizer({ graph, onExecute, isExecuting }: {
-  graph: GraphDefinition | null;
-  onExecute: () => void;
-  isExecuting: boolean;
-}) {
-  const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const positions = useMemo(() => {
-    if (!graph) return {};
-
-    const nodeLevels: Record<string, number> = {};
-    const adjacency: Record<string, string[]> = {};
-    graph.edges.forEach(e => {
-      if (!adjacency[e.source]) adjacency[e.source] = [];
-      adjacency[e.source].push(e.target);
-    });
-
-    const entryIds = graph.nodes.filter(n => n.type === 'entry').map(n => n.id);
-    const queue = [...entryIds.map(id => ({ id, level: 0 }))];
-    const visited = new Set<string>();
-
-    while (queue.length > 0) {
-      const { id, level } = queue.shift()!;
-      if (visited.has(id)) continue;
-      visited.add(id);
-
-      if (nodeLevels[id] === undefined || level > nodeLevels[id]) {
-        nodeLevels[id] = level;
-      }
-
-      (adjacency[id] || []).forEach(target => {
-        if (!visited.has(target)) {
-          queue.push({ id: target, level: level + 1 });
-        }
-      });
-    }
-
-    graph.nodes.forEach(n => {
-      if (nodeLevels[n.id] === undefined) nodeLevels[n.id] = 0;
-    });
-
-    const levelGroups: Record<number, string[]> = {};
-    Object.entries(nodeLevels).forEach(([id, level]) => {
-      if (!levelGroups[level]) levelGroups[level] = [];
-      levelGroups[level].push(id);
-    });
-
-    const pos: Record<string, { x: number, y: number }> = {};
-    const Y_SPACING = 55;
-    const X_SPACING = 110;
-    const BASE_Y = 40;
-    const CENTER_X = 300;
-
-    Object.entries(levelGroups).forEach(([levelStr, ids]) => {
-      const level = parseInt(levelStr);
-      const y = BASE_Y + level * Y_SPACING;
-      const totalWidth = (ids.length - 1) * X_SPACING;
-      const startX = CENTER_X - totalWidth / 2;
-
-      ids.sort().forEach((id, idx) => {
-        pos[id] = { x: startX + idx * X_SPACING, y };
-      });
-    });
-
-    return pos;
-  }, [graph]);
-
-  if (!graph) return null;
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
-  };
-
-  return (
-    <section
-      className="bg-surface-container-low p-8 border border-outline-variant/10 relative group"
-      onMouseMove={handleMouseMove}
-    >
-      <div className="flex justify-between items-center mb-10">
-        <div>
-          <h3 className="font-headline text-xl text-[#ffb3b5]">{graph.name} Visualizer</h3>
-          <p className="font-label text-[10px] text-tertiary uppercase mt-1 tracking-widest opacity-80">Codified Graph // {graph.id}</p>
-        </div>
-        <div className="flex space-x-2">
-          <span className="px-3 py-1 bg-surface-container-high text-on-surface-variant text-[10px] font-label uppercase tracking-tighter border border-outline-variant/10">Active Structure</span>
-        </div>
-      </div>
-
-      <div className="min-h-[480px] w-full bg-surface-container-lowest relative flex items-center justify-center border-b border-outline-variant/10 overflow-hidden p-4 cursor-crosshair">
-        <svg className="w-full h-full opacity-80" viewBox="0 0 600 480" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="25" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="#eac34a" />
-            </marker>
-          </defs>
-
-          {graph.edges.map((edge, i) => {
-            const p1 = positions[edge.source];
-            const p2 = positions[edge.target];
-            if (!p1 || !p2) return null;
-
-            return (
-              <g key={`edge-${i}`}>
-                <path
-                  d={`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`}
-                  stroke="#554240"
-                  strokeWidth="1.5"
-                  strokeDasharray={edge.label ? "4 4" : ""}
-                  markerEnd="url(#arrowhead)"
-                  className="transition-all duration-300 opacity-60 group-hover:opacity-100"
-                />
-                <circle r="2" fill="#eac34a" className="opacity-80">
-                  <animateMotion dur={`${3 + i % 2}s`} repeatCount="indefinite" path={`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`} />
-                </circle>
-              </g>
-            );
-          })}
-
-          {graph.nodes.map((node) => {
-            const pos = positions[node.id];
-            if (!pos) return null;
-
-            const isEntry = node.type === 'entry';
-            const isEnd = node.type === 'end';
-            const isHovered = hoveredNode?.id === node.id;
-
-            return (
-              <g
-                key={node.id}
-                className="cursor-pointer transition-all duration-300"
-                onMouseEnter={() => setHoveredNode(node)}
-                onMouseLeave={() => setHoveredNode(null)}
-              >
-                {isEntry || isEnd ? (
-                  <circle
-                    cx={pos.x} cy={pos.y} r="8"
-                    fill="#1c1b1b"
-                    stroke="#ffb3b5"
-                    strokeWidth="2"
-                    className={`${isHovered ? 'opacity-100 scale-110' : 'opacity-60'} transition-all`}
-                  />
-                ) : (
-                  <rect
-                    x={pos.x - 50} y={pos.y - 15} width="100" height="30"
-                    fill="#1c1b1b"
-                    stroke={isHovered ? "#eac34a" : "#554240"}
-                    strokeWidth={isHovered ? "2" : "1"}
-                    rx="2"
-                    className={`${isHovered ? 'shadow-[0_0_15px_rgba(234,195,74,0.2)]' : ''} transition-all`}
-                  />
-                )}
-                <text
-                  x={pos.x} y={isEntry || isEnd ? pos.y + 25 : pos.y + 4}
-                  textAnchor="middle"
-                  fill={isEntry || isEnd ? "#ffb3b5" : "#eac34a"}
-                  fontSize="8"
-                  className={`tracking-widest uppercase font-bold transition-all ${isHovered ? 'opacity-100' : 'opacity-80'}`}
-                  style={{ fontFamily: 'Space Grotesk' }}
-                >
-                  {node.label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-
-        <AnimatePresence>
-          {hoveredNode && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300, mass: 0.5 }}
-              style={{
-                position: 'absolute',
-                left: mousePos.x,
-                top: mousePos.y,
-                zIndex: 50,
-              }}
-              className="bg-[#1c1b1b] p-3 border border-outline-variant/30 shadow-2xl min-w-[240px] pointer-events-none"
-            >
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-label text-[8px] text-tertiary uppercase tracking-[0.2em] mb-1">
-                      {hoveredNode.type === 'entry' ? 'Entry Node' : hoveredNode.type === 'end' ? 'Terminal' : 'Process Node'}
-                    </p>
-                    <h4 className="font-headline text-lg text-[#ffb3b5] leading-tight">{hoveredNode.label}</h4>
-                  </div>
-                  <div className={`w-3 h-3 rounded-full ${hoveredNode.type === 'entry' ? 'bg-[#ffb3b5]' : 'bg-[#eac34a]'} animate-pulse shadow-[0_0_10px_rgba(234,195,74,0.3)]`}></div>
-                </div>
-
-                <div className="pt-4 border-t border-outline-variant/10">
-                  <p className="font-body text-[#a38b88] text-[10px] leading-relaxed italic">
-                    {`Autonomous execution unit for '${hoveredNode.label}' within the pipeline. Synchronizing state with Postgres checkpointer.`}
-                  </p>
-                </div>
-
-                <div className="flex space-x-4 pt-2">
-                  <div className="bg-surface-container-highest px-3 py-1 rounded-sm border border-outline-variant/10">
-                    <p className="font-label text-[7px] text-on-surface-variant uppercase tracking-tighter">Latency</p>
-                    <p className="font-body text-[10px] text-tertiary font-bold">12ms</p>
-                  </div>
-                  <div className="bg-surface-container-highest px-3 py-1 rounded-sm border border-outline-variant/10">
-                    <p className="font-label text-[7px] text-on-surface-variant uppercase tracking-tighter">Reliability</p>
-                    <p className="font-body text-[10px] text-primary font-bold">99.9%</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-tertiary/30"></div>
-              <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-tertiary/30"></div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="absolute bottom-6 left-6 pointer-events-none">
-          <div className="bg-surface-container-highest/40 backdrop-blur-sm px-4 py-1.5 border border-tertiary/10">
-            <p className="font-label text-[8px] text-tertiary tracking-[0.2em] uppercase flex items-center">
-              <span className="w-1.5 h-1.5 bg-tertiary rounded-full mr-2 animate-pulse"></span>
-              Live Logic Topology // Connected
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={onExecute}
-          disabled={isExecuting}
-          className={`bg-[#4A0404] text-[#ffb3b5] px-10 py-3 font-bold text-xs uppercase tracking-[0.4em] transition-all active:scale-95 shadow-2xl border border-primary/20 ${isExecuting ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-125'
-            }`}
-        >
-          {isExecuting ? 'DISPATCHING...' : 'EXECUTE GRAPH'}
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function MissionLogFeed({
-  tasks,
-  total,
-  currentPage,
-  setCurrentPage,
-  pageSize
-}: {
-  tasks: Task[];
-  total: number;
-  currentPage: number;
-  setCurrentPage: (p: number) => void;
-  pageSize: number;
-}) {
-  const totalPages = Math.ceil(total / pageSize);
-
-  return (
-    <section className="bg-surface-container-low border border-outline-variant/10 overflow-hidden">
-      <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/30">
-        <div>
-          <h3 className="font-headline text-2xl text-on-surface">Mission Logs</h3>
-          <p className="font-label text-[10px] text-tertiary uppercase tracking-[0.2em] mt-1 opacity-70">
-            Autonomous Neural Trajectory // 0xDEEP
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <span className="font-label text-[10px] text-outline uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</span>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="p-2 border border-outline-variant/20 hover:border-tertiary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
-            >
-              <span className="material-symbols-outlined text-sm text-tertiary">chevron_left</span>
-            </button>
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage >= totalPages}
-              className="p-2 border border-outline-variant/20 hover:border-tertiary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
-            >
-              <span className="material-symbols-outlined text-sm text-tertiary">chevron_right</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-surface-container-high/50 border-b border-outline-variant/10">
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">ID</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Title</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Payload</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Status</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Created At</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-outline-variant/5">
-            {tasks?.map((task) => (
-              <tr key={task.id} className="hover:bg-surface-container-highest/20 transition-colors group">
-                <td className="px-8 py-5 font-mono text-[11px] text-tertiary">{task.id}</td>
-                <td className="px-8 py-5 font-body text-xs text-on-surface font-medium truncate max-w-[200px]">{task.title}</td>
-                <td className="px-8 py-5">
-                  <div className="flex items-center space-x-2 bg-surface-container-highest/40 px-3 py-1.5 border border-outline-variant/10 max-w-[300px]">
-                    <span className="material-symbols-outlined text-[10px] text-outline/40">code</span>
-                    <span className="font-mono text-[9px] text-[#a38b88] truncate">{task.task_payload}</span>
-                  </div>
-                </td>
-                <td className="px-8 py-5">
-                  <span className={`px-3 py-1 text-[9px] font-label uppercase tracking-tighter border ${task.status === 'completed'
-                      ? 'bg-primary/10 text-primary border-primary/20'
-                      : task.status === 'in_progress'
-                        ? 'bg-secondary/10 text-secondary border-secondary/20 animate-pulse'
-                        : task.status === 'failed'
-                          ? 'bg-error/10 text-error border-error/20'
-                          : 'bg-surface-container-high text-outline border-outline-variant/10'
-                    }`}>
-                    {task.status}
-                  </span>
-                </td>
-                <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60 whitespace-nowrap">
-                  {new Date(task.created_at).toLocaleString('en-US', { hour12: false, month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }).toUpperCase()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {tasks.length === 0 && (
-        <div className="p-20 text-center">
-          <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting neural mission signals...</p>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function StrategicDialogue({
-  conversations,
-  total,
-  currentPage,
-  setCurrentPage,
-  pageSize
-}: {
-  conversations: ConversationLog[];
-  total: number;
-  currentPage: number;
-  setCurrentPage: (p: number) => void;
-  pageSize: number;
-}) {
-  const totalPages = Math.ceil(total / pageSize);
-
-  return (
-    <section className="bg-surface-container-low border border-outline-variant/10 overflow-hidden">
-      <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/30">
-        <div>
-          <h3 className="font-headline text-2xl text-on-surface">Strategic Dialogue</h3>
-          <p className="font-label text-[10px] text-secondary uppercase tracking-[0.2em] mt-1 opacity-70">
-            Agent Intelligence Ledger // 0xCHAT
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <span className="font-label text-[10px] text-outline uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</span>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="p-2 border border-outline-variant/20 hover:border-secondary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
-            >
-              <span className="material-symbols-outlined text-sm text-secondary">chevron_left</span>
-            </button>
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage >= totalPages}
-              className="p-2 border border-outline-variant/20 hover:border-secondary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
-            >
-              <span className="material-symbols-outlined text-sm text-secondary">chevron_right</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-surface-container-high/50 border-b border-outline-variant/10">
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">ID</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Conversation Key</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Lead Agent</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Latest Snippet</th>
-              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Updated At</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-outline-variant/5">
-            {conversations?.map((conv) => (
-              <tr key={conv.id} className="hover:bg-surface-container-highest/20 transition-colors group">
-                <td className="px-8 py-5 font-mono text-[11px] text-secondary">{conv.id}</td>
-                <td className="px-8 py-5 font-label text-[10px] text-on-surface uppercase tracking-widest">{conv.conversation_key}</td>
-                <td className="px-8 py-5 font-label text-[10px] text-secondary uppercase tracking-widest font-bold">
-                  {conv.latest_agent || "Anonymous"}
-                </td>
-                <td className="px-8 py-5">
-                  <div className="flex items-center space-x-2 bg-surface-container-highest/40 px-3 py-1.5 border border-outline-variant/10 max-w-[400px]">
-                    <span className="material-symbols-outlined text-[10px] text-outline/40">forum</span>
-                    <p className="font-body text-[10px] text-[#a38b88] truncate italic">
-                      "{conv.latest_message || "Awaiting strategy exchange..."}"
-                    </p>
-                  </div>
-                </td>
-                <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60 whitespace-nowrap">
-                  {new Date(conv.updated_at).toLocaleString('en-US', { hour12: false, month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }).toUpperCase()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {conversations.length === 0 && (
-        <div className="p-20 text-center">
-          <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting strategic verbal signals...</p>
-        </div>
-      )}
-    </section>
   );
 }

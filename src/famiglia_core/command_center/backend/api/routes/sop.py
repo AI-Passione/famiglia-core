@@ -1,6 +1,6 @@
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, BackgroundTasks
-from pydantic import BaseModel, Field
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from datetime import datetime, timezone
 
 from famiglia_core.db.agents.context_store import context_store
@@ -81,7 +81,7 @@ async def create_workflow(payload: SOPWorkflowCreate):
 @router.put("/workflows/{workflow_id}", response_model=SOPWorkflow)
 async def update_workflow(workflow_id: int, payload: SOPWorkflowCreate):
     """Update an existing SOP workflow and its nodes."""
-    success = context_store.update_sop_workflow_metadata(
+    context_store.update_sop_workflow_metadata(
         workflow_id,
         name=payload.name,
         display_name=payload.display_name,

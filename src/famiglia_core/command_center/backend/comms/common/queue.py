@@ -4,7 +4,7 @@ import os
 import redis
 import threading
 from collections import defaultdict
-from typing import Dict, Any, List, Optional, Tuple, Callable
+from typing import Dict, List, Optional, Tuple, Callable
 
 # Queue Priorities
 PRIORITY_CRITICAL = 0

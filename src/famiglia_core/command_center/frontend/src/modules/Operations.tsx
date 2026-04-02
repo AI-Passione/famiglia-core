@@ -125,7 +125,7 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
       className="space-y-12"
     >
       <div className="space-y-8">
-        <OperationsHeader selectedGraph={selectedGraph} viewMode={viewMode} setViewMode={setViewMode} />
+        <OperationsHeader selectedGraph={selectedGraph} viewMode={viewMode} />
         <GraphSelector
           graphs={graphs}
           selectedGraph={selectedGraph}
@@ -197,11 +197,9 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
 function OperationsHeader({
   selectedGraph,
   viewMode,
-  setViewMode
 }: {
   selectedGraph: GraphDefinition | null;
   viewMode: 'specific' | 'global';
-  setViewMode: (m: 'specific' | 'global') => void;
 }) {
   return (
     <div className="flex justify-between items-end">

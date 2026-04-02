@@ -7,32 +7,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from psycopg2.extras import RealDictCursor
 
 # Ensure project root is in path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../")))
 
 from famiglia_core.db.agents.context_store import context_store
-from famiglia_core.command_center.backend.graph_parser import GraphParser, GraphDefinition
-from famiglia_core.command_center.backend.api.routes import chat, auth, connections, settings, famiglia
+from famiglia_core.command_center.backend.api.routes import chat, auth, connections, settings, famiglia, sop
 from famiglia_core.command_center.backend.api.services.engine_room_service import engine_room_service
 
-FEATURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../agents/orchestration/features"))
 IMAGES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../docs/images"))
-graph_parser = GraphParser(FEATURES_DIR)
-
 
 def _parse_origin_list(*values: str) -> List[str]:
     origins: List[str] = []
-
     for value in values:
         for raw_origin in value.split(","):
             origin = raw_origin.strip().rstrip("/")
             if origin and origin not in origins:
                 origins.append(origin)
-
     return origins
-
 
 allowed_origins = _parse_origin_list(
     os.getenv("CORS_ALLOW_ORIGINS", ""),
@@ -61,6 +53,7 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(connections.router, prefix="/api/v1")
 app.include_router(settings.router, prefix="/api/v1")
 app.include_router(famiglia.router, prefix="/api/v1/famiglia")
+app.include_router(sop.router, prefix="/api/v1")
 
 # Serve static images
 if os.path.exists(IMAGES_DIR):
@@ -118,30 +111,6 @@ class InsightSummary(BaseModel):
     relevance: str = "low"
     processed_at: Optional[datetime] = None
 
-class MissionLog(BaseModel):
-    id: str
-    graph_id: str
-    timestamp: str
-    status: str
-    duration: str
-    initiator: str
-
-class FamigliaAgentProfile(BaseModel):
-    id: str
-    agent_id: str
-    name: str
-    role: str
-    status: str
-    aliases: List[str] = Field(default_factory=list)
-    personality: str
-    identity: str
-    skills: List[str] = Field(default_factory=list)
-    tools: List[str] = Field(default_factory=list)
-    workflows: List[str] = Field(default_factory=list)
-    latest_conversation_snippet: str
-    last_active: Optional[datetime] = None
-    avatar_url: Optional[str] = None
-
 # --- Core Informational Routes ---
 
 @app.get("/")
@@ -160,8 +129,8 @@ async def health():
 async def get_agents():
     stats = context_store.get_agent_interaction_stats()
     agents = []
-    famiglia = ["alfredo", "vito", "riccado", "rossini", "tommy", "bella", "kowalski"]
-    for name in famiglia:
+    famiglia_names = ["alfredo", "vito", "riccado", "rossini", "tommy", "bella", "kowalski"]
+    for name in famiglia_names:
         agent_stat = stats.get(name, {"msg_count": 0, "last_active": None})
         agents.append(AgentStatus(
             name=name,
@@ -190,76 +159,6 @@ async def get_recurring_tasks():
 async def get_insights(limit: int = 20):
     insights = context_store.list_newsletters(limit=limit)
     return insights
-
-@app.get("/api/v1/graphs", response_model=List[GraphDefinition])
-async def get_graphs():
-    graphs = graph_parser.parse_all_graphs()
-    return graphs
-
-@app.get("/api/v1/graphs/{graph_id}", response_model=Optional[GraphDefinition])
-async def get_graph(graph_id: str):
-    file_path = os.path.join(FEATURES_DIR, f"{graph_id}.py")
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Graph not found")
-    return graph_parser.parse_file(file_path)
-
-@app.get("/api/v1/mission-logs/{graph_id}", response_model=List[MissionLog])
-async def get_mission_logs(graph_id: str):
-    conn = None
-    cursor = None
-    try:
-        conn = context_store._get_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        query = """
-            SELECT 
-                id, 
-                created_at, 
-                status, 
-                picked_up_at, 
-                completed_at, 
-                created_by_name as initiator
-            FROM task_instances
-            WHERE (metadata->>'graph_id' = %s OR metadata->>'task_type' = %s OR metadata->>'task_type' LIKE %s)
-            ORDER BY created_at DESC
-            LIMIT 20
-        """
-        like_pattern = f"{graph_id}%"
-        cursor.execute(query, (graph_id, graph_id, like_pattern))
-        rows = cursor.fetchall()
-        
-        logs = []
-        for row in rows:
-            duration_str = "N/A"
-            if row["picked_up_at"] and row["completed_at"]:
-                diff = row["completed_at"] - row["picked_up_at"]
-                duration_str = f"{diff.total_seconds():.1f}s"
-            elif row["status"] == "in_progress" and row["picked_up_at"]:
-                diff = datetime.now(timezone.utc) - row["picked_up_at"]
-                duration_str = f"{diff.total_seconds():.1f}s+"
-            
-            status = row["status"]
-            if status == "completed": status = "success"
-            elif status == "failed": status = "failure"
-            elif status == "in_progress": status = "running"
-            
-            logs.append(MissionLog(
-                id=f"ML-{row['id']:03d}",
-                graph_id=graph_id,
-                timestamp=row["created_at"].strftime("%Y-%m-%d %H:%M:%S"),
-                status=status,
-                duration=duration_str,
-                initiator=row["initiator"] or "System"
-            ))
-        return logs
-    except Exception as e:
-        print(f"[API] Error fetching mission logs: {e}")
-        return []
-    finally:
-        if cursor: cursor.close()
-        if conn: conn.close()
-
-# (Moved to routes/famiglia.py)
-
 
 @app.get("/api/v1/engine-room")
 async def get_engine_room_snapshot():

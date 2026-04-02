@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { GraphDefinition, MissionLogEntry, GraphNode } from '../types';
 import { API_BASE } from '../config';
@@ -11,8 +11,9 @@ interface SOPProps {
 
 export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
   const [logs, setLogs] = useState<MissionLogEntry[]>([]);
+  const [isExecuting, setIsExecuting] = useState(false);
 
-  useEffect(() => {
+  const fetchLogs = useCallback(() => {
     if (selectedGraph) {
       fetch(`${API_BASE}/mission-logs/${selectedGraph.id}`)
         .then(res => res.json())
@@ -20,6 +21,33 @@ export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
         .catch(err => console.error("Error fetching mission logs:", err));
     }
   }, [selectedGraph]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  const handleExecute = async () => {
+    if (!selectedGraph || isExecuting) return;
+    
+    setIsExecuting(true);
+    try {
+      const response = await fetch(`${API_BASE}/graphs/${selectedGraph.id}/execute`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Optimistically add a "running" log entry or just refresh
+        setTimeout(fetchLogs, 1000);
+      } else {
+        console.error("Execution failed:", data.detail);
+      }
+    } catch (err) {
+      console.error("Error executing graph:", err);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
 
   return (
     <motion.div 
@@ -35,7 +63,7 @@ export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
       
       <div className="grid grid-cols-12 gap-8">
         <div className="col-span-12 space-y-12">
-          <GraphVisualizer graph={selectedGraph} />
+          <GraphVisualizer graph={selectedGraph} onExecute={handleExecute} isExecuting={isExecuting} />
           <MissionLogs logs={logs} />
         </div>
       </div>
@@ -112,7 +140,11 @@ function GraphSelector({ graphs, selectedGraph, setSelectedGraph }: {
   );
 }
 
-function GraphVisualizer({ graph }: { graph: GraphDefinition | null }) {
+function GraphVisualizer({ graph, onExecute, isExecuting }: { 
+  graph: GraphDefinition | null;
+  onExecute: () => void;
+  isExecuting: boolean;
+}) {
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const positions = useMemo(() => {
@@ -342,8 +374,14 @@ function GraphVisualizer({ graph }: { graph: GraphDefinition | null }) {
       </div>
 
       <div className="mt-6 flex justify-end">
-        <button className="bg-[#4A0404] text-[#ffb3b5] px-10 py-3 font-bold text-xs uppercase tracking-[0.4em] hover:brightness-125 transition-all active:scale-95 shadow-2xl border border-primary/20">
-          EXECUTE GRAPH
+        <button 
+          onClick={onExecute}
+          disabled={isExecuting}
+          className={`bg-[#4A0404] text-[#ffb3b5] px-10 py-3 font-bold text-xs uppercase tracking-[0.4em] transition-all active:scale-95 shadow-2xl border border-primary/20 ${
+            isExecuting ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-125'
+          }`}
+        >
+          {isExecuting ? 'DISPATCHING...' : 'EXECUTE GRAPH'}
         </button>
       </div>
     </section>

@@ -28,12 +28,15 @@ class GraphParser:
         if not os.path.exists(self.features_dir):
             return graphs
 
-        for filename in os.listdir(self.features_dir):
-            if filename.endswith(".py") and filename != "__init__.py":
-                file_path = os.path.join(self.features_dir, filename)
-                graph_def = self.parse_file(file_path)
-                if graph_def:
-                    graphs.append(graph_def)
+        for root, dirs, files in os.walk(self.features_dir):
+            if "__pycache__" in dirs:
+                dirs.remove("__pycache__")
+            for filename in files:
+                if filename.endswith(".py") and filename != "__init__.py":
+                    file_path = os.path.join(root, filename)
+                    graph_def = self.parse_file(file_path)
+                    if graph_def:
+                        graphs.append(graph_def)
         
         return graphs
 

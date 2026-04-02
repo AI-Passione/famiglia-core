@@ -12,7 +12,14 @@ from dotenv import load_dotenv
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from famiglia_core.command_center.backend.comms.common.queue import CommsQueue, PRIORITY_CRITICAL, PRIORITY_HIGH, PRIORITY_LOW, BATCH_INTERVALS
+from famiglia_core.command_center.backend.comms.common.queue import (
+    CommsQueue, 
+    PRIORITY_CRITICAL, 
+    PRIORITY_HIGH, 
+    PRIORITY_MEDIUM, 
+    PRIORITY_LOW, 
+    BATCH_INTERVALS
+)
 
 SLACK_CHANNEL_ID_RE = re.compile(r"^[CGD][A-Z0-9]{8,}$")
 SLACK_CHANNEL_MENTION_RE = re.compile(r"^<#(?P<id>[CGD][A-Z0-9]{8,})(?:\|[^>]+)?>$")

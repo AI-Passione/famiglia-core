@@ -8,7 +8,14 @@ from dotenv import load_dotenv
 from urllib.parse import urlparse
 from mattermostdriver import Driver
 
-from famiglia_core.command_center.backend.comms.common.queue import CommsQueue, PRIORITY_CRITICAL, PRIORITY_HIGH, PRIORITY_LOW, BATCH_INTERVALS
+from famiglia_core.command_center.backend.comms.common.queue import (
+    CommsQueue, 
+    PRIORITY_CRITICAL, 
+    PRIORITY_HIGH, 
+    PRIORITY_MEDIUM, 
+    PRIORITY_LOW, 
+    BATCH_INTERVALS
+)
 
 class MattermostQueueClient(CommsQueue):
     def __init__(self, redis_url: Optional[str] = None):

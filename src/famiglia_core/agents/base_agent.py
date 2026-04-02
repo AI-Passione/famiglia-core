@@ -207,9 +207,18 @@ class BaseAgent(CommonSkills, TaskTools, OnDemandMasterSupervisor):
             
             # Use stream() to catch intermediate events
             for chunk in self.graph.stream(state, config=config):
-                # If we have a stream callback, notify the UI about the current node
-                if on_intermediate_response:
-                    for node_name in chunk.keys():
+                # LangGraph v0.2+ stream(stream_mode="updates") returns {node_name: {updates}}
+                for key, value in chunk.items():
+                    if isinstance(value, dict):
+                        state.update(value)
+                        node_name = key
+                    else:
+                        # Fallback/Test double support: update directly
+                        state[key] = value
+                        node_name = "unknown"
+                    
+                    # If we have a stream callback, notify the UI about the current node
+                    if on_intermediate_response:
                         status_map = {
                             "decide_domain": "Routing directive...",
                             "product_worker": "Delegating to Product Specialist...",
@@ -220,8 +229,7 @@ class BaseAgent(CommonSkills, TaskTools, OnDemandMasterSupervisor):
                         status_msg = status_map.get(node_name, f"Executing {node_name}...")
                         on_intermediate_response(f"[{status_msg}] ")
                 
-                # Update final_state with the latest chunk
-                final_state = chunk
+            final_state = state
         except Exception as e:
             print(f"[{self.name}] LangGraph streaming failed: {e}")
             # Ensure we have something in final_state for response generation

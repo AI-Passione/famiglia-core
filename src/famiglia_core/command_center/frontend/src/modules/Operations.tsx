@@ -2,6 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { GraphDefinition, GraphNode, Task, PaginatedTasks, ActionLog, PaginatedActions, ConversationLog, PaginatedConversations } from '../types';
 import { API_BASE } from '../config';
+import { SOPManager } from './SOPManager';
+import { SOPBuilder } from './SOPBuilder';
+import type { SOPWorkflow } from '../types';
 
 interface OperationsProps {
   graphs: GraphDefinition[];
@@ -13,6 +16,9 @@ interface OperationsProps {
 export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTasks }: OperationsProps) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [viewMode, setViewMode] = useState<'specific' | 'global'>('specific');
+  const [opsMode, setOpsMode] = useState<'pipelines' | 'sop'>('pipelines');
+  const [isCreatingSOP, setIsCreatingSOP] = useState(false);
+  const [editingSOP, setEditingSOP] = useState<SOPWorkflow | null>(null);
 
   // Agent Action Ledger State
   const [actions, setActions] = useState<ActionLog[]>([]);
@@ -125,71 +131,108 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
       className="space-y-12"
     >
       <div className="space-y-8">
-        <OperationsHeader selectedGraph={selectedGraph} viewMode={viewMode} />
-        <GraphSelector
-          graphs={graphs}
+        <OperationsHeader
           selectedGraph={selectedGraph}
-          setSelectedGraph={(g) => {
-            setSelectedGraph(g);
-            setViewMode('specific');
-          }}
+          viewMode={viewMode}
+          opsMode={opsMode}
+          setOpsMode={setOpsMode}
         />
+        
+        {opsMode === 'pipelines' && (
+          <GraphSelector
+            graphs={graphs}
+            selectedGraph={selectedGraph}
+            setSelectedGraph={(g) => {
+              setSelectedGraph(g);
+              setViewMode('specific');
+            }}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-12 gap-8">
         <div className="col-span-12 space-y-12">
-          {viewMode === 'specific' && selectedGraph ? (
-            <GraphVisualizer graph={selectedGraph} onExecute={handleExecute} isExecuting={isExecuting} />
+          {opsMode === 'pipelines' ? (
+            <>
+              {viewMode === 'specific' && selectedGraph ? (
+                <GraphVisualizer graph={selectedGraph} onExecute={handleExecute} isExecuting={isExecuting} />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
+                    <span className="material-symbols-outlined text-3xl text-tertiary mb-2">assignment</span>
+                    <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Neural Mission Logs</h4>
+                    <p className="font-headline text-4xl text-on-surface">{totalMissionLogs}</p>
+                    <div className="h-1 w-12 bg-tertiary/30 mx-auto rounded-full"></div>
+                  </div>
+                  <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
+                    <span className="material-symbols-outlined text-3xl text-secondary mb-2">forum</span>
+                    <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Strategic Dialogues</h4>
+                    <p className="font-headline text-4xl text-on-surface">{totalConversations}</p>
+                    <div className="h-1 w-12 bg-secondary/30 mx-auto rounded-full"></div>
+                  </div>
+                  <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
+                    <span className="material-symbols-outlined text-3xl text-primary mb-2">construction</span>
+                    <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Tool Executions</h4>
+                    <p className="font-headline text-4xl text-on-surface">{totalActions}</p>
+                    <div className="h-1 w-12 bg-primary/30 mx-auto rounded-full"></div>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
-                <span className="material-symbols-outlined text-3xl text-tertiary mb-2">assignment</span>
-                <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Neural Mission Logs</h4>
-                <p className="font-headline text-4xl text-on-surface">{totalMissionLogs}</p>
-                <div className="h-1 w-12 bg-tertiary/30 mx-auto rounded-full"></div>
-              </div>
-              <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
-                <span className="material-symbols-outlined text-3xl text-secondary mb-2">forum</span>
-                <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Strategic Dialogues</h4>
-                <p className="font-headline text-4xl text-on-surface">{totalConversations}</p>
-                <div className="h-1 w-12 bg-secondary/30 mx-auto rounded-full"></div>
-              </div>
-              <div className="bg-surface-container-low p-8 border border-outline-variant/10 text-center space-y-2">
-                <span className="material-symbols-outlined text-3xl text-primary mb-2">construction</span>
-                <h4 className="font-label text-[10px] text-outline uppercase tracking-widest">Tool Executions</h4>
-                <p className="font-headline text-4xl text-on-surface">{totalActions}</p>
-                <div className="h-1 w-12 bg-primary/30 mx-auto rounded-full"></div>
-              </div>
-            </div>
+            <SOPManager 
+              onEdit={(wf) => setEditingSOP(wf)} 
+              onCreate={() => setIsCreatingSOP(true)} 
+            />
           )}
 
-          <MissionLogFeed
-            tasks={missionLogs}
-            total={totalMissionLogs}
-            currentPage={missionLogsPage}
-            setCurrentPage={setMissionLogsPage}
-            pageSize={PAGE_SIZE}
-          />
+          {opsMode === 'pipelines' && (
+            <>
+              <MissionLogFeed
+                tasks={missionLogs}
+                total={totalMissionLogs}
+                currentPage={missionLogsPage}
+                setCurrentPage={setMissionLogsPage}
+                pageSize={PAGE_SIZE}
+              />
 
-          <StrategicDialogue
-            conversations={conversations}
-            total={totalConversations}
-            currentPage={conversationsPage}
-            setCurrentPage={setConversationsPage}
-            pageSize={PAGE_SIZE}
-          />
+              <StrategicDialogue
+                conversations={conversations}
+                total={totalConversations}
+                currentPage={conversationsPage}
+                setCurrentPage={setConversationsPage}
+                pageSize={PAGE_SIZE}
+              />
 
-          <AgentActionLedger
-            actions={actions}
-            total={totalActions}
-            currentPage={actionsPage}
-            setCurrentPage={setActionsPage}
-            pageSize={PAGE_SIZE}
-            selectedAgent={selectedAgent}
-            setSelectedAgent={setSelectedAgent}
-          />
+              <AgentActionLedger
+                actions={actions}
+                total={totalActions}
+                currentPage={actionsPage}
+                setCurrentPage={setActionsPage}
+                pageSize={PAGE_SIZE}
+                selectedAgent={selectedAgent}
+                setSelectedAgent={setSelectedAgent}
+              />
+            </>
+          )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {(isCreatingSOP || editingSOP) && (
+          <SOPBuilder
+            workflow={editingSOP}
+            onClose={() => {
+              setIsCreatingSOP(false);
+              setEditingSOP(null);
+            }}
+            onSave={() => {
+              // Refresh is handled inside SOPManager but we can force it here if needed
+              // or use a key to remount SOPManager
+            }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -197,21 +240,52 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTas
 function OperationsHeader({
   selectedGraph,
   viewMode,
+  opsMode,
+  setOpsMode,
 }: {
   selectedGraph: GraphDefinition | null;
   viewMode: 'specific' | 'global';
+  opsMode: 'pipelines' | 'sop';
+  setOpsMode: (m: 'pipelines' | 'sop') => void;
 }) {
   return (
     <div className="flex justify-between items-end">
       <div>
         <h2 className="font-headline text-4xl text-on-surface mb-2 tracking-tight">
-          {viewMode === 'global' ? 'Operations' : `Operations: ${selectedGraph?.name}`}
+          {opsMode === 'pipelines' 
+            ? (viewMode === 'global' ? 'Operations' : `Operations: ${selectedGraph?.name}`)
+            : 'SOP Hub'}
         </h2>
         <p className="font-body text-[#a38b88] max-w-2xl text-sm leading-relaxed">
-          {viewMode === 'global'
-            ? 'Unified execution stream for all autonomous pipelines across the project.'
-            : `High-fidelity logic mapping for the '${selectedGraph?.name}' autonomous pipeline.`}
+          {opsMode === 'pipelines'
+            ? (viewMode === 'global'
+              ? 'Unified execution stream for all autonomous pipelines across the project.'
+              : `High-fidelity logic mapping for the '${selectedGraph?.name}' autonomous pipeline.`)
+            : 'Formal structural governance and manual override protocols for the Don.'}
         </p>
+      </div>
+
+      <div className="flex bg-surface-container-high/50 p-1 border border-outline-variant/10 rounded-sm">
+        <button
+          onClick={() => setOpsMode('pipelines')}
+          className={`px-4 py-1.5 font-label text-[9px] uppercase tracking-widest transition-all ${
+            opsMode === 'pipelines' 
+              ? 'bg-primary/20 text-primary border border-primary/20 shadow-[0_0_10px_rgba(255,179,181,0.1)]' 
+              : 'text-outline hover:text-on-surface'
+          }`}
+        >
+          Live Pipelines
+        </button>
+        <button
+          onClick={() => setOpsMode('sop')}
+          className={`px-4 py-1.5 font-label text-[9px] uppercase tracking-widest transition-all ${
+            opsMode === 'sop' 
+              ? 'bg-primary/20 text-primary border border-primary/20 shadow-[0_0_10px_rgba(255,179,181,0.1)]' 
+              : 'text-outline hover:text-on-surface'
+          }`}
+        >
+          Manual SOPs
+        </button>
       </div>
     </div>
   );

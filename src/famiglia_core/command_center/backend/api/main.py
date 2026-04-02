@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../")))
 
 from famiglia_core.db.agents.context_store import context_store
-from famiglia_core.command_center.backend.api.routes import chat, auth, connections, settings, famiglia, operations
+from famiglia_core.command_center.backend.api.routes import chat, auth, connections, settings, famiglia, operations, sop
 from famiglia_core.command_center.backend.api.services.engine_room_service import engine_room_service
 
 IMAGES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../docs/images"))
@@ -54,6 +54,7 @@ app.include_router(connections.router, prefix="/api/v1")
 app.include_router(settings.router, prefix="/api/v1")
 app.include_router(famiglia.router, prefix="/api/v1/famiglia")
 app.include_router(operations.router, prefix="/api/v1", tags=["Operations"])
+app.include_router(sop.router, prefix="/api/v1", tags=["SOP"])
 
 # Serve static images
 if os.path.exists(IMAGES_DIR):

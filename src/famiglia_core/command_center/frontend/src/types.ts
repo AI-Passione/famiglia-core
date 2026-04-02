@@ -263,3 +263,29 @@ export interface EngineRoomSnapshot {
     };
   };
 }
+
+export interface SOPNode {
+  id?: number;
+  workflow_id?: number;
+  node_name: string;
+  description: string | null;
+  node_type: string;
+}
+
+export interface SOPWorkflow {
+  id: number;
+  name: string;
+  description: string | null;
+  category: string;
+  node_order: string[];
+  nodes: SOPNode[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SOPWorkflowCreate {
+  name: string;
+  description: string | null;
+  category: string;
+  nodes: Omit<SOPNode, 'id' | 'workflow_id'>[];
+}

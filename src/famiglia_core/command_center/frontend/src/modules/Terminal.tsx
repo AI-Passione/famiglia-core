@@ -62,25 +62,32 @@ interface ChannelDef {
   agentSpeaker?: string;
 }
 
-const STARRED_CHANNELS: ChannelDef[] = [
-  { id: 'admin-bella', label: 'admin-bella', icon: '💋', description: 'Admin ops, scheduling & docs', agent_id: 'bella', agentSpeaker: 'Bella', welcome: 'Don Jimmy, your calendar and documents are always in order. How may I assist?' },
-  { id: 'alerts', label: 'alerts', icon: '🚨', description: 'System alerts & critical signals', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the alert system is live. I will surface only what matters.' },
-  { id: 'command-center', label: 'command-center', icon: '🎯', description: 'Alfredo\'s orchestration hub', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, #command-center is secure. I am standing by for your directives.' },
-  { id: 'data-kowalski', label: 'data-kowalski', icon: '📊', description: 'Analytics, BI & data science', agent_id: 'kowalski', agentSpeaker: 'Kowalski', welcome: 'Don Jimmy, the data is ready. What requires analysis?' },
-  { id: 'product-rossini', label: 'product-rossini', icon: '🔬', description: 'Product strategy & market research', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, I have been monitoring the market signals. What requires investigation?' },
-  { id: 'research-insights', label: 'research-insights', icon: '✨', description: 'Research insights & intelligence briefs', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, the latest intelligence is compiled and ready for your review.' },
-  { id: 'tech-riccardo', label: 'tech-riccardo', icon: '🔧', description: 'Code reviews, DevOps & engineering', agent_id: 'riccardo', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, the codebase is under my watch. What needs to be fixed or built?' },
+const PRIO_CHANNELS: ChannelDef[] = [
+  { id: 'alerts', label: 'alerts', icon: '🚨', description: 'System alerts & critical signals', agent_id: 'riccardo', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, technical signals are within expected bands. I am monitoring for any anomaly.' },
+  { id: 'incidents', label: 'incidents', icon: '🔥', description: 'Major technical incidents & resolution', agent_id: 'riccardo', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, #incidents is clear. Standing by for immediate stabilization.' },
 ];
 
-const ALL_CHANNELS: ChannelDef[] = [
-  { id: 'agents-coordination', label: 'agents-coordination', icon: '🤝', description: 'Multi-agent workflow coordination', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the agents are coordinated and awaiting orders.' },
-  { id: 'all-la-passione-inc', label: 'all-la-passione-inc', icon: '🏛️', description: 'Family-wide announcements', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the entire Famiglia is listening.' },
-  { id: 'social', label: 'social', icon: '📢', description: 'PR, brand & social strategy', agent_id: 'giuseppina', agentSpeaker: 'Giuseppina', welcome: 'Don Jimmy, the brand is spotless and the audience is ready. Shall we make some noise?' },
+const BUSINESS_CHANNELS: ChannelDef[] = [
+  { id: 'command-center', label: 'command-center', icon: '🎯', description: 'Alfredo\'s orchestration hub', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, #command-center is secure. Awaiting your directives.' },
+  { id: 'admin', label: 'admin', icon: '💋', description: 'Admin ops, scheduling & docs', agent_id: 'bella', agentSpeaker: 'Bella', welcome: 'Don Jimmy, your schedule and documents are pristine. How may I assist?' },
+  { id: 'product', label: 'product', icon: '🔬', description: 'Product strategy & market research', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, the product roadmap is evolving nicely. What requires attention?' },
+  { id: 'tech', label: 'tech', icon: '🔧', description: 'Code reviews, DevOps & engineering', agent_id: 'riccardo', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, the codebase is performant and secure. What needs to be built?' },
+];
+
+const INTEL_CHANNELS: ChannelDef[] = [
+  { id: 'analytics', label: 'analytics', icon: '📊', description: 'Analytics, BI & data science', agent_id: 'kowalski', agentSpeaker: 'Kowalski', welcome: 'Don Jimmy, the metrics have been digested. What requirements do you have?' },
+  { id: 'research-insights', label: 'research-insights', icon: '✨', description: 'Research insights & intelligence briefs', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, I have compiled fresh intelligence for the Famiglia.' },
+];
+
+const OTHER_CHANNELS: ChannelDef[] = [
+  { id: 'agents-coordination', label: 'agents-coordination', icon: '🤝', description: 'Multi-agent workflow coordination', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the agents are communicating and executing.' },
+  { id: 'lounge', label: 'lounge', icon: '🥃', description: 'Ambient chatter & off-the-record briefs', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the lounge is quiet tonight. Care for a brief?' },
+  { id: 'social', label: 'social', icon: '📢', description: 'PR, brand & social strategy', agent_id: 'giuseppina', agentSpeaker: 'Giuseppina', welcome: 'Don Jimmy, the brand is immaculate. Shall we engage?' },
 ];
 
 function buildInitialChats(): Record<string, ChatState> {
   const result: Record<string, ChatState> = {};
-  [...STARRED_CHANNELS, ...ALL_CHANNELS].forEach(ch => {
+  [...PRIO_CHANNELS, ...BUSINESS_CHANNELS, ...INTEL_CHANNELS, ...OTHER_CHANNELS].forEach(ch => {
     result[ch.id] = {
       id: ch.id,
       type: 'channel',
@@ -133,9 +140,9 @@ export function Terminal({ agents, actions }: TerminalProps) {
     }
   }, [actions, activeChatId]);
 
-  // Sync all-la-passione-inc with ambient agent pulses
+  // Sync lounge with ambient agent pulses
   useEffect(() => {
-    if (activeChatId === 'all-la-passione-inc' && agents.length > 0) {
+    if (activeChatId === 'lounge' && agents.length > 0) {
       const AMBIENT_LINES: Record<string, string> = {
         alfredo: 'The Famiglia is coordinated. Everything is moving with understated elegance.',
         riccardo: 'Codebase is stable. I have already fixed three things nobody noticed were broken.',
@@ -161,7 +168,7 @@ export function Terminal({ agents, actions }: TerminalProps) {
         }));
       setChats(prev => ({
         ...prev,
-        'all-la-passione-inc': { ...prev['all-la-passione-inc'], messages: ambientMessages }
+        'lounge': { ...prev['lounge'], messages: ambientMessages }
       }));
     }
   }, [agents, activeChatId]);
@@ -359,25 +366,47 @@ export function Terminal({ agents, actions }: TerminalProps) {
           </div>
         </div>
 
-        {/* Starred */}
+        {/* PRIO */}
         <div className="mb-4">
-          <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
-            <span className="material-symbols-outlined text-[14px]">star</span>
-            <span className="font-label text-[10px] uppercase tracking-[0.25em]">Starred</span>
+          <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-red-400 font-bold group mb-1">
+            <span className="material-symbols-outlined text-[14px]">priority_high</span>
+            <span className="font-label text-[10px] uppercase tracking-[0.25em]">PRIO</span>
           </button>
           <div className="space-y-0.5">
-            {STARRED_CHANNELS.map(renderChannelButton)}
+            {PRIO_CHANNELS.map(renderChannelButton)}
           </div>
         </div>
 
-        {/* All Channels */}
+        {/* Business */}
         <div className="mb-4">
           <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
-            <span className="material-symbols-outlined text-[14px]">tag</span>
-            <span className="font-label text-[10px] uppercase tracking-[0.25em]">Channels</span>
+            <span className="material-symbols-outlined text-[14px]">business_center</span>
+            <span className="font-label text-[10px] uppercase tracking-[0.25em]">Business</span>
           </button>
           <div className="space-y-0.5">
-            {ALL_CHANNELS.map(renderChannelButton)}
+            {BUSINESS_CHANNELS.map(renderChannelButton)}
+          </div>
+        </div>
+
+        {/* Intel */}
+        <div className="mb-4">
+          <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
+            <span className="material-symbols-outlined text-[14px]">psychology</span>
+            <span className="font-label text-[10px] uppercase tracking-[0.25em]">Intel</span>
+          </button>
+          <div className="space-y-0.5">
+            {INTEL_CHANNELS.map(renderChannelButton)}
+          </div>
+        </div>
+
+        {/* Others */}
+        <div className="mb-4">
+          <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
+            <span className="material-symbols-outlined text-[14px]">more_horiz</span>
+            <span className="font-label text-[10px] uppercase tracking-[0.25em]">Others</span>
+          </button>
+          <div className="space-y-0.5">
+            {OTHER_CHANNELS.map(renderChannelButton)}
           </div>
         </div>
 

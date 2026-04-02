@@ -186,12 +186,13 @@ class BaseAgent(CommonSkills, TaskTools, OnDemandMasterSupervisor):
         sender: str = "Unknown",
         conversation_key: Optional[str] = None,
         on_intermediate_response: Optional[Callable[[str], None]] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Main orchestration loop powered by LangGraph.
         """
         # 1. Initialize state
-        state = self._get_initial_state(task, sender, conversation_key)
+        state = self._get_initial_state(task, sender, conversation_key, metadata=metadata)
         # 2. Execute graph with streaming support
         callback = None
         final_state = state

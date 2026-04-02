@@ -8,29 +8,12 @@ from dotenv import load_dotenv
 from urllib.parse import urlparse
 from mattermostdriver import Driver
 
-# Queue Priorities
-PRIORITY_CRITICAL = 0
-PRIORITY_HIGH = 1
-PRIORITY_MEDIUM = 2
-PRIORITY_LOW = 3
+from famiglia_core.command_center.backend.comms.common.queue import CommsQueue, PRIORITY_CRITICAL, PRIORITY_HIGH, PRIORITY_MEDIUM, PRIORITY_LOW, BATCH_INTERVALS
 
-# Batching Intervals (seconds)
-BATCH_INTERVALS = {
-    PRIORITY_MEDIUM: 30,
-    PRIORITY_LOW: 300  # 5 minutes
-}
-
-INCOMING_QUEUE_KEY = "mattermost:incoming:queue"
-
-class MattermostQueueClient:
+class MattermostQueueClient(CommsQueue):
     def __init__(self, redis_url: Optional[str] = None):
+        super().__init__(platform="mattermost", redis_url=redis_url)
         load_dotenv()
-        if not redis_url:
-            host = os.getenv("REDIS_HOST", "localhost")
-            port = os.getenv("REDIS_PORT", "6379")
-            redis_url = f"redis://{host}:{port}"
-            
-        self.redis = redis.from_url(redis_url)
         print("[MattermostQueueClient] Initializing v2 (hostname fix)...")
         
         # Connection settings
@@ -84,16 +67,6 @@ class MattermostQueueClient:
                     del self.drivers[agent_key]
 
 
-        # Rate limiting state
-        self.last_sent: Dict[str, float] = {}
-        self.MIN_INTERVAL = 1.0
-        
-        # Batching state: {(channel, priority, root_id): [messages]}
-        self.batches: Dict[tuple[str, int, Optional[str]], List[dict]] = {}
-        self.last_batch_time: Dict[tuple[str, int, Optional[str]], float] = {}
-        
-        self.worker_thread = None
-        self.running = False
         self.app_env = os.getenv("APP_ENV", "production").lower()
 
     def get_driver(self, agent: str) -> Optional[Driver]:
@@ -140,6 +113,8 @@ class MattermostQueueClient:
                     return channel['id']
                 except:
                     continue
+            return None
+        except Exception:
             return None
         except Exception:
             return None
@@ -242,40 +217,6 @@ class MattermostQueueClient:
         except Exception:
             return "Unknown"
 
-    def enqueue_message(self, agent: str, channel_id: str, message: str, priority: int = PRIORITY_MEDIUM, root_id: Optional[str] = None):
-        payload = {
-            "agent": agent,
-            "channel": channel_id,
-            "message": message,
-            "priority": priority,
-            "root_id": root_id,
-            "timestamp": time.time()
-        }
-        queue_key = f"mattermost:queue:{priority}"
-        self.redis.rpush(queue_key, json.dumps(payload))
-
-    def enqueue_incoming(self, payload: dict):
-        """Puts an incoming Mattermost event in the queue for background processing"""
-        self.redis.rpush(INCOMING_QUEUE_KEY, json.dumps(payload))
-        
-    def dequeue_incoming(self) -> Optional[dict]:
-        """Pops an incoming Mattermost event from the queue"""
-        data = self.redis.lpop(INCOMING_QUEUE_KEY)
-        if data:
-            return json.loads(data)
-        return None
-
-    def start_worker(self):
-        if self.running: return
-        self.running = True
-        self.worker_thread = threading.Thread(target=self._process_queue, daemon=True)
-        self.worker_thread.start()
-
-    def stop_worker(self):
-        self.running = False
-        if self.worker_thread:
-            self.worker_thread.join(timeout=2.0)
-
     def _process_queue(self):
         while self.running:
             item = self._dequeue_next()
@@ -322,27 +263,15 @@ class MattermostQueueClient:
             self._rate_limit(channel)
             self.post_message(msg["agent"], channel, msg["message"], root_id=root_id)
 
-    def _dequeue_next(self) -> Optional[tuple[str, dict]]:
-        for priority in [PRIORITY_CRITICAL, PRIORITY_HIGH, PRIORITY_MEDIUM, PRIORITY_LOW]:
-            queue_key = f"mattermost:queue:{priority}"
-            data = self.redis.lpop(queue_key)
-            if data:
-                return queue_key, json.loads(data)
-        return None
-
     def _send_immediately(self, payload: dict):
         channel = payload["channel"]
         root_id = payload.get("root_id")
         self._rate_limit(channel)
         self.post_message(payload["agent"], channel, payload["message"], root_id=root_id)
 
-    def _rate_limit(self, channel: str):
-        now = time.time()
-        last = self.last_sent.get(channel, 0.0)
-        wait_time = self.MIN_INTERVAL - (now - last)
-        if wait_time > 0:
-            time.sleep(wait_time)
-        self.last_sent[channel] = time.time()
+    def start_worker(self):
+        """Standard parameterless start for the backend main loop."""
+        super().start_worker(self._process_queue)
 
 # Singleton instance
 mattermost_queue = MattermostQueueClient()

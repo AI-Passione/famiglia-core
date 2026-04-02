@@ -45,12 +45,21 @@ async def chat_standard(request: ChatRequest):
         user=request.platform_user_id or str(user_info.get("id", "0"))
     )
 
-    # 3. Call Agent
+    # 3. Resolve Metadata for Distribution
+    metadata = {
+        "platform": request.platform,
+        "thread_id": request.thread_id,
+        "user_id": request.platform_user_id or str(user_info.get("id", "0")),
+        "channel": request.metadata.get("channel_id", "web-dashboard")
+    }
+
+    # 4. Call Agent
     try:
         response = agent_obj.complete_task(
             request.message,
             sender=sender_context,
-            conversation_key=conversation_key
+            conversation_key=conversation_key,
+            metadata=metadata
         )
         return ChatResponse(
             agent_id=request.agent_id,
@@ -96,6 +105,14 @@ async def chat_stream(
                 loop
             )
 
+        # Prepare metadata
+        metadata = {
+            "platform": platform,
+            "thread_id": thread_id,
+            "user_id": platform_user_id or "0",
+            "channel": "web-dashboard"
+        }
+
         # Start agent task in a separate thread to prevent blocking
         task = loop.run_in_executor(
             None, 
@@ -103,7 +120,8 @@ async def chat_stream(
             message, 
             sender_context, 
             conversation_key, 
-            on_intermediate
+            on_intermediate,
+            metadata
         )
 
         # Yield from queue until task is done

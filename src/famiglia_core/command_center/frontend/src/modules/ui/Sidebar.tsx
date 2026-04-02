@@ -1,12 +1,12 @@
 export function Sidebar({ activeTab, setActiveTab }: any) {
   const items = [
-    { id: 'terminal', label: 'The Terminal', icon: 'chat' },
     { id: 'situation_room', label: 'The Situation Room', icon: 'dashboard' },
     { id: 'operations', label: 'Operations', icon: 'description' },
     { id: 'agenda', label: 'The Agenda', icon: 'calendar_month' },
     { id: 'famiglia', label: 'The Famiglia', icon: 'groups' },
     { id: 'intelligences', label: 'Intelligences', icon: 'insights' },
     { id: 'lounge', label: 'The Lounge', icon: 'nightlife' },
+    { id: 'terminal', label: 'The Terminal', icon: 'chat' },
     { id: 'engine_room', label: 'The Engine Room', icon: 'precision_manufacturing' },
     { id: 'connections', label: 'Connections', icon: 'hub' },
   ];

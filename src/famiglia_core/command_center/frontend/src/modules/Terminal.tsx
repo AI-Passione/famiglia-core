@@ -52,46 +52,61 @@ const AGENT_ROLE_MAP: Record<string, string> = {
   giuseppina: 'PR & Brand Excellence',
 };
 
-export function Terminal({ agents, actions }: TerminalProps) {
-  const [activeChatId, setActiveChatId] = useState<string>('directives');
-  const [chats, setChats] = useState<Record<string, ChatState>>({
-    directives: {
-      id: 'directives',
+interface ChannelDef {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+  agent_id?: string;
+  welcome: string;
+  agentSpeaker?: string;
+}
+
+const STARRED_CHANNELS: ChannelDef[] = [
+  { id: 'admin-bella', label: 'admin-bella', icon: '💋', description: 'Admin ops, scheduling & docs', agent_id: 'bella', agentSpeaker: 'Bella', welcome: 'Don Jimmy, your calendar and documents are always in order. How may I assist?' },
+  { id: 'alerts', label: 'alerts', icon: '🚨', description: 'System alerts & critical signals', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the alert system is live. I will surface only what matters.' },
+  { id: 'command-center', label: 'command-center', icon: '🎯', description: 'Alfredo\'s orchestration hub', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, #command-center is secure. I am standing by for your directives.' },
+  { id: 'data-kowalski', label: 'data-kowalski', icon: '📊', description: 'Analytics, BI & data science', agent_id: 'kowalski', agentSpeaker: 'Kowalski', welcome: 'Don Jimmy, the data is ready. What requires analysis?' },
+  { id: 'product-rossini', label: 'product-rossini', icon: '🔬', description: 'Product strategy & market research', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, I have been monitoring the market signals. What requires investigation?' },
+  { id: 'research-insights', label: 'research-insights', icon: '✨', description: 'Research insights & intelligence briefs', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, the latest intelligence is compiled and ready for your review.' },
+  { id: 'tech-riccado', label: 'tech-riccado', icon: '🔧', description: 'Code reviews, DevOps & engineering', agent_id: 'riccado', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, the codebase is under my watch. What needs to be fixed or built?' },
+];
+
+const ALL_CHANNELS: ChannelDef[] = [
+  { id: '_dev', label: '_dev', icon: '🛠️', description: 'Internal dev sandbox & experiments', agent_id: 'riccado', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, dev sandbox is active.' },
+  { id: 'agents-coordination', label: 'agents-coordination', icon: '🤝', description: 'Multi-agent workflow coordination', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the agents are coordinated and awaiting orders.' },
+  { id: 'all-la-passione-inc', label: 'all-la-passione-inc', icon: '🏛️', description: 'Family-wide announcements', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the entire Famiglia is listening.' },
+  { id: 'social', label: 'social', icon: '📢', description: 'PR, brand & social strategy', agent_id: 'giuseppina', agentSpeaker: 'Giuseppina', welcome: 'Don Jimmy, the brand is spotless and the audience is ready. Shall we make some noise?' },
+];
+
+function buildInitialChats(): Record<string, ChatState> {
+  const result: Record<string, ChatState> = {};
+  [...STARRED_CHANNELS, ...ALL_CHANNELS].forEach(ch => {
+    result[ch.id] = {
+      id: ch.id,
       type: 'channel',
-      name: 'directives',
-      icon: '🎯',
-      messages: [
-        {
-          id: 'initial',
-          type: 'agent',
-          speaker: 'Alfredo',
-          role: 'Strategic Lead',
-          content: "Don Jimmy, #directives is secure. I am standing by for your orchestration.",
-          timestamp: new Date(),
-          status: 'done',
-          avatar: AGENT_IMAGE_MAP.alfredo
-        }
-      ],
+      name: ch.label,
+      icon: ch.icon,
+      messages: ch.agentSpeaker ? [{
+        id: `init-${ch.id}`,
+        type: 'agent',
+        speaker: ch.agentSpeaker,
+        role: AGENT_ROLE_MAP[ch.agent_id?.toLowerCase() || ''] || 'Agent',
+        content: ch.welcome,
+        timestamp: new Date(),
+        status: 'done',
+        avatar: AGENT_IMAGE_MAP[ch.agent_id?.toLowerCase() || '']
+      }] : [],
       isTyping: false,
-      agent_id: 'alfredo'
-    },
-    operations: {
-      id: 'operations',
-      type: 'channel',
-      name: 'operations',
-      icon: '⚙️',
-      messages: [],
-      isTyping: false
-    },
-    lounge: {
-      id: 'lounge',
-      type: 'channel',
-      name: 'lounge',
-      icon: '🥃',
-      messages: [],
-      isTyping: false
-    }
+      agent_id: ch.agent_id
+    };
   });
+  return result;
+}
+
+export function Terminal({ agents, actions }: TerminalProps) {
+  const [activeChatId, setActiveChatId] = useState<string>('command-center');
+  const [chats, setChats] = useState<Record<string, ChatState>>(buildInitialChats);
 
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -99,45 +114,56 @@ export function Terminal({ agents, actions }: TerminalProps) {
 
   const activeChat = chats[activeChatId];
 
-  // Sync operations and lounge from actions
+  // Sync agents-coordination with live action feed
   useEffect(() => {
-    if (activeChatId === 'operations') {
+    if (activeChatId === 'agents-coordination' && actions.length > 0) {
       const opMessages: Message[] = actions.slice(0, 20).map(action => ({
         id: `op-${action.id}`,
-        type: 'agent',
+        type: 'agent' as const,
         speaker: action.agent_name,
         role: AGENT_ROLE_MAP[action.agent_name.toLowerCase()] || 'Agent',
         content: `Acknowledged: ${action.action_type.replace(/_/g, ' ')}. Status: ${action.approval_status || 'Executing'}`,
         timestamp: new Date(action.timestamp),
-        status: 'done',
+        status: 'done' as const,
         avatar: AGENT_IMAGE_MAP[action.agent_name.toLowerCase()]
       }));
       setChats(prev => ({
         ...prev,
-        operations: { ...prev.operations, messages: opMessages }
+        'agents-coordination': { ...prev['agents-coordination'], messages: opMessages }
       }));
     }
   }, [actions, activeChatId]);
 
-  // Sync lounge ambient chat
+  // Sync all-la-passione-inc with ambient agent pulses
   useEffect(() => {
-    if (activeChatId === 'lounge') {
-       // Mocking some lounge banter based on recent agents active
-       const recentAgents = agents.filter(a => a.status === 'thinking' || a.status === 'idle').slice(0, 3);
-       const loungeMessages: Message[] = recentAgents.map(agent => ({
-         id: `lounge-${agent.name}`,
-         type: 'agent',
-         speaker: agent.name,
-         role: AGENT_ROLE_MAP[agent.name.toLowerCase()] || 'Agent',
-         content: "Observing patterns. The room feels steady tonight.",
-         timestamp: new Date(agent.last_active || Date.now()),
-         status: 'done',
-         avatar: AGENT_IMAGE_MAP[agent.name.toLowerCase()]
-       }));
-       setChats(prev => ({
-         ...prev,
-         lounge: { ...prev.lounge, messages: loungeMessages }
-       }));
+    if (activeChatId === 'all-la-passione-inc' && agents.length > 0) {
+      const AMBIENT_LINES: Record<string, string> = {
+        alfredo: 'The Famiglia is coordinated. Everything is moving with understated elegance.',
+        riccado: 'Codebase is stable. I have already fixed three things nobody noticed were broken.',
+        bella: 'All schedules updated and notes filed. The week looks well-organised, Don Jimmy.',
+        rossini: 'Market signals are quiet but telling. I will have a brief ready shortly.',
+        vito: 'Financial posture is sound. I am watching two positions with cautious optimism.',
+        tommy: 'All operations are executing cleanly. No blockers to report.',
+        kowalski: 'Weekly metrics processed. The numbers are holding their patterns.',
+        giuseppina: 'Brand presence is immaculate. The noise is tasteful and on-strategy.',
+      };
+      const ambientMessages: Message[] = agents
+        .filter(a => a.status === 'thinking' || a.status === 'idle')
+        .slice(0, 5)
+        .map(agent => ({
+          id: `ambient-${agent.name}`,
+          type: 'agent' as const,
+          speaker: agent.name,
+          role: AGENT_ROLE_MAP[agent.name.toLowerCase()] || 'Agent',
+          content: AMBIENT_LINES[agent.name.toLowerCase()] || 'Standing by.',
+          timestamp: new Date(agent.last_active || Date.now()),
+          status: 'done' as const,
+          avatar: AGENT_IMAGE_MAP[agent.name.toLowerCase()]
+        }));
+      setChats(prev => ({
+        ...prev,
+        'all-la-passione-inc': { ...prev['all-la-passione-inc'], messages: ambientMessages }
+      }));
     }
   }, [agents, activeChatId]);
 
@@ -301,32 +327,58 @@ export function Terminal({ agents, actions }: TerminalProps) {
     setActiveChatId(id);
   };
 
+  const renderChannelButton = (ch: ChannelDef) => {
+    const isSelected = activeChatId === ch.id;
+    return (
+      <button
+        key={ch.id}
+        onClick={() => setActiveChatId(ch.id)}
+        title={ch.description}
+        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all group ${
+          isSelected
+            ? 'bg-surface-container-high text-on-surface'
+            : 'text-outline hover:text-on-surface hover:bg-white/5'
+        }`}
+      >
+        <span className={`text-base transition-opacity ${isSelected ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'}`}>{ch.icon}</span>
+        <span className={`font-body text-sm truncate ${ isSelected ? 'font-semibold text-on-surface' : 'font-medium'}`}>#{ch.label}</span>
+        {isSelected && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+      </button>
+    );
+  };
+
   return (
     <div className="h-[calc(100vh-160px)] flex gap-6 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Sub-Sidebar */}
-      <aside className="w-64 flex flex-col gap-8">
-        <div>
-          <h3 className="font-label text-[10px] uppercase tracking-[0.3em] text-outline mb-4 px-2">Channels</h3>
-          <div className="space-y-1">
-            {['directives', 'operations', 'lounge'].map(id => {
-              const chat = chats[id];
-              return (
-                <button
-                  key={id}
-                  onClick={() => setActiveChatId(id)}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all group ${
-                    activeChatId === id 
-                      ? 'bg-surface-container-high text-primary shadow-lg shadow-black/20' 
-                      : 'text-outline hover:text-on-surface hover:bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg opacity-70 group-hover:opacity-100">{chat.icon}</span>
-                    <span className="font-body text-sm font-medium tracking-wide">#{chat.name}</span>
-                  </div>
-                </button>
-              );
-            })}
+      <aside className="w-64 flex flex-col gap-0 overflow-y-auto custom-scrollbar border border-outline/10 rounded-[22px] bg-surface-container-lowest/60 backdrop-blur-xl p-4">
+        {/* Workspace Header */}
+        <div className="flex items-center gap-2 px-1 py-3 mb-3 border-b border-outline/10">
+          <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center text-sm border border-primary/30">🏛️</div>
+          <div className="min-w-0">
+            <p className="font-body text-xs font-bold text-on-surface truncate">La Passione Inc.</p>
+            <p className="font-label text-[9px] uppercase tracking-widest text-outline">Famiglia Workspace</p>
+          </div>
+        </div>
+
+        {/* Starred */}
+        <div className="mb-4">
+          <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
+            <span className="material-symbols-outlined text-[14px]">star</span>
+            <span className="font-label text-[10px] uppercase tracking-[0.25em]">Starred</span>
+          </button>
+          <div className="space-y-0.5">
+            {STARRED_CHANNELS.map(renderChannelButton)}
+          </div>
+        </div>
+
+        {/* All Channels */}
+        <div className="mb-4">
+          <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
+            <span className="material-symbols-outlined text-[14px]">tag</span>
+            <span className="font-label text-[10px] uppercase tracking-[0.25em]">Channels</span>
+          </button>
+          <div className="space-y-0.5">
+            {ALL_CHANNELS.map(renderChannelButton)}
           </div>
         </div>
 

@@ -1,5 +1,27 @@
 # [1.5.0](https://github.com/AI-Passione/famiglia-core/compare/v1.4.0...v1.5.0) (2026-04-02)
 
+
+### Features
+
+* add date column to operations table display ([71d9308](https://github.com/AI-Passione/famiglia-core/commit/71d9308cc736830f780d405cb85601afc42a79aa))
+* add display_name field to SOP workflows with auto-generated ID support ([a851d47](https://github.com/AI-Passione/famiglia-core/commit/a851d4767dac279319c82de0ee9df1a4472cde90))
+* add global operational view and intelligent polling for mission logs ([058a784](https://github.com/AI-Passione/famiglia-core/commit/058a78411f54f62198f112b94051f31e4aa18e64))
+* add healthcheck to app service and update dependency conditions in docker-compose files ([afb6fb5](https://github.com/AI-Passione/famiglia-core/commit/afb6fb562c756328e295f44589063ca201d78720))
+* add ID column to operations table and update associated tests to verify action rendering ([7f4585e](https://github.com/AI-Passione/famiglia-core/commit/7f4585ef8559fd027e16a2f7063434b13eab00d2))
+* add support for creating new SOP categories via initialized protocol menu in SOPBuilder ([024de54](https://github.com/AI-Passione/famiglia-core/commit/024de5467744865afc881ce7e17392632ff2071a))
+* implement animated premium tab navigation with icons and layout indicators in Operations module ([359cf60](https://github.com/AI-Passione/famiglia-core/commit/359cf60eae4e5535f0bf279ab1ef716f17b17ff4))
+* implement conversation history API and integrate strategic dialogue feed into operations dashboard ([b69691f](https://github.com/AI-Passione/famiglia-core/commit/b69691fb566fcfb3d976d64ce3b620f005503d7e))
+* implement dashboard data fetching with auto-refresh for mission logs and agent conversations ([d12d26c](https://github.com/AI-Passione/famiglia-core/commit/d12d26c7f07733658afbe717fad86f474dd136f8))
+* implement paginated agent action ledger with filtering and backend API support ([4080fe0](https://github.com/AI-Passione/famiglia-core/commit/4080fe0453f13f45436cf0c07d70fa4f7e60b071))
+* implement paginated system task feed in Operations module with auto-refresh functionality ([894df36](https://github.com/AI-Passione/famiglia-core/commit/894df36e5569462c939b7dcda3657c98ed552af2))
+* implement SOP builder and manager modules with backend API support for workflow orchestration ([d1bd94d](https://github.com/AI-Passione/famiglia-core/commit/d1bd94d9b0225e794b526627168f422d69003bcf))
+* implement SOP category management and backend API support for workflow execution ([adda26d](https://github.com/AI-Passione/famiglia-core/commit/adda26da04f90ff78ba3f10a0979a688ea8b408b))
+* implement SOP execution route and update graph parser to support recursive directory traversal ([d33a70e](https://github.com/AI-Passione/famiglia-core/commit/d33a70edd7236f9dd0b42ce320f9690fd44e00f7))
+* namespace operations API under /api/v1/operations and expand task query to include SOP executions ([781b2fc](https://github.com/AI-Passione/famiglia-core/commit/781b2fc93a84593340f0f74d9165274582fd618b))
+* replace global view placeholder with operational metrics dashboard and remove ID prefixes from table rows ([f095fb4](https://github.com/AI-Passione/famiglia-core/commit/f095fb4269f1c64fb98dc2642a6101b58d911dec))
+
+# [1.5.0](https://github.com/AI-Passione/famiglia-core/compare/v1.4.0...v1.5.0) (2026-04-02)
+
 ### Features
 
 * **SOP Hub 1.0**: Implement structural tier persistence with `workflow_categories` database support and a category-driven UI rendering architecture.

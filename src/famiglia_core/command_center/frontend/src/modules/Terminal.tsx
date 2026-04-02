@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Agent, ActionLog } from '../types';
 import { 
   useTerminal, 
   PRIO_CHANNELS, 

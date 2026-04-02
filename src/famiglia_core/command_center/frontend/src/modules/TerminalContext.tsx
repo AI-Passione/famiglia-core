@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react';
-import type { FamigliaAgent, Agent, ActionLog } from '../types';
+import type { FamigliaAgent, ActionLog } from '../types';
 import { API_BASE, BACKEND_BASE } from '../config';
 
 // --- Shared Constants & Types ---

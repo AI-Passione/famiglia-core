@@ -12,7 +12,7 @@ import { Sidebar } from './modules/ui/Sidebar';
 import { Agenda } from './modules/Agenda';
 import { SituationRoom } from './modules/SituationRoom';
 import { EngineRoom } from './modules/EngineRoom';
-import { SOP } from './modules/SOP';
+import { Operations } from './modules/Operations';
 import { Intelligences } from './modules/Intelligences';
 import { Connections } from './modules/Connections';
 import { Settings } from './modules/Settings';
@@ -198,8 +198,8 @@ function App() {
             {activeTab === 'engine_room' && (
               <EngineRoom />
             )}
-            {activeTab === 'sop' && (
-              <SOP 
+            {activeTab === 'operations' && (
+              <Operations 
                 graphs={graphs} 
                 selectedGraph={selectedGraph} 
                 setSelectedGraph={setSelectedGraph} 
@@ -225,7 +225,7 @@ function App() {
               <Settings settings={settings} onSettingsChange={setSettings} />
             )}
             {/* Fallback for other tabs */}
-            {!['agenda', 'situation_room', 'engine_room', 'sop', 'famiglia', 'lounge', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
+            {!['agenda', 'situation_room', 'engine_room', 'operations', 'famiglia', 'lounge', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center py-40 opacity-40">
                 <span className="material-symbols-outlined text-6xl mb-4">construction</span>
                 <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>

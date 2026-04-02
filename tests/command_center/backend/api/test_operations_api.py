@@ -6,7 +6,7 @@ from famiglia_core.command_center.backend.api.main import app
 
 client = TestClient(app)
 
-@patch("famiglia_core.command_center.backend.api.routes.sop.graph_parser")
+@patch("famiglia_core.command_center.backend.api.routes.operations.graph_parser")
 def test_get_graphs_endpoint(mock_parser):
     mock_parser.parse_all_graphs.return_value = [
         {
@@ -23,7 +23,7 @@ def test_get_graphs_endpoint(mock_parser):
     assert len(data) == 1
     assert data[0]["id"] == "prd_drafting"
 
-@patch("famiglia_core.command_center.backend.api.routes.sop.context_store")
+@patch("famiglia_core.command_center.backend.api.routes.operations.context_store")
 def test_get_mission_logs_endpoint(mock_store):
     # Mocking DB session for mission logs
     mock_cursor = MagicMock()
@@ -47,7 +47,7 @@ def test_get_mission_logs_endpoint(mock_store):
     assert data[0]["id"] == "ML-101"
     assert data[0]["status"] == "success"
 
-@patch("famiglia_core.command_center.backend.api.routes.sop.context_store")
+@patch("famiglia_core.command_center.backend.api.routes.operations.context_store")
 def test_get_all_mission_logs_endpoint(mock_store):
     # Mocking DB session for global mission logs
     mock_cursor = MagicMock()
@@ -73,9 +73,9 @@ def test_get_all_mission_logs_endpoint(mock_store):
     assert data[0]["graph_id"] == "prd_drafting"
     assert data[0]["status"] == "running"
 
-@patch("famiglia_core.command_center.backend.api.routes.sop.context_store")
-@patch("famiglia_core.command_center.backend.api.routes.sop.os.walk")
-@patch("famiglia_core.command_center.backend.api.routes.sop.graph_parser")
+@patch("famiglia_core.command_center.backend.api.routes.operations.context_store")
+@patch("famiglia_core.command_center.backend.api.routes.operations.os.walk")
+@patch("famiglia_core.command_center.backend.api.routes.operations.graph_parser")
 def test_execute_graph_endpoint(mock_parser, mock_walk, mock_store):
     # Mock finding the graph file
     mock_walk.return_value = [
@@ -86,7 +86,7 @@ def test_execute_graph_endpoint(mock_parser, mock_walk, mock_store):
     # Mock task creation
     mock_store.create_scheduled_task.return_value = {
         "id": 999,
-        "title": "Execute SOP: PRD Drafting"
+        "title": "Execute Operations: PRD Drafting"
     }
     
     response = client.post("/api/v1/graphs/prd_drafting/execute")
@@ -100,7 +100,7 @@ def test_execute_graph_endpoint(mock_parser, mock_walk, mock_store):
     assert kwargs["metadata"]["graph_id"] == "prd_drafting"
 
 def test_execute_graph_not_found():
-    with patch("famiglia_core.command_center.backend.api.routes.sop.os.walk") as mock_walk:
+    with patch("famiglia_core.command_center.backend.api.routes.operations.os.walk") as mock_walk:
         mock_walk.return_value = []
         response = client.post("/api/v1/graphs/non_existent/execute")
         assert response.status_code == 404

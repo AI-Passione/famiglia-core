@@ -3,13 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { GraphDefinition, MissionLogEntry, GraphNode } from '../types';
 import { API_BASE } from '../config';
 
-interface SOPProps {
+interface OperationsProps {
   graphs: GraphDefinition[];
   selectedGraph: GraphDefinition | null;
   setSelectedGraph: (g: GraphDefinition) => void;
 }
 
-export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
+export function Operations({ graphs, selectedGraph, setSelectedGraph }: OperationsProps) {
   const [logs, setLogs] = useState<MissionLogEntry[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [viewMode, setViewMode] = useState<'specific' | 'global'>('specific');
@@ -76,7 +76,7 @@ export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
       className="space-y-12"
     >
       <div className="space-y-8">
-        <SOPHeader selectedGraph={selectedGraph} viewMode={viewMode} setViewMode={setViewMode} />
+        <OperationsHeader selectedGraph={selectedGraph} viewMode={viewMode} setViewMode={setViewMode} />
         <GraphSelector 
           graphs={graphs} 
           selectedGraph={selectedGraph} 
@@ -96,7 +96,7 @@ export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
               <span className="material-symbols-outlined text-4xl text-outline/40 mb-4">analytics</span>
               <h3 className="font-headline text-xl text-on-surface">Global Operational View</h3>
               <p className="font-body text-sm text-outline max-w-md mx-auto mt-2">
-                Select a specific SOP from the tabs above to visualize its logic or initiate a new autonomous pipeline.
+                Select a specific Operational Graph from the tabs above to visualize its logic or initiate a new autonomous pipeline.
               </p>
             </div>
           )}
@@ -107,7 +107,7 @@ export function SOP({ graphs, selectedGraph, setSelectedGraph }: SOPProps) {
   );
 }
 
-function SOPHeader({ 
+function OperationsHeader({ 
   selectedGraph, 
   viewMode, 
   setViewMode 
@@ -120,7 +120,7 @@ function SOPHeader({
     <div className="flex justify-between items-end">
       <div>
         <h2 className="font-headline text-4xl text-on-surface mb-2 tracking-tight">
-          {viewMode === 'global' ? 'Operational History' : `SOP: ${selectedGraph?.name}`}
+          {viewMode === 'global' ? 'Operational History' : `Operations: ${selectedGraph?.name}`}
         </h2>
         <p className="font-body text-[#a38b88] max-w-2xl text-sm leading-relaxed">
           {viewMode === 'global' 

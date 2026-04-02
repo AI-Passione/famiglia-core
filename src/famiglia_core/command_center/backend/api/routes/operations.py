@@ -26,7 +26,7 @@ class ExecutionResponse(BaseModel):
 
 @router.get("/graphs", response_model=List[GraphDefinition])
 async def get_graphs():
-    """Discover all SOP graphs in the features directory recursively."""
+    """Discover all Operations graphs in the features directory recursively."""
     return graph_parser.parse_all_graphs()
 
 @router.get("/graphs/{graph_id}", response_model=Optional[GraphDefinition])
@@ -57,7 +57,7 @@ async def get_all_mission_logs():
                     completed_at, 
                     created_by_name as initiator
                 FROM task_instances
-                WHERE metadata->>'task_type' = 'sop_execution'
+                WHERE metadata->>'task_type' = 'operations_execution'
                 ORDER BY created_at DESC
                 LIMIT 40
             """
@@ -89,7 +89,7 @@ async def get_all_mission_logs():
                 ))
             return logs
     except Exception as e:
-        print(f"[SOP API] Error fetching all mission logs: {e}")
+        print(f"[Operations API] Error fetching all mission logs: {e}")
         return []
 
 @router.get("/mission-logs/{graph_id}", response_model=List[MissionLog])
@@ -143,12 +143,12 @@ async def get_mission_logs(graph_id: str):
                 ))
             return logs
     except Exception as e:
-        print(f"[SOP API] Error fetching mission logs: {e}")
+        print(f"[Operations API] Error fetching mission logs: {e}")
         return []
 
 @router.post("/graphs/{graph_id}/execute", response_model=ExecutionResponse)
 async def execute_graph(graph_id: str, request: Request):
-    """Trigger a new execution of an SOP graph."""
+    """Trigger a new execution of an Operations graph."""
     # Find the graph to ensure it exists
     graph = None
     for root, _, files in os.walk(FEATURES_DIR):
@@ -161,20 +161,20 @@ async def execute_graph(graph_id: str, request: Request):
 
     # Create a task instance for the orchestration layer
     task = context_store.create_scheduled_task(
-        title=f"Execute SOP: {graph.name}",
+        title=f"Execute Operations: {graph.name}",
         task_payload=f"Triggering autonomous pipeline for {graph_id}",
         priority="high",
         created_by_type="human_user",
         created_by_name="Don", # Defaulting to Don for now
         metadata={
             "graph_id": graph_id,
-            "task_type": "sop_execution",
+            "task_type": "operations_execution",
             "triggered_at": datetime.now(timezone.utc).isoformat()
         }
     )
 
     if not task:
-        raise HTTPException(status_code=500, detail="Failed to initiate SOP execution task")
+        raise HTTPException(status_code=500, detail="Failed to initiate Operations execution task")
 
     return ExecutionResponse(
         task_id=task["id"],

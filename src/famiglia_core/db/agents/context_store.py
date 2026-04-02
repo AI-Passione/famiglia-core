@@ -488,6 +488,7 @@ class AgentContextStore:
         self,
         statuses: Optional[List[str]] = None,
         limit: int = 100,
+        offset: int = 0,
     ) -> List[Dict[str, Any]]:
         normalized_statuses = self._normalize_statuses(statuses)
         query = "SELECT * FROM task_instances"
@@ -496,17 +497,18 @@ class AgentContextStore:
             query += " WHERE status = ANY(%s)"
             params.append(normalized_statuses)
         query += """
-            ORDER BY
+            ORDER BY 
                 CASE priority
                     WHEN 'critical' THEN 0
                     WHEN 'high' THEN 1
                     WHEN 'medium' THEN 2
                     ELSE 3
                 END,
-                eta_pickup_at ASC
-            LIMIT %s
+                created_at DESC
+            LIMIT %s OFFSET %s
         """
         params.append(max(1, min(limit, 500)))
+        params.append(max(0, offset))
 
         try:
             with self.db_session(commit=False) as cursor:
@@ -516,6 +518,24 @@ class AgentContextStore:
         except Exception as e:
             print(f"[ContextStore] Failed to list task instances: {e}")
             return []
+
+    def get_total_task_count(self, statuses: Optional[List[str]] = None) -> int:
+        normalized_statuses = self._normalize_statuses(statuses)
+        query = "SELECT COUNT(*) FROM task_instances"
+        params = []
+        if normalized_statuses:
+            query += " WHERE status = ANY(%s)"
+            params.append(normalized_statuses)
+            
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return 0
+                cursor.execute(query, params)
+                row = cursor.fetchone()
+                return int(row["count"]) if row else 0
+        except Exception as e:
+            print(f"[ContextStore] Failed to count task instances: {e}")
+            return 0
 
     def claim_next_scheduled_task(self, eligible_agents: List[str]) -> Optional[Dict[str, Any]]:
         if not self.enabled or not eligible_agents:

@@ -1,18 +1,23 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { GraphDefinition, MissionLogEntry, GraphNode } from '../types';
+import type { GraphDefinition, MissionLogEntry, GraphNode, Task, PaginatedTasks } from '../types';
 import { API_BASE } from '../config';
 
 interface OperationsProps {
   graphs: GraphDefinition[];
   selectedGraph: GraphDefinition | null;
   setSelectedGraph: (g: GraphDefinition) => void;
+  initialTasks: Task[];
 }
 
-export function Operations({ graphs, selectedGraph, setSelectedGraph }: OperationsProps) {
+export function Operations({ graphs, selectedGraph, setSelectedGraph, initialTasks }: OperationsProps) {
   const [logs, setLogs] = useState<MissionLogEntry[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [viewMode, setViewMode] = useState<'specific' | 'global'>('specific');
+  const [systemTasks, setSystemTasks] = useState<Task[]>(initialTasks);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -30,22 +35,37 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph }: Operatio
     }
   }, [selectedGraph, viewMode]);
 
+  const fetchSystemTasks = useCallback(async (page: number) => {
+    try {
+      const offset = (page - 1) * PAGE_SIZE;
+      const res = await fetch(`${API_BASE}/tasks?limit=${PAGE_SIZE}&offset=${offset}`);
+      if (res.ok) {
+        const data = await res.json() as PaginatedTasks;
+        setSystemTasks(data.tasks);
+        setTotalTasks(data.total);
+      }
+    } catch (err) {
+      console.error("Error fetching system tasks:", err);
+    }
+  }, []);
+
   // Initial fetch and view mode sync
   useEffect(() => {
     if (!selectedGraph && viewMode === 'specific') {
       setViewMode('global');
     }
     fetchLogs();
-  }, [fetchLogs, selectedGraph, viewMode]);
+    fetchSystemTasks(currentPage);
+  }, [fetchLogs, fetchSystemTasks, selectedGraph, viewMode, currentPage]);
 
-  // Intelligent Polling: Refresh every 5s if any mission is 'running'
+  // Intelligent Polling: Refresh current page every 5s
   useEffect(() => {
-    const hasRunningMissions = logs.some(log => log.status === 'running');
-    if (hasRunningMissions) {
-      const interval = setInterval(fetchLogs, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [logs, fetchLogs]);
+    const interval = setInterval(() => {
+      fetchLogs();
+      fetchSystemTasks(currentPage);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [logs, fetchLogs, fetchSystemTasks, currentPage]);
 
   const handleExecute = async () => {
     if (!selectedGraph || isExecuting) return;
@@ -101,6 +121,14 @@ export function Operations({ graphs, selectedGraph, setSelectedGraph }: Operatio
             </div>
           )}
           <MissionLogs logs={logs} viewMode={viewMode} />
+          
+          <SystemTaskFeed 
+            tasks={systemTasks} 
+            total={totalTasks} 
+            currentPage={currentPage} 
+            setCurrentPage={setCurrentPage}
+            pageSize={PAGE_SIZE}
+          />
         </div>
       </div>
     </motion.div>
@@ -500,6 +528,106 @@ function MissionLogs({ logs, viewMode }: { logs: MissionLogEntry[], viewMode: 's
       {logs.length === 0 && (
         <div className="p-20 text-center">
           <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting connection to deep archives...</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SystemTaskFeed({ 
+  tasks, 
+  total, 
+  currentPage, 
+  setCurrentPage,
+  pageSize 
+}: { 
+  tasks: Task[]; 
+  total: number; 
+  currentPage: number; 
+  setCurrentPage: (p: number) => void;
+  pageSize: number;
+}) {
+  const totalPages = Math.ceil(total / pageSize);
+
+  return (
+    <section className="bg-surface-container-low border border-outline-variant/10 overflow-hidden">
+      <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/30">
+        <div>
+          <h3 className="font-headline text-2xl text-on-surface">System Operations Feed</h3>
+          <p className="font-label text-[10px] text-tertiary uppercase tracking-[0.2em] mt-1 opacity-70">
+            Raw Task Instance Stream // 0xDEEP
+          </p>
+        </div>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <span className="font-label text-[10px] text-outline uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</span>
+          </div>
+          <div className="flex space-x-2">
+            <button 
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="p-2 border border-outline-variant/20 hover:border-tertiary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+            >
+              <span className="material-symbols-outlined text-sm text-tertiary">chevron_left</span>
+            </button>
+            <button 
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage >= totalPages}
+              className="p-2 border border-outline-variant/20 hover:border-tertiary/40 disabled:opacity-30 disabled:pointer-events-none transition-all"
+            >
+              <span className="material-symbols-outlined text-sm text-tertiary">chevron_right</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-surface-container-high/50 border-b border-outline-variant/10">
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">ID</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Title</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Payload</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Status</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">Created At</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-outline-variant/5">
+            {tasks.map((task) => (
+              <tr key={task.id} className="hover:bg-surface-container-highest/20 transition-colors group">
+                <td className="px-8 py-5 font-mono text-[11px] text-tertiary">T-{task.id}</td>
+                <td className="px-8 py-5 font-body text-xs text-on-surface font-medium truncate max-w-[200px]">{task.title}</td>
+                <td className="px-8 py-5">
+                  <div className="flex items-center space-x-2 bg-surface-container-highest/40 px-3 py-1.5 border border-outline-variant/10 max-w-[300px]">
+                    <span className="material-symbols-outlined text-[10px] text-outline/40">code</span>
+                    <span className="font-mono text-[9px] text-[#a38b88] truncate">{task.task_payload}</span>
+                  </div>
+                </td>
+                <td className="px-8 py-5">
+                  <span className={`px-3 py-1 text-[9px] font-label uppercase tracking-tighter border ${
+                    task.status === 'completed' 
+                      ? 'bg-primary/10 text-primary border-primary/20' 
+                      : task.status === 'in_progress'
+                      ? 'bg-secondary/10 text-secondary border-secondary/20 animate-pulse'
+                      : task.status === 'failed'
+                      ? 'bg-error/10 text-error border-error/20'
+                      : 'bg-surface-container-high text-outline border-outline-variant/10'
+                  }`}>
+                    {task.status}
+                  </span>
+                </td>
+                <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60 whitespace-nowrap">
+                   {new Date(task.created_at).toLocaleString('en-US', { hour12: false, month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }).toUpperCase()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      {tasks.length === 0 && (
+        <div className="p-20 text-center">
+          <p className="font-label text-xs text-[#a38b88] uppercase tracking-[0.3em] animate-pulse">Awaiting neural task signals...</p>
         </div>
       )}
     </section>

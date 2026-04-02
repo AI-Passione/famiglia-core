@@ -6,6 +6,7 @@ import type {
   RecurringTask,
   GraphDefinition,
   AppSettings,
+  PaginatedTasks,
 } from './types';
 import { TopNav } from './modules/ui/TopNav';
 import { Sidebar } from './modules/ui/Sidebar';
@@ -141,7 +142,10 @@ function App() {
         
         if (agentsRes.ok) setAgents(await agentsRes.json());
         if (actionsRes.ok) setActions(await actionsRes.json());
-        if (tasksRes.ok) setTasks(await tasksRes.json());
+        if (tasksRes.ok) {
+          const data = await tasksRes.json() as PaginatedTasks;
+          setTasks(data.tasks);
+        }
         if (recurringTasksRes.ok) setRecurringTasks(await recurringTasksRes.json());
       } catch (err) {
         console.error("Failed to fetch data:", err);
@@ -203,6 +207,7 @@ function App() {
                 graphs={graphs} 
                 selectedGraph={selectedGraph} 
                 setSelectedGraph={setSelectedGraph} 
+                initialTasks={tasks}
               />
             )}
             {activeTab === 'intelligences' && (

@@ -43,6 +43,11 @@ export interface Task {
   metadata?: Record<string, unknown> | null;
 }
 
+export interface PaginatedTasks {
+  tasks: Task[];
+  total: number;
+}
+
 export interface RecurringTask {
   id: number;
   title: string;

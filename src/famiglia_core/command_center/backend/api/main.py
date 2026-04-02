@@ -111,6 +111,10 @@ class InsightSummary(BaseModel):
     relevance: str = "low"
     processed_at: Optional[datetime] = None
 
+class PaginatedTasks(BaseModel):
+    tasks: List[TaskInstance]
+    total: int
+
 # --- Core Informational Routes ---
 
 @app.get("/")
@@ -145,11 +149,12 @@ async def get_actions(limit: int = 50):
     actions = context_store.list_agent_actions(limit=limit)
     return actions
 
-@app.get("/api/v1/tasks", response_model=List[TaskInstance])
-async def get_tasks(status: Optional[str] = None, limit: int = 50):
+@app.get("/api/v1/tasks", response_model=PaginatedTasks)
+async def get_tasks(status: Optional[str] = None, limit: int = 50, offset: int = 0):
     statuses = [status] if status else None
-    tasks = context_store.list_scheduled_tasks(statuses=statuses, limit=limit)
-    return tasks
+    tasks = context_store.list_scheduled_tasks(statuses=statuses, limit=limit, offset=offset)
+    total = context_store.get_total_task_count(statuses=statuses)
+    return PaginatedTasks(tasks=tasks, total=total)
 
 @app.get("/api/v1/recurring-tasks", response_model=List[RecurringTaskTemplate])
 async def get_recurring_tasks():

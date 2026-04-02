@@ -116,8 +116,6 @@ class MattermostQueueClient(CommsQueue):
             return None
         except Exception:
             return None
-        except Exception:
-            return None
 
     def add_reaction(self, agent: str, post_id: str, emoji_name: str) -> bool:
         """Add a reaction to a post"""

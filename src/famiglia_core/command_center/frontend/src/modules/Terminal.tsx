@@ -1,586 +1,267 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Agent, ActionLog } from '../types';
-import { BACKEND_BASE, API_BASE } from '../config';
+import { 
+  useTerminal, 
+  PRIO_CHANNELS, 
+  BUSINESS_CHANNELS, 
+  INTEL_CHANNELS, 
+  OTHER_CHANNELS,
+  AGENT_IMAGE_MAP,
+  AGENT_ROLE_MAP,
+  Message,
+  ChatState
+} from './TerminalContext';
 
 interface TerminalProps {
-  agents: Agent[];
-  actions: ActionLog[];
+  variant?: 'full' | 'compact';
 }
 
-interface Message {
-  id: string;
-  type: 'user' | 'agent';
-  speaker: string;
-  role: string;
-  content: string;
-  timestamp: Date;
-  status?: 'sending' | 'typing' | 'done' | 'error';
-  avatar?: string;
-}
+export function Terminal({ variant = 'full' }: TerminalProps) {
+  const { 
+    activeChatId, 
+    setActiveChatId, 
+    chats, 
+    setChats, 
+    input, 
+    setInput, 
+    sendMessage,
+    isTyping 
+  } = useTerminal();
 
-interface ChatState {
-  id: string;
-  type: 'channel' | 'dm';
-  name: string;
-  icon: string;
-  messages: Message[];
-  isTyping: boolean;
-  agent_id?: string;
-}
-
-const AGENT_IMAGE_MAP: Record<string, string> = {
-  alfredo: `${BACKEND_BASE}/api/v1/images/alfredo.png`,
-  riccardo: `${BACKEND_BASE}/api/v1/images/riccardo.png`,
-  bella: `${BACKEND_BASE}/api/v1/images/bella.png`,
-  rossini: `${BACKEND_BASE}/api/v1/images/dr_rossini.png`,
-  vito: `${BACKEND_BASE}/api/v1/images/vito.png`,
-  tommy: `${BACKEND_BASE}/api/v1/images/tommy.png`,
-  kowalski: `${BACKEND_BASE}/api/v1/images/kowalski.png`,
-  giuseppina: `${BACKEND_BASE}/api/v1/images/giuseppina.png`,
-  don_jimmy: `${BACKEND_BASE}/api/v1/images/don_jimmy.png`,
-};
-
-const AGENT_ROLE_MAP: Record<string, string> = {
-  alfredo: 'Strategic Lead',
-  riccardo: 'Signal Mechanic',
-  bella: 'Social Secretary',
-  rossini: 'Research Whisperer',
-  vito: 'House Banker',
-  tommy: 'Logistics Runner',
-  kowalski: 'Systems Scout',
-  giuseppina: 'PR & Brand Excellence',
-};
-
-interface ChannelDef {
-  id: string;
-  label: string;
-  icon: string;
-  description: string;
-  agent_id?: string;
-  welcome: string;
-  agentSpeaker?: string;
-}
-
-const PRIO_CHANNELS: ChannelDef[] = [
-  { id: 'alerts', label: 'alerts', icon: '🚨', description: 'System alerts & critical signals', agent_id: 'riccardo', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, technical signals are within expected bands. I am monitoring for any anomaly.' },
-  { id: 'incidents', label: 'incidents', icon: '🔥', description: 'Major technical incidents & resolution', agent_id: 'riccardo', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, #incidents is clear. Standing by for immediate stabilization.' },
-];
-
-const BUSINESS_CHANNELS: ChannelDef[] = [
-  { id: 'command-center', label: 'command-center', icon: '🎯', description: 'Alfredo\'s orchestration hub', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, #command-center is secure. Awaiting your directives.' },
-  { id: 'admin', label: 'admin', icon: '💋', description: 'Admin ops, scheduling & docs', agent_id: 'bella', agentSpeaker: 'Bella', welcome: 'Don Jimmy, your schedule and documents are pristine. How may I assist?' },
-  { id: 'product', label: 'product', icon: '🔬', description: 'Product strategy & market research', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, the product roadmap is evolving nicely. What requires attention?' },
-  { id: 'tech', label: 'tech', icon: '🔧', description: 'Code reviews, DevOps & engineering', agent_id: 'riccardo', agentSpeaker: 'Riccardo', welcome: 'Don Jimmy, the codebase is performant and secure. What needs to be built?' },
-];
-
-const INTEL_CHANNELS: ChannelDef[] = [
-  { id: 'analytics', label: 'analytics', icon: '📊', description: 'Analytics, BI & data science', agent_id: 'kowalski', agentSpeaker: 'Kowalski', welcome: 'Don Jimmy, the metrics have been digested. What requirements do you have?' },
-  { id: 'research-insights', label: 'research-insights', icon: '✨', description: 'Research insights & intelligence briefs', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, I have compiled fresh intelligence for the Famiglia.' },
-];
-
-const OTHER_CHANNELS: ChannelDef[] = [
-  { id: 'agents-coordination', label: 'agents-coordination', icon: '🤝', description: 'Multi-agent workflow coordination', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the agents are communicating and executing.' },
-  { id: 'lounge', label: 'lounge', icon: '🥃', description: 'Ambient chatter & off-the-record briefs', agent_id: 'alfredo', agentSpeaker: 'Alfredo', welcome: 'Don Jimmy, the lounge is quiet tonight. Care for a brief?' },
-  { id: 'social', label: 'social', icon: '📢', description: 'PR, brand & social strategy', agent_id: 'giuseppina', agentSpeaker: 'Giuseppina', welcome: 'Don Jimmy, the brand is immaculate. Shall we engage?' },
-];
-
-function buildInitialChats(): Record<string, ChatState> {
-  const result: Record<string, ChatState> = {};
-  [...PRIO_CHANNELS, ...BUSINESS_CHANNELS, ...INTEL_CHANNELS, ...OTHER_CHANNELS].forEach(ch => {
-    result[ch.id] = {
-      id: ch.id,
-      type: 'channel',
-      name: ch.label,
-      icon: ch.icon,
-      messages: ch.agentSpeaker ? [{
-        id: `init-${ch.id}`,
-        type: 'agent',
-        speaker: ch.agentSpeaker,
-        role: AGENT_ROLE_MAP[ch.agent_id?.toLowerCase() || ''] || 'Agent',
-        content: ch.welcome,
-        timestamp: new Date(),
-        status: 'done',
-        avatar: AGENT_IMAGE_MAP[ch.agent_id?.toLowerCase() || '']
-      }] : [],
-      isTyping: false,
-      agent_id: ch.agent_id
-    };
-  });
-  return result;
-}
-
-export function Terminal({ agents, actions }: TerminalProps) {
-  const [activeChatId, setActiveChatId] = useState<string>('command-center');
-  const [chats, setChats] = useState<Record<string, ChatState>>(buildInitialChats);
-
-  const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
-
   const activeChat = chats[activeChatId];
+  const [showSummary, setShowSummary] = useState(variant === 'compact');
 
-  // Sync agents-coordination with live action feed
-  useEffect(() => {
-    if (activeChatId === 'agents-coordination' && actions.length > 0) {
-      const opMessages: Message[] = actions.slice(0, 20).map(action => ({
-        id: `op-${action.id}`,
-        type: 'agent' as const,
-        speaker: action.agent_name,
-        role: AGENT_ROLE_MAP[action.agent_name.toLowerCase()] || 'Agent',
-        content: `Acknowledged: ${action.action_type.replace(/_/g, ' ')}. Status: ${action.approval_status || 'Executing'}`,
-        timestamp: new Date(action.timestamp),
-        status: 'done' as const,
-        avatar: AGENT_IMAGE_MAP[action.agent_name.toLowerCase()]
-      }));
-      setChats(prev => ({
-        ...prev,
-        'agents-coordination': { ...prev['agents-coordination'], messages: opMessages }
-      }));
-    }
-  }, [actions, activeChatId]);
-
-  // Sync lounge with ambient agent pulses
-  useEffect(() => {
-    if (activeChatId === 'lounge' && agents.length > 0) {
-      const AMBIENT_LINES: Record<string, string> = {
-        alfredo: 'The Famiglia is coordinated. Everything is moving with understated elegance.',
-        riccardo: 'Codebase is stable. I have already fixed three things nobody noticed were broken.',
-        bella: 'All schedules updated and notes filed. The week looks well-organised, Don Jimmy.',
-        rossini: 'Market signals are quiet but telling. I will have a brief ready shortly.',
-        vito: 'Financial posture is sound. I am watching two positions with cautious optimism.',
-        tommy: 'All operations are executing cleanly. No blockers to report.',
-        kowalski: 'Weekly metrics processed. The numbers are holding their patterns.',
-        giuseppina: 'Brand presence is immaculate. The noise is tasteful and on-strategy.',
-      };
-      const ambientMessages: Message[] = agents
-        .filter(a => a.status === 'thinking' || a.status === 'idle')
-        .slice(0, 5)
-        .map(agent => ({
-          id: `ambient-${agent.name}`,
-          type: 'agent' as const,
-          speaker: agent.name,
-          role: AGENT_ROLE_MAP[agent.name.toLowerCase()] || 'Agent',
-          content: AMBIENT_LINES[agent.name.toLowerCase()] || 'Standing by.',
-          timestamp: new Date(agent.last_active || Date.now()),
-          status: 'done' as const,
-          avatar: AGENT_IMAGE_MAP[agent.name.toLowerCase()]
-        }));
-      setChats(prev => ({
-        ...prev,
-        'lounge': { ...prev['lounge'], messages: ambientMessages }
-      }));
-    }
-  }, [agents, activeChatId]);
-
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  };
 
   useEffect(() => {
     scrollToBottom();
-  }, [activeChat.messages, activeChat.isTyping, scrollToBottom]);
+  }, [activeChat?.messages, isTyping]);
 
-  const handleSend = async () => {
-    if (!input.trim() || activeChat.isTyping) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      speaker: 'Don Jimmy',
-      role: 'Boss',
-      content: input,
-      timestamp: new Date(),
-      status: 'done',
-      avatar: AGENT_IMAGE_MAP.don_jimmy
-    };
-
-    setChats(prev => ({
-      ...prev,
-      [activeChatId]: {
-        ...prev[activeChatId],
-        messages: [...prev[activeChatId].messages, userMessage]
-      }
-    }));
-    setInput('');
-
-    // Only stream if it's a DM or #directives
-    const targetAgentId = activeChat.type === 'dm' ? activeChat.agent_id : (activeChatId === 'directives' ? 'alfredo' : null);
-    
-    if (!targetAgentId) return;
-
-    setChats(prev => ({
-      ...prev,
-      [activeChatId]: { ...prev[activeChatId], isTyping: true }
-    }));
-
-    const agentMessageId = (Date.now() + 1).toString();
-    const newAgentMessage: Message = {
-      id: agentMessageId,
-      type: 'agent',
-      speaker: targetAgentId.charAt(0).toUpperCase() + targetAgentId.slice(1),
-      role: AGENT_ROLE_MAP[targetAgentId.toLowerCase()] || 'Agent',
-      content: '',
-      timestamp: new Date(),
-      status: 'typing',
-      avatar: AGENT_IMAGE_MAP[targetAgentId.toLowerCase()]
-    };
-    
-    setChats(prev => ({
-      ...prev,
-      [activeChatId]: {
-        ...prev[activeChatId],
-        messages: [...prev[activeChatId].messages, newAgentMessage]
-      }
-    }));
-
-    try {
-      const url = new URL(`${API_BASE}/chat/stream`);
-      url.searchParams.append('message', input);
-      url.searchParams.append('agent_id', targetAgentId);
-
-      const eventSource = new EventSource(url.toString());
-      eventSourceRef.current = eventSource;
-
-      let fullContent = '';
-
-      eventSource.onmessage = (event: MessageEvent) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'intermediate') {
-          fullContent += data.content;
-          setChats(prev => ({
-            ...prev,
-            [activeChatId]: {
-              ...prev[activeChatId],
-              messages: prev[activeChatId].messages.map(msg => 
-                msg.id === agentMessageId ? { ...msg, content: fullContent } : msg
-              )
-            }
-          }));
-        } else if (data.type === 'final') {
-          setChats(prev => ({
-            ...prev,
-            [activeChatId]: {
-              ...prev[activeChatId],
-              isTyping: false,
-              messages: prev[activeChatId].messages.map(msg => 
-                msg.id === agentMessageId ? { ...msg, content: data.content, status: 'done' } : msg
-              )
-            }
-          }));
-          eventSource.close();
-        } else if (data.type === 'error') {
-          setChats(prev => ({
-            ...prev,
-            [activeChatId]: {
-              ...prev[activeChatId],
-              isTyping: false,
-              messages: prev[activeChatId].messages.map(msg => 
-                msg.id === agentMessageId ? { ...msg, content: "Error: " + data.content, status: 'error' } : msg
-              )
-            }
-          }));
-          eventSource.close();
-        }
-      };
-
-      eventSource.onerror = (err) => {
-        console.error("SSE Error:", err);
-        setChats(prev => ({
-          ...prev,
-          [activeChatId]: { ...prev[activeChatId], isTyping: false }
-        }));
-        eventSource.close();
-      };
-
-    } catch (error) {
-      console.error("Failed to connect to chat:", error);
-      setChats(prev => ({
-        ...prev,
-        [activeChatId]: { ...prev[activeChatId], isTyping: false }
-      }));
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(input);
     }
   };
 
-  const handleDMSelect = (agent: Agent) => {
-    const id = `dm-${agent.name.toLowerCase()}`;
-    if (!chats[id]) {
-      setChats(prev => ({
-        ...prev,
-        [id]: {
-          id,
-          type: 'dm',
-          name: agent.name,
-          icon: '👤',
-          messages: [
-            {
-              id: `dm-init-${agent.name}`,
-              type: 'agent',
-              speaker: agent.name,
-              role: AGENT_ROLE_MAP[agent.name.toLowerCase()] || 'Agent',
-              content: `Don Jimmy, I am at your disposal for direct tactical matters.`,
-              timestamp: new Date(),
-              status: 'done',
-              avatar: AGENT_IMAGE_MAP[agent.name.toLowerCase()]
-            }
-          ],
-          isTyping: false,
-          agent_id: agent.name.toLowerCase()
-        }
-      }));
-    }
-    setActiveChatId(id);
-  };
-
-  const renderChannelButton = (ch: ChannelDef) => {
-    const isSelected = activeChatId === ch.id;
+  const renderChannelButton = (ch: any) => {
+    const isActive = activeChatId === ch.id;
     return (
       <button
         key={ch.id}
         onClick={() => setActiveChatId(ch.id)}
-        title={ch.description}
-        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all group ${
-          isSelected
-            ? 'bg-surface-container-high text-on-surface'
-            : 'text-outline hover:text-on-surface hover:bg-white/5'
+        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-300 group ${
+          isActive 
+            ? 'bg-primary/10 text-primary shadow-[inset_0_0_12px_rgba(255,179,181,0.05)]' 
+            : 'text-outline hover:bg-white/5 hover:text-on-surface'
         }`}
       >
-        <span className={`text-base transition-opacity ${isSelected ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'}`}>{ch.icon}</span>
-        <span className={`font-body text-sm truncate ${ isSelected ? 'font-semibold text-on-surface' : 'font-medium'}`}>#{ch.label}</span>
-        {isSelected && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+        <div className="flex items-center gap-3">
+          <span className="text-lg opacity-70 group-hover:scale-110 transition-transform">{ch.icon}</span>
+          <span className="font-label text-xs uppercase tracking-widest">{ch.label}</span>
+        </div>
+        {isActive && (
+          <motion.div layoutId="active-pill" className="w-1 h-1 rounded-full bg-primary shadow-[0_0_8px_rgba(255,179,181,0.8)]" />
+        )}
       </button>
     );
   };
 
+  if (!activeChat) return <div className="p-10 text-center text-outline">Initializing secure connection...</div>;
+
   return (
-    <div className="h-[calc(100vh-160px)] flex gap-6 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Sub-Sidebar */}
-      <aside className="w-64 flex flex-col gap-0 overflow-y-auto custom-scrollbar border border-outline/10 rounded-[22px] bg-surface-container-lowest/60 backdrop-blur-xl p-4">
-        {/* Workspace Header */}
-        <div className="flex items-center gap-2 px-1 py-3 mb-3 border-b border-outline/10">
-          <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center text-sm border border-primary/30">🏛️</div>
-          <div className="min-w-0">
-            <p className="font-body text-xs font-bold text-on-surface truncate">La Passione Inc.</p>
-            <p className="font-label text-[9px] uppercase tracking-widest text-outline">Famiglia Workspace</p>
+    <div className={`flex bg-surface-container-lowest/10 backdrop-blur-md overflow-hidden ${variant === 'full' ? 'h-full' : 'h-[600px] w-full'}`}>
+      {variant === 'full' && (
+        <aside className="w-72 border-r border-outline/5 flex flex-col bg-surface-container-low/30">
+          <div className="p-6 border-b border-outline/5">
+            <h2 className="font-headline text-sm uppercase tracking-[0.3em] text-primary opacity-80 italic">Hierarchy</h2>
           </div>
-        </div>
-
-        {/* PRIO */}
-        <div className="mb-4">
-          <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-red-400 font-bold group mb-1">
-            <span className="material-symbols-outlined text-[14px]">priority_high</span>
-            <span className="font-label text-[10px] uppercase tracking-[0.25em]">PRIO</span>
-          </button>
-          <div className="space-y-0.5">
-            {PRIO_CHANNELS.map(renderChannelButton)}
-          </div>
-        </div>
-
-        {/* Business */}
-        <div className="mb-4">
-          <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
-            <span className="material-symbols-outlined text-[14px]">business_center</span>
-            <span className="font-label text-[10px] uppercase tracking-[0.25em]">Business</span>
-          </button>
-          <div className="space-y-0.5">
-            {BUSINESS_CHANNELS.map(renderChannelButton)}
-          </div>
-        </div>
-
-        {/* Intel */}
-        <div className="mb-4">
-          <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
-            <span className="material-symbols-outlined text-[14px]">psychology</span>
-            <span className="font-label text-[10px] uppercase tracking-[0.25em]">Intel</span>
-          </button>
-          <div className="space-y-0.5">
-            {INTEL_CHANNELS.map(renderChannelButton)}
-          </div>
-        </div>
-
-        {/* Others */}
-        <div className="mb-4">
-          <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
-            <span className="material-symbols-outlined text-[14px]">more_horiz</span>
-            <span className="font-label text-[10px] uppercase tracking-[0.25em]">Others</span>
-          </button>
-          <div className="space-y-0.5">
-            {OTHER_CHANNELS.map(renderChannelButton)}
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-          <h3 className="font-label text-[10px] uppercase tracking-[0.3em] text-outline mb-4 px-2">Direct Messages</h3>
-          <div className="space-y-1">
-            {agents.map(agent => {
-              const id = `dm-${agent.name.toLowerCase()}`;
-              const isSelected = activeChatId === id;
-              return (
-                <button
-                  key={agent.name}
-                  onClick={() => handleDMSelect(agent)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
-                    isSelected 
-                      ? 'bg-surface-container-high text-primary' 
-                      : 'text-outline hover:text-on-surface hover:bg-white/5'
-                  }`}
-                >
-                  <div className="relative">
-                    <img 
-                      src={AGENT_IMAGE_MAP[agent.name.toLowerCase()]} 
-                      alt={agent.name}
-                      className={`w-8 h-8 rounded-full object-cover border-2 transition-all ${isSelected ? 'border-primary shadow-[0_0_10px_rgba(255,179,181,0.3)]' : 'border-outline/20'}`}
-                    />
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${
-                      agent.status === 'thinking' ? 'bg-amber-500 animate-pulse' : 
-                      agent.status === 'idle' ? 'bg-green-500' : 'bg-outline'
-                    }`}></div>
-                  </div>
-                  <div className="flex flex-col items-start min-w-0">
-                    <span className="font-body text-xs font-semibold truncate w-full">{agent.name}</span>
-                    <span className="font-label text-[9px] uppercase tracking-tighter opacity-50 truncate w-full">
-                      {AGENT_ROLE_MAP[agent.name.toLowerCase()] || 'Agent'}
-                    </span>
-                  </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+            {/* Categories */}
+            <div className="space-y-4">
+              <div>
+                <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-red-400 font-bold group mb-1">
+                  <span className="material-symbols-outlined text-[14px]">priority_high</span>
+                  <span className="font-label text-[10px] uppercase tracking-[0.25em]">PRIO</span>
                 </button>
-              );
-            })}
-          </div>
-        </div>
-      </aside>
+                <div className="space-y-0.5">{PRIO_CHANNELS.map(renderChannelButton)}</div>
+              </div>
 
-      {/* Main Chat Area */}
-      <main className="flex-1 glass-module border border-outline/10 rounded-[28px] overflow-hidden flex flex-col bg-surface-container-lowest/40 shadow-2xl relative">
+              <div>
+                <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
+                  <span className="material-symbols-outlined text-[14px]">business_center</span>
+                  <span className="font-label text-[10px] uppercase tracking-[0.25em]">Business</span>
+                </button>
+                <div className="space-y-0.5">{BUSINESS_CHANNELS.map(renderChannelButton)}</div>
+              </div>
+
+              <div>
+                <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
+                  <span className="material-symbols-outlined text-[14px]">psychology</span>
+                  <span className="font-label text-[10px] uppercase tracking-[0.25em]">Intel</span>
+                </button>
+                <div className="space-y-0.5">{INTEL_CHANNELS.map(renderChannelButton)}</div>
+              </div>
+
+              <div>
+                <button className="w-full flex items-center gap-1.5 px-1 py-1.5 text-outline hover:text-on-surface group mb-1">
+                  <span className="material-symbols-outlined text-[14px]">more_horiz</span>
+                  <span className="font-label text-[10px] uppercase tracking-[0.25em]">Others</span>
+                </button>
+                <div className="space-y-0.5">{OTHER_CHANNELS.map(renderChannelButton)}</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      <main className="flex-1 flex flex-col bg-background/20 relative">
+        {/* Information Compression Layer (Summary Bar) */}
+        <AnimatePresence>
+          {showSummary && activeChat.summary && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-primary/5 border-b border-primary/10 overflow-hidden"
+            >
+              <div className="p-3 px-5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-1">
+                  <span className="material-symbols-outlined text-primary text-sm">summarize</span>
+                  <p className="text-[11px] text-on-surface/80 italic line-clamp-1 leading-relaxed">
+                    <span className="font-bold text-primary mr-2 uppercase tracking-tighter">SITREP:</span>
+                    {activeChat.summary}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowSummary(false)}
+                  className="text-outline hover:text-on-surface transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Chat Header */}
-        <header className="px-8 py-5 border-b border-outline/5 flex items-center justify-between bg-surface-container-high/30 backdrop-blur-md z-10">
+        <header className="px-6 py-4 border-b border-outline/5 flex items-center justify-between bg-surface-container-lowest/40 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-xl border border-primary/20 shadow-inner">
-              {activeChat.icon}
+            <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/30 shadow-[0_0_15px_rgba(255,179,181,0.1)]">
+              <span className="text-xl">{activeChat.icon}</span>
             </div>
             <div>
-              <h2 className="font-headline text-lg text-white font-bold tracking-tight flex items-center gap-2">
-                {activeChat.type === 'channel' ? `#${activeChat.name}` : activeChat.name}
-              </h2>
-              <p className="text-[10px] uppercase font-label tracking-widest text-outline-variant">
-                {activeChat.type === 'channel' ? 'Public Channel' : activeChat.name + ' (Direct Message)'}
-              </p>
+              <h1 className="font-headline text-lg italic tracking-tight text-on-surface">#{activeChat.name}</h1>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                <span className="text-[10px] uppercase font-label tracking-widest text-outline">Channel Synchronized</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-             <button className="w-9 h-9 rounded-full hover:bg-white/5 flex items-center justify-center transition-colors text-outline">
-               <span className="material-symbols-outlined text-[20px]">info</span>
-             </button>
-             <button className="w-9 h-9 rounded-full hover:bg-white/5 flex items-center justify-center transition-colors text-outline">
-               <span className="material-symbols-outlined text-[20px]">more_vert</span>
-             </button>
+          <div className="flex items-center gap-2">
+            {!showSummary && activeChat.summary && (
+              <button 
+                onClick={() => setShowSummary(true)}
+                className="p-2 hover:bg-primary/10 rounded-lg transition-all text-primary border border-primary/20 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">bolt</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest">Compress</span>
+              </button>
+            )}
+            <button className="p-2 hover:bg-white/5 rounded-lg transition-colors text-outline-variant hover:text-on-surface">
+              <span className="material-symbols-outlined text-[20px]">search</span>
+            </button>
+            <button className="p-2 hover:bg-white/5 rounded-lg transition-colors text-outline-variant hover:text-on-surface">
+              <span className="material-symbols-outlined text-[20px]">more_vert</span>
+            </button>
           </div>
         </header>
 
-        {/* Messages Feed */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar bg-gradient-to-b from-transparent to-black/10">
-          <AnimatePresence initial={false}>
-            {activeChat.messages.map((msg, idx) => {
-              const isUser = msg.type === 'user';
-              const showAvatar = idx === 0 || activeChat.messages[idx - 1].speaker !== msg.speaker;
-              
-              return (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  key={msg.id}
-                  className={`flex gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
-                >
-                  {/* Avatar */}
-                  <div className={`w-10 flex-shrink-0 flex flex-col items-center ${!showAvatar ? 'invisible' : ''}`}>
-                    <img 
-                      src={msg.avatar} 
-                      className={`w-10 h-10 rounded-2xl border ${isUser ? 'border-primary/40' : 'border-outline/20'}`}
-                      alt={msg.speaker}
-                    />
-                  </div>
-
-                  {/* Bubble */}
-                  <div className={`max-w-[70%] flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-                    {showAvatar && (
-                      <div className={`flex items-center gap-2 mb-1 px-1 ${isUser ? 'flex-row-reverse' : ''}`}>
-                        <span className={`font-body text-xs font-bold ${isUser ? 'text-primary' : 'text-on-surface'}`}>
-                          {msg.speaker}
-                        </span>
-                        <span className="font-label text-[9px] uppercase tracking-tighter text-outline-variant">
-                          {msg.role} • {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    )}
-                    <div 
-                      className={`px-5 py-3.5 rounded-[22px] text-sm leading-relaxed shadow-xl border ${
-                        isUser 
-                          ? 'bg-gradient-to-br from-[#6366f1] to-[#a855f7] text-white border-white/10 rounded-tr-none' 
-                          : 'bg-surface-container-high/90 text-on-surface border-outline/5 rounded-tl-none backdrop-blur-sm'
-                      }`}
-                    >
-                      {msg.content || (
-                        <div className="flex gap-1.5 py-1">
-                          <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-primary"></motion.div>
-                          <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-primary"></motion.div>
-                          <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-primary"></motion.div>
-                        </div>
-                      )}
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative">
+          {activeChat.messages.map((msg, i) => {
+            const isUser = msg.type === 'user';
+            return (
+              <motion.div 
+                key={msg.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className={`flex gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
+              >
+                {!isUser && (
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="w-8 h-8 rounded-full border border-outline/10 p-0.5 bg-background overflow-hidden">
+                      <img src={msg.avatar} alt="avatar" className="w-full h-full object-cover rounded-full grayscale hover:grayscale-0 transition-all duration-500" />
                     </div>
                   </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                )}
+                <div className={`max-w-[70%] flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+                  <div className="flex items-center gap-2 mb-1.5 px-1">
+                    <span className="text-[10px] font-headline uppercase tracking-widest text-[#a38b88]">{msg.speaker}</span>
+                    <span className="text-[8px] uppercase tracking-tighter text-outline opacity-50">{msg.role} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  <div className={`p-4 rounded-3xl text-[13px] leading-relaxed relative group transition-all duration-300 ${isUser 
+                    ? 'bg-primary/10 text-on-surface rounded-tr-none border border-primary/20 shadow-[0_4px_20px_rgba(255,179,181,0.05)]' 
+                    : 'bg-surface-container-high/40 text-on-surface rounded-tl-none border border-outline/5 hover:bg-surface-container-high/60 shadow-sm'
+                  }`}>
+                    {msg.content}
+                    {msg.status === 'typing' && (
+                      <div className="flex gap-1 py-1 mt-1">
+                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-primary"></motion.div>
+                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-primary"></motion.div>
+                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-primary"></motion.div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <footer className="p-6 bg-surface-container/50 border-t border-outline/10 backdrop-blur-xl">
-           <div className="relative group bg-background/40 border border-outline/20 rounded-[24px] focus-within:border-primary/50 transition-all p-2 flex flex-col">
-              <textarea 
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-                placeholder={`Message ${activeChat.type === 'channel' ? '#' + activeChat.name : activeChat.name}...`}
-                className="w-full bg-transparent border-none focus:ring-0 text-sm p-3 resize-none custom-scrollbar min-h-[48px] max-h-[200px]"
-                rows={1}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = 'auto';
-                  target.style.height = target.scrollHeight + 'px';
-                }}
-              />
-              <div className="flex items-center justify-between px-2 pb-2">
-                 <div className="flex items-center gap-1">
-                    <button className="p-2 text-outline hover:text-white transition-colors"><span className="material-symbols-outlined text-[20px]">mood</span></button>
-                    <button className="p-2 text-outline hover:text-white transition-colors"><span className="material-symbols-outlined text-[20px]">alternate_email</span></button>
-                    <button className="p-2 text-outline hover:text-white transition-colors"><span className="material-symbols-outlined text-[20px]">attach_file</span></button>
-                    <div className="w-[1px] h-4 bg-outline/20 mx-1"></div>
-                    <button className="p-2 text-outline hover:text-white transition-colors"><span className="material-symbols-outlined text-[20px]">format_bold</span></button>
-                    <button className="p-2 text-outline hover:text-white transition-colors"><span className="material-symbols-outlined text-[20px]">format_italic</span></button>
-                 </div>
-                 <button 
-                  disabled={!input.trim() || activeChat.isTyping}
-                  onClick={handleSend}
-                  className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${
-                    input.trim() && !activeChat.isTyping 
-                      ? 'bg-gradient-to-r from-[#6366f1] to-[#a855f7] text-white shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95' 
-                      : 'bg-white/5 text-outline cursor-not-allowed opacity-50'
-                  }`}
-                 >
-                   {activeChat.isTyping ? <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span> : <span className="material-symbols-outlined text-[18px]">send</span>}
-                   <span className="text-[10px] font-bold uppercase tracking-widest pr-1">Directive</span>
-                 </button>
-              </div>
-           </div>
-           <div className="mt-4 flex items-center justify-between px-2 opacity-40">
-              <div className="flex items-center gap-4">
-                 <span className="text-[9px] uppercase tracking-widest text-outline">Inter Font Active</span>
-                 <span className="text-[9px] uppercase tracking-widest text-outline">SSE Stream Ready</span>
-              </div>
-              <span className="text-[9px] uppercase tracking-widest text-outline italic">Faithful to the Don's vision.</span>
-           </div>
+        {/* Input */}
+        <footer className="p-6 pt-2 bg-surface-container-lowest/50 backdrop-blur-xl border-t border-outline/5">
+          <div className="relative group">
+            <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder={`Compose directive for #${activeChat.name}...`}
+              className="w-full bg-surface-container/30 border border-outline/10 rounded-2xl p-4 pr-32 focus:ring-0 focus:border-primary/30 transition-all text-[13px] leading-relaxed resize-none custom-scrollbar min-h-[64px] max-h-[200px] placeholder:text-outline-variant"
+              rows={1}
+            />
+            <div className="absolute right-3 bottom-3 flex items-center gap-2">
+              <button className="p-2 text-outline-variant hover:text-primary transition-colors hover:bg-primary/5 rounded-xl">
+                 <span className="material-symbols-outlined text-[20px]">attach_file</span>
+              </button>
+              <button 
+                onClick={() => sendMessage(input)}
+                disabled={!input.trim() || isTyping}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-headline text-[10px] uppercase tracking-[0.2em] transition-all ${
+                  input.trim() && !isTyping
+                    ? 'bg-primary text-on-primary shadow-[0_8px_24px_rgba(255,179,181,0.2)] hover:scale-105 active:scale-95' 
+                    : 'bg-white/5 text-outline-variant opacity-50 cursor-not-allowed'
+                }`}
+              >
+                {isTyping ? <span className="material-symbols-outlined text-sm animate-spin">refresh</span> : 'Execute'}
+                {!isTyping && <span className="material-symbols-outlined text-sm">send</span>}
+              </button>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between px-2">
+            <span className="text-[9px] uppercase tracking-widest text-outline-variant">Command Line Protocol Active</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[9px] uppercase tracking-widest text-outline-variant">Don Jimmy Authorized Access</span>
+            </div>
+          </div>
         </footer>
       </main>
     </div>

@@ -22,6 +22,7 @@ import { Famiglia } from './modules/Famiglia';
 import { Lounge } from './modules/Lounge';
 import { Terminal } from './modules/Terminal';
 import { DirectivesTerminal } from './modules/ui/DirectivesTerminal';
+import { TerminalProvider } from './modules/TerminalContext';
 import { API_BASE } from './config';
 
 const SETTINGS_STORAGE_KEY = 'command_center_settings';
@@ -178,79 +179,81 @@ function App() {
   }, [selectedGraph]);
 
   return (
-    <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary/30">
-      <TopNav />
-      <div className="flex">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        <main className="flex-1 ml-72 pt-16 relative overflow-hidden">
-          {/* Background Map Overlay */}
-          <div className="absolute inset-0 noir-bg-map pointer-events-none opacity-20"></div>
-          
-          <div className="relative z-10 p-10 max-w-7xl mx-auto space-y-10">
-            {activeTab === 'agenda' && (
-              <Agenda
-                agents={agents}
-                actions={actions}
-                tasks={tasks}
-                recurringTasks={recurringTasks}
-                honorific={settings.honorific}
-              />
-            )}
-            {activeTab === 'situation_room' && (
-              <SituationRoom 
-                agents={agents} 
-                actions={actions} 
-                tasks={tasks} 
-                honorific={settings.honorific}
-              />
-            )}
-            {activeTab === 'engine_room' && (
-              <EngineRoom />
-            )}
-            {activeTab === 'operations' && (
-              <Operations 
-                graphs={graphs} 
-                selectedGraph={selectedGraph} 
-                setSelectedGraph={setSelectedGraph} 
-                initialTasks={tasks}
-              />
-            )}
-            {activeTab === 'intelligences' && (
-              <Intelligences />
-            )}
-            {activeTab === 'famiglia' && (
-              <Famiglia />
-            )}
-            {activeTab === 'lounge' && (
-              <Lounge agents={agents} actions={actions} />
-            )}
-            {activeTab === 'connections' && (
-              <Connections
-                successParam={githubConnected}
-                errorParam={githubError}
-                onClearParams={clearOAuthParams}
-              />
-            )}
-            {activeTab === 'terminal' && (
-              <Terminal agents={agents} actions={actions} />
-            )}
-            {activeTab === 'settings' && (
-              <Settings settings={settings} onSettingsChange={setSettings} />
-            )}
-            {/* Fallback for other tabs */}
-            {!['terminal', 'agenda', 'situation_room', 'engine_room', 'operations', 'famiglia', 'lounge', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
-              <div className="flex flex-col items-center justify-center py-40 opacity-40">
-                <span className="material-symbols-outlined text-6xl mb-4">construction</span>
-                <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>
-                <p className="font-body text-sm mt-2 uppercase tracking-tighter text-outline">Section Restricted to Consigliere Level</p>
-              </div>
-            )}
-          </div>
-        </main>
+    <TerminalProvider>
+      <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary/30">
+        <TopNav />
+        <div className="flex">
+          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <main className="flex-1 ml-72 pt-16 relative overflow-hidden">
+            {/* Background Map Overlay */}
+            <div className="absolute inset-0 noir-bg-map pointer-events-none opacity-20"></div>
+            
+            <div className="relative z-10 p-10 max-w-7xl mx-auto space-y-10">
+              {activeTab === 'agenda' && (
+                <Agenda
+                  agents={agents}
+                  actions={actions}
+                  tasks={tasks}
+                  recurringTasks={recurringTasks}
+                  honorific={settings.honorific}
+                />
+              )}
+              {activeTab === 'situation_room' && (
+                <SituationRoom 
+                  agents={agents} 
+                  actions={actions} 
+                  tasks={tasks} 
+                  honorific={settings.honorific}
+                />
+              )}
+              {activeTab === 'engine_room' && (
+                <EngineRoom />
+              )}
+              {activeTab === 'operations' && (
+                <Operations 
+                  graphs={graphs} 
+                  selectedGraph={selectedGraph} 
+                  setSelectedGraph={setSelectedGraph} 
+                  initialTasks={tasks}
+                />
+              )}
+              {activeTab === 'intelligences' && (
+                <Intelligences />
+              )}
+              {activeTab === 'famiglia' && (
+                <Famiglia />
+              )}
+              {activeTab === 'lounge' && (
+                <Lounge agents={agents} actions={actions} />
+              )}
+              {activeTab === 'connections' && (
+                <Connections
+                  successParam={githubConnected}
+                  errorParam={githubError}
+                  onClearParams={clearOAuthParams}
+                />
+              )}
+              {activeTab === 'terminal' && (
+                <Terminal />
+              )}
+              {activeTab === 'settings' && (
+                <Settings settings={settings} onSettingsChange={setSettings} />
+              )}
+              {/* Fallback for other tabs */}
+              {!['terminal', 'agenda', 'situation_room', 'engine_room', 'operations', 'famiglia', 'lounge', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
+                <div className="flex flex-col items-center justify-center py-40 opacity-40">
+                  <span className="material-symbols-outlined text-6xl mb-4">construction</span>
+                  <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>
+                  <p className="font-body text-sm mt-2 uppercase tracking-tighter text-outline">Section Restricted to Consigliere Level</p>
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
+        <DirectivesTerminal />
+        <div className="fixed left-72 top-16 w-[1px] h-full bg-[#1c1b1b] z-30"></div>
       </div>
-      <DirectivesTerminal />
-      <div className="fixed left-72 top-16 w-[1px] h-full bg-[#1c1b1b] z-30"></div>
-    </div>
+    </TerminalProvider>
   );
 }
 

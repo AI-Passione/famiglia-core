@@ -83,19 +83,44 @@ export function Operations({ graphs: _graphs, selectedGraph: _selectedGraph, set
       animate={{ opacity: 1 }}
       className="p-8 space-y-12"
     >
-      {/* Tab Header */}
-      <div className="flex items-center space-x-12 border-b border-outline-variant/10 pb-6">
+      {/* Tab Header - Premium Navigation */}
+      <div className="flex items-center space-x-4 border-b border-outline-variant/10 pb-6">
         <button 
           onClick={() => setOpsMode('pipelines')}
-          className={`font-headline text-2xl transition-all ${opsMode === 'pipelines' ? 'text-primary' : 'text-outline hover:text-on-surface'}`}
+          className={`relative px-8 py-3 rounded-xl font-headline text-xl transition-all flex items-center space-x-3 group ${
+            opsMode === 'pipelines' ? 'text-primary' : 'text-outline hover:text-on-surface hover:bg-white/[0.03]'
+          }`}
         >
-          Operational Pipelines
+          <span className={`material-symbols-outlined transition-transform duration-300 ${opsMode === 'pipelines' ? 'scale-110' : 'opacity-40 group-hover:opacity-100 group-hover:rotate-12'}`}>
+            account_tree
+          </span>
+          <span>Operational Pipelines</span>
+          {opsMode === 'pipelines' && (
+            <motion.div 
+              layoutId="activeTab"
+              className="absolute bottom-[-24px] left-8 right-8 h-[2px] bg-primary shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+              transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+            />
+          )}
         </button>
+
         <button 
           onClick={() => setOpsMode('sop')}
-          className={`font-headline text-2xl transition-all ${opsMode === 'sop' ? 'text-primary' : 'text-outline hover:text-on-surface'}`}
+          className={`relative px-8 py-3 rounded-xl font-headline text-xl transition-all flex items-center space-x-3 group ${
+            opsMode === 'sop' ? 'text-primary' : 'text-outline hover:text-on-surface hover:bg-white/[0.03]'
+          }`}
         >
-          SOP Hub
+          <span className={`material-symbols-outlined transition-transform duration-300 ${opsMode === 'sop' ? 'scale-110' : 'opacity-40 group-hover:opacity-100 group-hover:-rotate-12'}`}>
+            auto_stories
+          </span>
+          <span>SOP Hub</span>
+          {opsMode === 'sop' && (
+            <motion.div 
+              layoutId="activeTab"
+              className="absolute bottom-[-24px] left-8 right-8 h-[2px] bg-primary shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+              transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+            />
+          )}
         </button>
       </div>
 

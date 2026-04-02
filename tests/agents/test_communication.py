@@ -20,6 +20,19 @@ from famiglia_core.command_center.backend.mattermost.client import (
 
 # --- Slack Tests ---
 
+def test_slack_queue_start_worker_no_args(mocker):
+    # Mock redis
+    mock_redis = mocker.MagicMock()
+    mocker.patch("redis.from_url", return_value=mock_redis)
+    client = SlackQueueClient()
+    
+    # Mock _process_queue to avoid background thread errors with MagicMocks
+    mocker.patch.object(client, "_process_queue", return_value=None)
+    
+    # Should not raise TypeError: CommsQueue.start_worker() missing 1 required positional argument: 'target_func'
+    client.start_worker()
+    client.stop_worker()
+
 def test_slack_queue_priorities(mocker):
     # Mock redis
     mock_redis = mocker.MagicMock()

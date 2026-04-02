@@ -12,44 +12,30 @@ from dotenv import load_dotenv
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-# Queue Priorities
-PRIORITY_CRITICAL = 0
-PRIORITY_HIGH = 1
-PRIORITY_MEDIUM = 2
-PRIORITY_LOW = 3
-
-# Batching Intervals (seconds)
-BATCH_INTERVALS = {
-    PRIORITY_MEDIUM: 30,
-    PRIORITY_LOW: 300  # 5 minutes
-}
+from famiglia_core.command_center.backend.comms.common.queue import (
+    CommsQueue, 
+    PRIORITY_CRITICAL, 
+    PRIORITY_HIGH, 
+    PRIORITY_MEDIUM, 
+    PRIORITY_LOW, 
+    BATCH_INTERVALS
+)
 
 SLACK_CHANNEL_ID_RE = re.compile(r"^[CGD][A-Z0-9]{8,}$")
 SLACK_CHANNEL_MENTION_RE = re.compile(r"^<#(?P<id>[CGD][A-Z0-9]{8,})(?:\|[^>]+)?>$")
 SLACK_ARCHIVES_URL_RE = re.compile(r"/archives/(?P<id>[CGD][A-Z0-9]{8,})")
-INCOMING_QUEUE_KEY = "slack:incoming:queue"
 
-
-class SlackQueueClient:
+class SlackQueueClient(CommsQueue):
     def __init__(self, redis_url: Optional[str] = None):
-        # Ensure dot‑env file is read as early as possible. The module is imported
-        # by `main` before load_dotenv() is called there, so having the class
-        # itself load environment variables prevents the infamous bug where the
-        # singleton is constructed with empty credentials and later never
-        # updated. Calling load_dotenv multiple times is harmless.
+        super().__init__(platform="slack", redis_url=redis_url)
+        # Ensure dot‑env file is read as early as possible.
         load_dotenv()
-        if not redis_url:
-            host = os.getenv("REDIS_HOST", "localhost")
-            port = os.getenv("REDIS_PORT", "6379")
-            redis_url = f"redis://{host}:{port}"
-            
-        self.redis = redis.from_url(redis_url)
         
         # Multi-bot support
         self.agent_tokens = {
             "alfredo": os.getenv("SLACK_BOT_TOKEN_ALFREDO"),
             "vito": os.getenv("SLACK_BOT_TOKEN_VITO"),
-            "riccado": os.getenv("SLACK_BOT_TOKEN_RICCADO"),
+            "riccardo": os.getenv("SLACK_BOT_TOKEN_RICCARDO"),
             "rossini": os.getenv("SLACK_BOT_TOKEN_ROSSINI"),
             "tommy": os.getenv("SLACK_BOT_TOKEN_TOMMY"),
             "bella": os.getenv("SLACK_BOT_TOKEN_BELLA"),
@@ -121,7 +107,7 @@ class SlackQueueClient:
         self.agent_app_tokens = {
             "alfredo": os.getenv("SLACK_APP_TOKEN_ALFREDO"),
             "vito": os.getenv("SLACK_APP_TOKEN_VITO"),
-            "riccado": os.getenv("SLACK_APP_TOKEN_RICCADO"),
+            "riccardo": os.getenv("SLACK_APP_TOKEN_RICCARDO"),
             "rossini": os.getenv("SLACK_APP_TOKEN_ROSSINI"),
             "tommy": os.getenv("SLACK_APP_TOKEN_TOMMY"),
             "bella": os.getenv("SLACK_APP_TOKEN_BELLA"),
@@ -130,16 +116,6 @@ class SlackQueueClient:
         # Global app token (optional if per-agent tokens are provided)
         self.app_token = os.getenv("SLACK_APP_TOKEN")
         
-        # Rate limiting state
-        self.last_sent: Dict[str, float] = {}
-        self.MIN_INTERVAL = 1.0  # Max 1 message/second/channel
-        
-        # Batching state: {(channel, priority, thread_ts): [messages]}
-        self.batches: Dict[tuple[str, int, Optional[str]], List[dict]] = defaultdict(list)
-        self.last_batch_time: Dict[tuple[str, int, Optional[str]], float] = {}
-        
-        self.worker_thread = None
-        self.running = False
         self.app_env = os.getenv("APP_ENV", "production").lower()
         self.channel_name_cache: Dict[str, str] = {}
         self.dev_channel_name = os.getenv("DEV_CHANNEL_NAME", "_dev").strip().lstrip("#").lower()
@@ -392,57 +368,6 @@ class SlackQueueClient:
         }
         return self._send_to_slack(payload, thread_ts=thread_ts)
 
-    def enqueue_message(self, agent: str, channel: str, message: str, priority: int = PRIORITY_MEDIUM, thread_ts: Optional[str] = None):
-        """Puts a message in the priority queue"""
-        # Block production interaction with dev channel
-        if self.app_env == "production" and self.is_dev_channel(channel):
-            print(f"[SlackQueue] DROPPING message to dev channel {channel} in production mode.")
-            return
-            
-        payload = {
-            "agent": agent,
-            "channel": channel,
-            "message": message,
-            "priority": priority,
-            "thread_ts": thread_ts,
-            "timestamp": time.time()
-        }
-        
-        queue_key = f"slack:queue:{priority}"
-        self.redis.rpush(queue_key, json.dumps(payload))
-        
-    def enqueue_incoming(self, payload: dict):
-        """Puts an incoming Slack event in the queue for background processing"""
-        self.redis.rpush(INCOMING_QUEUE_KEY, json.dumps(payload))
-        
-    def dequeue_incoming(self) -> Optional[dict]:
-        """Pops an incoming Slack event from the queue"""
-        data = self.redis.lpop(INCOMING_QUEUE_KEY)
-        if data:
-            return json.loads(data)
-        return None
-        
-    def start_worker(self):
-        """Starts the background worker to process the queue"""
-        if self.running: return
-        self.running = True
-        self.worker_thread = threading.Thread(target=self._process_queue, daemon=True)
-        self.worker_thread.start()
-        
-    def stop_worker(self):
-        self.running = False
-        if self.worker_thread:
-            self.worker_thread.join(timeout=2.0)
-            
-    def _dequeue_next(self) -> Optional[tuple[str, dict]]:
-        """Pops the highest priority message available"""
-        for priority in [PRIORITY_CRITICAL, PRIORITY_HIGH, PRIORITY_MEDIUM, PRIORITY_LOW]:
-            queue_key = f"slack:queue:{priority}"
-            data = self.redis.lpop(queue_key)
-            if data:
-                return queue_key, json.loads(data)
-        return None
-        
     def _process_queue(self):
         while self.running:
             item = self._dequeue_next()
@@ -497,15 +422,6 @@ class SlackQueueClient:
             self._rate_limit(channel)
             ts = self._send_to_slack(msg, thread_ts=ts)
 
-    def _rate_limit(self, channel: str):
-        now = time.time()
-        last = self.last_sent.get(channel, 0.0)
-        wait_time = self.MIN_INTERVAL - (now - last)
-        
-        if wait_time > 0:
-            time.sleep(wait_time)
-        self.last_sent[channel] = time.time()
-
     def _send_to_slack(self, payload: dict, thread_ts: Optional[str] = None) -> Optional[str]:
         agent_name = payload.get("agent", "system").lower()
         channel = payload.get("channel")
@@ -541,5 +457,8 @@ class SlackQueueClient:
             print(f"MOCK SLACK SEND [{agent_name}] -> {channel} (Thread: {thread_ts}): {formatted_message}")
             return str(time.time())
 
+    def start_worker(self):
+        """Standard parameterless start for the backend main loop."""
+        super().start_worker(self._process_queue)
 # Singleton instance
 slack_queue = SlackQueueClient()

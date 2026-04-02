@@ -62,6 +62,7 @@ class Kowalski(BaseAgent):
         sender: str = "Unknown",
         conversation_key: Optional[str] = None,
         on_intermediate_response: Optional[Callable[[str], None]] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> str:
         # Add persona-specific system prompt injection if not already handled by base
         # (Assuming BaseAgent handles the soul.md loading)
@@ -70,4 +71,5 @@ class Kowalski(BaseAgent):
             sender=sender,
             conversation_key=conversation_key,
             on_intermediate_response=on_intermediate_response,
+            metadata=metadata
         )

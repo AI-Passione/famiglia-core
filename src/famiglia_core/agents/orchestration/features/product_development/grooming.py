@@ -27,7 +27,7 @@ class GroomingState(AgentState):
     issues: List[Dict[str, Any]]
     project_fields: List[Dict[str, Any]]
     rossini_evaluation: str
-    riccado_evaluation: str
+    riccardo_evaluation: str
     synthesized_actions: Dict[str, Any]
     discrepancies: List[str]
     slack_channel: str
@@ -41,7 +41,7 @@ class GroomingWorkflow:
         self.name = agent.name
         self.model_config = agent.model_config
         self.rossini_personality = self._load_personality("rossini")
-        self.riccado_personality = self._load_personality("riccado")
+        self.riccardo_personality = self._load_personality("riccardo")
 
     def _load_personality(self, name: str) -> str:
         try:
@@ -231,16 +231,16 @@ Output your product evaluation in clear terms. Mention specific Issue and Milest
         res, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name="Rossini")
         return {"rossini_evaluation": res}
 
-    def riccado_review(self, state: GroomingState) -> GroomingState:
+    def riccardo_review(self, state: GroomingState) -> GroomingState:
         if state.get("last_error"): return {}
-        print(f"[{self.name}] Grooming Node: riccado_review")
+        print(f"[{self.name}] Grooming Node: riccardo_review")
         
         prd = state.get("prd_markdown", "")
         issues = state.get("issues", [])
         milestones = state.get("milestones", [])
         
         prompt = f"""
-{self.riccado_personality}
+{self.riccardo_personality}
 
 Task: As the Principal Data Engineer / Tech Lead, review the current GitHub Milestones and Issues from an ENGINEERING perspective.
 1. **Technical Depth**: For each issue, provide or refine solid **Acceptance Criteria** and define a clear **Definition of Done (DoD)**.
@@ -261,26 +261,26 @@ Existing Issues (with recent comments):
 
 Output your technical evaluation in your explosive, direct style. Mention specific Issue and Milestone numbers. Explicitly call for AC and DoD where missing, and state your confidence clearly.
 """
-        res, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name="Riccado")
-        return {"riccado_evaluation": res}
+        res, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name="Riccardo")
+        return {"riccardo_evaluation": res}
 
     def synthesize(self, state: GroomingState) -> GroomingState:
         if state.get("last_error"): return {}
         print(f"[{self.name}] Grooming Node: synthesize")
         
         rossini = state.get("rossini_evaluation", "")
-        riccado = state.get("riccado_evaluation", "")
+        riccardo = state.get("riccardo_evaluation", "")
         
         # Identify valid issue numbers to prevent hallucinations (e.g. PRs or wrong IDs)
         valid_issue_numbers = {i["number"] for i in state.get("issues", [])}
         
         prompt = f"""
-Task: You are an impartial Orchestrator. Synthesize the findings of Dr. Rossini (Product) and Riccado (Tech).
+Task: You are an impartial Orchestrator. Synthesize the findings of Dr. Rossini (Product) and Riccardo (Tech).
 Extract the AGREED UPON actions and any DISCREPANCIES that need debate.
 Identify any duplicate Milestones or Issues that should be removed or closed.
 
 **CRITICAL RULE: STATUS "READY"**:  
-- An issue can ONLY be marked as `"status": "Ready"` if BOTH Dr. Rossini and Riccado have a **Confidence Level > 80%** for that issue.
+- An issue can ONLY be marked as `"status": "Ready"` if BOTH Dr. Rossini and Riccardo have a **Confidence Level > 80%** for that issue.
 - If either confidence is <= 80%, the status should be "In Progress" or "Needs Work".
 - Capture and mention the confidence levels in the `new_comments` section.
 
@@ -292,8 +292,8 @@ Identify any duplicate Milestones or Issues that should be removed or closed.
 Rossini's Evaluation:
 {rossini}
 
-Riccado's Evaluation:
-{riccado}
+Riccardo's Evaluation:
+{riccardo}
 
 Output exactly in this JSON format:
 {{
@@ -305,7 +305,7 @@ Output exactly in this JSON format:
       "blocks": [13, 14],
       "blocked_by": [],
       "status": "Ready",
-      "new_comments": ["Rossini (Confidence: 90%) & Riccado (Confidence: 85%) agreed: Size M, Priority P1. [AC/DoD details if any]"]
+      "new_comments": ["Rossini (Confidence: 90%) & Riccardo (Confidence: 85%) agreed: Size M, Priority P1. [AC/DoD details if any]"]
     }}
   ],
   "items_to_remove": [
@@ -315,9 +315,9 @@ Output exactly in this JSON format:
   "discrepancies": [
     {{
       "issue_number": 15,
-      "debate_topic": "Rossini wants P0 (Conf: 95%), Riccado says XL and P2 (Conf: 40%). Riccado demands specific DoD.",
-      "suggested_rossini_comment": "Riccado, we need this for launch. My confidence is 95% on the product value. Can we scope it down? - Rossini",
-      "suggested_riccado_comment": "Rossini, my confidence is only 40% because the DB schema is unclear. We need a Definition of Done that includes zero-downtime verification. - Riccado"
+      "debate_topic": "Rossini wants P0 (Conf: 95%), Riccardo says XL and P2 (Conf: 40%). Riccardo demands specific DoD.",
+      "suggested_rossini_comment": "Riccardo, we need this for launch. My confidence is 95% on the product value. Can we scope it down? - Rossini",
+      "suggested_riccardo_comment": "Rossini, my confidence is only 40% because the DB schema is unclear. We need a Definition of Done that includes zero-downtime verification. - Riccardo"
     }}
   ]
 }}
@@ -352,7 +352,7 @@ Ensure the output is ONLY valid JSON.
         for disc in discrepancies:
             issue_num = disc.get("issue_number")
             rossini_c = disc.get("suggested_rossini_comment")
-            riccado_c = disc.get("suggested_riccado_comment")
+            riccardo_c = disc.get("suggested_riccardo_comment")
             
             if issue_num not in valid_issues:
                 print(f"[{self.name}] Skipping debate for invalid/PR issue number: {issue_num}")
@@ -363,10 +363,10 @@ Ensure the output is ONLY valid JSON.
                     print(f"[{self.name}] Posting Rossini comment on #{issue_num} in {repo_name}...")
                     github_client.create_issue_comment(repo_name, issue_num, rossini_c, agent_name="Rossini")
                     results.append(f"💬 Rossini commented on #{issue_num}")
-                if issue_num and riccado_c:
-                    print(f"[{self.name}] Posting Riccado comment on #{issue_num} in {repo_name}...")
-                    github_client.create_issue_comment(repo_name, issue_num, riccado_c, agent_name="Riccado")
-                    results.append(f"💬 Riccado commented on #{issue_num}")
+                if issue_num and riccardo_c:
+                    print(f"[{self.name}] Posting Riccardo comment on #{issue_num} in {repo_name}...")
+                    github_client.create_issue_comment(repo_name, issue_num, riccardo_c, agent_name="Riccardo")
+                    results.append(f"💬 Riccardo commented on #{issue_num}")
             except Exception as e:
                 print(f"[{self.name}] Tool Error in debate (Issue #{issue_num}, Repo: {repo_name}): {e}")
                 return {"last_error": f"Failed to post debate comments (Issue #{issue_num}): {e}", "creation_results": results}
@@ -381,13 +381,13 @@ Ensure the output is ONLY valid JSON.
         valid_issues = {i["number"] for i in state.get("issues", [])}
         
         rossini_eval = state.get("rossini_evaluation", "")
-        riccado_eval = state.get("riccado_evaluation", "")
+        riccardo_eval = state.get("riccardo_evaluation", "")
         issues = state.get("issues", [])
         initial_actions = state.get("synthesized_actions", {})
         
         prompt = f"""
 Task: You are the Final Consolidator. Review the initial evaluations, the debate comments, and decide on the FINAL actions.
-Ensure that finalized issues include necessary Acceptance Criteria and Definition of Done as suggested by Riccado or Rossini.
+Ensure that finalized issues include necessary Acceptance Criteria and Definition of Done as suggested by Riccardo or Rossini.
 Include any issues or milestones that should be removed/closed if they are redundant or irrelevant.
 
 VALID ISSUE NUMBERS (ONLY TARGET THESE): {list(valid_issues)}
@@ -397,7 +397,7 @@ Existing Issues (with comments):
 {json.dumps([{"number": i.get("number"), "title": i.get("title"), "comments": i.get("comments", [])} for i in issues], indent=2)}
 
 Rossini's Evaluation: {rossini_eval}
-Riccado's Evaluation: {riccado_eval}
+Riccardo's Evaluation: {riccardo_eval}
 
 Initial Synthesized Actions: {json.dumps(initial_actions, indent=2)}
 
@@ -629,7 +629,7 @@ Ensure the output is ONLY valid JSON.
             msg = f"⚠️ *Grooming Error* for '{prd_title}':\n{error}"
         else:
             res_str = "\n".join(results) if results else "_No specific updates made._"
-            msg = f"🧪 *Grooming Complete* for '{prd_title}' (Repo: `{repo_name}`)\nDr. Rossini and Riccado have finished their review.\n\n*Updates:*\n{res_str}"
+            msg = f"🧪 *Grooming Complete* for '{prd_title}' (Repo: `{repo_name}`)\nDr. Rossini and Riccardo have finished their review.\n\n*Updates:*\n{res_str}"
             
         try:
             slack_queue.post_message(agent=self.agent.agent_id, channel=channel, message=msg, thread_ts=thread_ts)
@@ -646,7 +646,7 @@ def setup_grooming_graph(agent):
     workflow.add_node("load_context", workflow_logic.load_context)
     workflow.add_node("fetch_github_state", workflow_logic.fetch_github_state)
     workflow.add_node("rossini_review", workflow_logic.rossini_review)
-    workflow.add_node("riccado_review", workflow_logic.riccado_review)
+    workflow.add_node("riccardo_review", workflow_logic.riccardo_review)
     workflow.add_node("synthesize", workflow_logic.synthesize)
     workflow.add_node("debate_in_github", workflow_logic.debate_in_github)
     workflow.add_node("consolidate_and_refine", workflow_logic.consolidate_and_refine)
@@ -656,13 +656,13 @@ def setup_grooming_graph(agent):
     workflow.set_entry_point("load_context")
     workflow.add_edge("load_context", "fetch_github_state")
     
-    # Parallelize Rossini and Riccado reviews
+    # Parallelize Rossini and Riccardo reviews
     workflow.add_edge("fetch_github_state", "rossini_review")
-    workflow.add_edge("fetch_github_state", "riccado_review")
+    workflow.add_edge("fetch_github_state", "riccardo_review")
     
     # Fan-in to synthesize
     workflow.add_edge("rossini_review", "synthesize")
-    workflow.add_edge("riccado_review", "synthesize")
+    workflow.add_edge("riccardo_review", "synthesize")
     
     workflow.add_edge("synthesize", "debate_in_github")
     workflow.add_edge("debate_in_github", "consolidate_and_refine")

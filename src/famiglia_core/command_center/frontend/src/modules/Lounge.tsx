@@ -54,7 +54,7 @@ const PROFILE_LOOKUP: Record<string, LoungeProfile> = {
     ambientLine: 'Background noise is rarely random. Some of it is simply insight waiting for the room to stop rushing.',
     injectedReply: 'My instinct says the answer is already here, still disguised as a coincidence.',
   },
-  riccado: {
+  riccardo: {
     role: 'Signal Mechanic',
     accentText: 'text-[#ff9a7a]',
     accentBorder: 'border-[#ff9a7a]/40',

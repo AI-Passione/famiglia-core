@@ -2,7 +2,6 @@ import pytest
 import json
 from unittest.mock import MagicMock, patch
 from famiglia_core.agents.base_agent import BaseAgent
-from famiglia_core.agents.riccado import Riccado
 from famiglia_core.db.agents.context_store import AgentContextStore
 
 # --- Base Agent & Context Tests ---
@@ -22,14 +21,16 @@ def test_agent_complete_task_logic(mock_agent_deps):
         model_config={"primary": "gemini-2.0-flash"},
     )
     
-    # Mock the graph invoke to simulate a simple response
-    with patch.object(agent.graph, "invoke") as mock_invoke:
-        mock_invoke.return_value = {
-            "final_response": "Task completed successfully.",
-            "used_model": "gemini-2.0-flash",
-            "conversation_key": "test_conv",
-            "metadata": {}
-        }
+    # Mock the graph stream to simulate a mission update flow
+    with patch.object(agent.graph, "stream") as mock_stream:
+        mock_stream.return_value = [
+            {
+                "final_response": "Task completed successfully.",
+                "used_model": "gemini-2.0-flash",
+                "conversation_key": "test_conv",
+                "metadata": {}
+            }
+        ]
         
         response = agent.complete_task("Do something.", sender="Don Jimmy")
         assert "Task completed successfully." in response

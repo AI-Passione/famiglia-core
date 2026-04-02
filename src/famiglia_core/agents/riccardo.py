@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict, Any
 from famiglia_core.agents.base_agent import BaseAgent
 from famiglia_core.agents.tools.github import github_client
 from famiglia_core.command_center.backend.slack.client import slack_queue
@@ -9,11 +9,11 @@ from famiglia_core.agents.llm.models_registry import QWEN25_CODER_7B
 from famiglia_core.agents.orchestration.features.product_development.grooming import setup_grooming_graph
 from famiglia_core.agents.orchestration.features.product_development.code_implementation import setup_code_implementation_graph
 
-class Riccado(BaseAgent):
+class Riccardo(BaseAgent):
     def __init__(self):
         super().__init__(
-            agent_id="riccado",
-            name="Riccado",
+            agent_id="riccardo",
+            name="Riccardo",
             role="Principal Data Engineer - Python/dbt/SQL/DevOps master",
             model_config={
                 "primary": "claude-3.7-sonnet",
@@ -56,7 +56,7 @@ class Riccado(BaseAgent):
     def check_github_access_tool(self) -> str:
         """Check if you have valid credentials to access GitHub by attempting to generate an app token."""
         if self.propose_action("Checking GitHub access token"):
-            print(f"[Riccado 🔧] Tool executing: check_github_access_tool()")
+            print(f"[Riccardo 🔧] Tool executing: check_github_access_tool()")
             try:
                 # Directly call _get_app_token per user request
                 token = github_client._get_app_token(self.name)
@@ -67,9 +67,9 @@ class Riccado(BaseAgent):
     def review_code(self, code: str) -> str:
         """Review code and return explosive Italian-style feedback."""
         if self.propose_action(f"Review code: {code[:50]}..."):
-            print(f"[Riccado 🔧🤌🔥] MA CHE CAZZO! Let me see this logic...")
+            print(f"[Riccardo 🔧🤌🔥] MA CHE CAZZO! Let me see this logic...")
             prompt = (
-                f"You are Riccado, a furious Italian principal data engineer. "
+                f"You are Riccardo, a furious Italian principal data engineer. "
                 f"Review the following code in your explosive style — insult bad patterns like 'dog shit', "
                 f"praise good ones like a 'Ferrari engine'. Use 🤌 when enraged. YELL in caps when furious. "
                 f"End with a concrete fix or improvement.\n\nCode:\n{code}"
@@ -79,9 +79,9 @@ class Riccado(BaseAgent):
     def write_pipeline(self, description: str) -> str:
         """Design a dbt/SQL data pipeline from a plain-English description."""
         if self.propose_action(f"Write pipeline: {description[:50]}"):
-            print(f"[Riccado 🔧] Bene. Designing the pipeline. It will be a Ferrari, not a Fiat.")
+            print(f"[Riccardo 🔧] Bene. Designing the pipeline. It will be a Ferrari, not a Fiat.")
             prompt = (
-                f"You are Riccado, a principal data engineer. Design a production-grade data pipeline "
+                f"You are Riccardo, a principal data engineer. Design a production-grade data pipeline "
                 f"for the following requirement. Output a dbt model skeleton (SQL + YAML schema) "
                 f"and list the key data quality checks to implement.\n\nRequirement: {description}"
             )
@@ -90,9 +90,9 @@ class Riccado(BaseAgent):
     def debug_query(self, sql: str) -> str:
         """Debug and optimise a SQL query."""
         if self.propose_action(f"Debug SQL query: {sql[:50]}..."):
-            print(f"[Riccado 🔧🤌] Che schifo... let me fix this query before it murders the database.")
+            print(f"[Riccardo 🔧🤌] Che schifo... let me fix this query before it murders the database.")
             prompt = (
-                f"You are Riccado, an explosive Italian SQL expert. Review this SQL query for correctness, "
+                f"You are Riccardo, an explosive Italian SQL expert. Review this SQL query for correctness, "
                 f"performance issues and anti-patterns. Explain what is wrong (in your furious style) and "
                 f"provide an improved version.\n\nSQL:\n{sql}"
             )
@@ -101,9 +101,9 @@ class Riccado(BaseAgent):
     def infra_check(self, service: str) -> str:
         """Assess the infrastructure health or configuration of a service."""
         if self.propose_action(f"Infra check on: {service}"):
-            print(f"[Riccado 🔧] Checking the infrastructure of {service}. Madonna mia, let's see...")
+            print(f"[Riccardo 🔧] Checking the infrastructure of {service}. Madonna mia, let's see...")
             prompt = (
-                f"You are Riccado, a brilliant Italian DevOps and infra expert. "
+                f"You are Riccardo, a brilliant Italian DevOps and infra expert. "
                 f"Assess the production readiness of '{service}'. "
                 f"List potential failure points, recommended checks, and any immediate action items. "
                 f"Be opinionated and direct."
@@ -113,9 +113,9 @@ class Riccado(BaseAgent):
     def deploy(self, service: str) -> str:
         """Deploy a service, confirming the action."""
         if self.propose_action(f"Deploying {service}"):
-            print(f"[Riccado 🔧] È fatto, Don Jimmy! Deploying {service} like a Ferrari engine.")
+            print(f"[Riccardo 🔧] È fatto, Don Jimmy! Deploying {service} like a Ferrari engine.")
             prompt = (
-                f"You are Riccado. Confirm the deployment of '{service}' with a brief summary of what "
+                f"You are Riccardo. Confirm the deployment of '{service}' with a brief summary of what "
                 f"was deployed, any post-deploy checks to run, and a sign-off in your Italian style."
             )
             return self.complete_task(prompt)
@@ -125,7 +125,7 @@ class Riccado(BaseAgent):
     def read_github_repo(self, repo_name: str) -> str:
         """Read a GitHub repository - Tool Version."""
         if self.propose_action(f"Reading GitHub repo: {repo_name}"):
-            print(f"[Riccado 🔧] Tool executing: read_github_repo({repo_name})")
+            print(f"[Riccardo 🔧] Tool executing: read_github_repo({repo_name})")
             try:
                 data = github_client.read_repo(repo_name, agent_name=self.name)
                 return f"Repo details for {repo_name}: {data}"
@@ -135,7 +135,7 @@ class Riccado(BaseAgent):
     def list_accessible_repos(self, force_refresh: bool = False) -> str:
         """List all GitHub repositories this agent has access to."""
         if self.propose_action("Listing accessible GitHub repositories"):
-            print(f"[Riccado 🔧] Tool executing: list_accessible_repos(force_refresh={force_refresh})")
+            print(f"[Riccardo 🔧] Tool executing: list_accessible_repos(force_refresh={force_refresh})")
             try:
                 repos = github_client.list_accessible_repos(agent_name=self.name, force_refresh=force_refresh)
                 repo_names = [repo.get("full_name") for repo in repos]
@@ -146,7 +146,7 @@ class Riccado(BaseAgent):
     def manage_github_issue(self, repo_name: str, action: str, title: Optional[str] = None, body: Optional[str] = None) -> str:
         """Manage GitHub issues - Tool Version."""
         if self.propose_action(f"Managing GitHub issue for repo {repo_name} (Action: {action})"):
-            print(f"[Riccado 🔧] Tool executing: manage_github_issue({repo_name}, {action})")
+            print(f"[Riccardo 🔧] Tool executing: manage_github_issue({repo_name}, {action})")
             try:
                 if action == "list":
                     data = github_client.list_issues(repo_name, agent_name=self.name)
@@ -162,7 +162,7 @@ class Riccado(BaseAgent):
     def manage_github_milestone(self, repo_name: str, action: str, title: Optional[str] = None, description: Optional[str] = None) -> str:
         """Manage GitHub milestones - Tool Version."""
         if self.propose_action(f"Managing GitHub milestone for repo {repo_name} (Action: {action})"):
-            print(f"[Riccado 🔧] Tool executing: manage_github_milestone({repo_name}, {action})")
+            print(f"[Riccardo 🔧] Tool executing: manage_github_milestone({repo_name}, {action})")
             try:
                 if action == "list":
                     data = github_client.list_milestones(repo_name, agent_name=self.name)
@@ -178,7 +178,7 @@ class Riccado(BaseAgent):
     def create_github_branch(self, repo_name: str, new_branch: str, base_branch: str) -> str:
         """Create a new branch in a GitHub repository."""
         if self.propose_action(f"Creating branch {new_branch} from {base_branch} in {repo_name}"):
-            print(f"[Riccado 🔧] Tool executing: create_github_branch({repo_name}, {new_branch})")
+            print(f"[Riccardo 🔧] Tool executing: create_github_branch({repo_name}, {new_branch})")
             try:
                 data = github_client.create_branch(repo_name, new_branch, base_branch, agent_name=self.name)
                 return f"Successfully created branch '{new_branch}' from '{base_branch}' in {repo_name}."
@@ -188,7 +188,7 @@ class Riccado(BaseAgent):
     def read_github_file(self, repo_name: str, file_path: str, branch: Optional[str] = None) -> str:
         """Read a file's content from a GitHub repository."""
         if self.propose_action(f"Reading file {file_path} from {repo_name}"):
-            print(f"[Riccado 🔧] Tool executing: read_github_file({repo_name}, {file_path})")
+            print(f"[Riccardo 🔧] Tool executing: read_github_file({repo_name}, {file_path})")
             try:
                 data = github_client.read_file(repo_name, file_path, branch, agent_name=self.name)
                 content = data.get("decoded_content", "No content or unreadable.")
@@ -199,7 +199,7 @@ class Riccado(BaseAgent):
     def commit_github_file(self, repo_name: str, file_path: str, content: str, commit_message: str, branch: str) -> str:
         """Create or update a file in a GitHub repository."""
         if self.propose_action(f"Committing file {file_path} to {branch} in {repo_name}"):
-            print(f"[Riccado 🔧] Tool executing: commit_github_file({repo_name}, {file_path})")
+            print(f"[Riccardo 🔧] Tool executing: commit_github_file({repo_name}, {file_path})")
             try:
                 data = github_client.commit_file(repo_name, file_path, content, commit_message, branch, agent_name=self.name)
                 url = data.get("commit", {}).get("html_url", "URL not found")
@@ -210,26 +210,26 @@ class Riccado(BaseAgent):
     def create_github_pr(self, repo_name: str, title: str, body: str, head_branch: str, base_branch: str) -> str:
         """Create a GitHub pull request - Tool Version."""
         if self.propose_action(f"Creating PR for {repo_name}: {head_branch} -> {base_branch}"):
-            print(f"[Riccado 🔧] Tool executing: create_github_pr({repo_name})")
+            print(f"[Riccardo 🔧] Tool executing: create_github_pr({repo_name})")
             try:
                 data = github_client.create_pr(repo_name, title, body, head_branch, base_branch, agent_name=self.name)
                 pr_url = data.get("html_url", "URL not found")
                 
-                # Notify #tech-riccado in Slack
+                # Notify #tech-riccardo in Slack
                 slack_msg = f"🤌 Ciao team! I have opened a new Pull Request for `{repo_name}`.\n\n*Title:* {title}\n*Branch:* {head_branch} -> {base_branch}\n*Link:* {pr_url}\n\nPlease review it before the pipeline explodes."
                 slack_queue.enqueue_message(
                     agent=self.agent_id,
-                    channel="#tech-riccado",
+                    channel="#tech-riccardo",
                     message=slack_msg
                 )
-                return f"PR created successfully: {pr_url}. Slack notification sent to #tech-riccado."
+                return f"PR created successfully: {pr_url}. Slack notification sent to #tech-riccardo."
             except Exception as e:
                 return f"Failed to create PR for {repo_name}: {e}"
 
     def auto_create_pr(self, repo_name: str, file_path: str, file_content: str, commit_message: str, pr_title: str, pr_body: str, new_branch: str, base_branch: str) -> str:
         """Convenience tool to run the full dev cycle: Branch -> Commit -> PR."""
         if self.propose_action(f"Auto-creating PR '{pr_title}' on {repo_name} (branch: {new_branch})"):
-            print(f"[Riccado 🔧] Tool executing: auto_create_pr({repo_name}, {file_path}, {new_branch})")
+            print(f"[Riccardo 🔧] Tool executing: auto_create_pr({repo_name}, {file_path}, {new_branch})")
             try:
                 data = github_client.auto_create_pr(
                     repo_name=repo_name,
@@ -244,11 +244,11 @@ class Riccado(BaseAgent):
                 )
                 pr_url = data.get("html_url", "URL not found")
                 
-                # Notify #tech-riccado in Slack
+                # Notify #tech-riccardo in Slack
                 slack_msg = f"🤌 Ciao team! I have opened a new Pull Request for `{repo_name}` (following proper dev cycle).\n\n*Title:* {pr_title}\n*Branch:* {new_branch} -> {base_branch}\n*Link:* {pr_url}\n\nPlease review it before the pipeline explodes."
                 slack_queue.enqueue_message(
                     agent=self.agent_id,
-                    channel="#tech-riccado",
+                    channel="#tech-riccardo",
                     message=slack_msg
                 )
                 return f"Successfully completed dev cycle and opened PR: {pr_url}"
@@ -302,7 +302,14 @@ class Riccado(BaseAgent):
                 print(f"[{self.name} 🔧] Code Implementation Graph Error: {e}")
                 return f"Error during code implementation workflow: {e}"
 
-    def complete_task(self, task: str, sender: str = "Unknown", conversation_key: Optional[str] = None, on_intermediate_response: Optional[Callable[[str], None]] = None) -> str:
+    def complete_task(
+        self,
+        task: str,
+        sender: str = "Unknown",
+        conversation_key: Optional[str] = None,
+        on_intermediate_response: Optional[Callable[[str], None]] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> str:
         normalized = self._normalize_task_for_routing(task)
         if re.search(r"groom\s+(?:prd|milestones|issues)", normalized):
             pattern = r"groom\s+(?:prd|milestones|issues)\s+(?:for|of|from)?\s*(.*)"
@@ -318,4 +325,10 @@ class Riccado(BaseAgent):
         if "groomed" in normalized and ("scan" in normalized or "implement" in normalized or "pr" in normalized or "fix" in normalized or "feature" in normalized):
             return self.run_code_implementation(task=task, thread_ts=conversation_key)
 
-        return super().complete_task(task, sender, conversation_key, on_intermediate_response)
+        return super().complete_task(
+            task=task,
+            sender=sender,
+            conversation_key=conversation_key,
+            on_intermediate_response=on_intermediate_response,
+            metadata=metadata
+        )

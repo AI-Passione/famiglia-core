@@ -66,7 +66,7 @@ graph TD
     
     subgraph Core ["The Core Intelligence"]
         Backend -->|Orchestrates| Workflow[Workflow Engine: LangGraph]
-        Workflow -->|Task State| Agents[Autonomous Agents: Alfredo, Vito, Riccado, etc.]
+        Workflow -->|Task State| Agents[Autonomous Agents: Alfredo, Vito, Riccardo, etc.]
         Agents -->|Memory| DB[(PostgreSQL: Permanent Memory)]
     end
     

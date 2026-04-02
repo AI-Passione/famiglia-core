@@ -21,12 +21,12 @@ task_types:
     output_channel_id: "C0AGFEBPBJ8"
   coding_code_analysis:
     id: "coding_code_analysis"
-    expected_agent: "riccado"
+    expected_agent: "riccardo"
     priority: "medium"
     output_channel_id: "C0AH64QTG2U"
   coding_implementation:
     id: "coding_implementation"
-    expected_agent: "riccado"
+    expected_agent: "riccardo"
     priority: "high"
     output_channel_id: "C0AH64QTG2U"
   alfredo_greeting:

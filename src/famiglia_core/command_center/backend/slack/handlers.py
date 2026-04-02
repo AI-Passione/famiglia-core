@@ -196,26 +196,33 @@ def process_incoming_event(
     # 5. Gated LLM completion
     print(f"[{agent_obj.name}] Waiting for LLM slot for request from {sender_name}...")
     try:
+        # Prepare metadata for ResponseDistributor
+        metadata = {
+            "slack_channel": channel,
+            "slack_thread_ts": reply_ts,
+            "platform": "slack"
+        }
+        
         with LLM_SEMAPHORE:
-            response = agent_obj.complete_task(
+            # Distributor inside complete_task (_finalize_response) will handle the response
+            agent_obj.complete_task(
                 clean_text,
                 sender=sender_context,
                 conversation_key=conversation_key,
                 on_intermediate_response=on_intermediate,
+                metadata=metadata
             )
     except Exception as e:
         print(f"[{agent_obj.name}] CRITICAL ERROR in complete_task: {e}")
         traceback.print_exc()
-        response = f"I'm sorry, Don Jimmy. I encountered a critical internal error while processing your request: {e}"
-
-    response_text = _format_reply_for_sender(response, user)
-    if response_text:
-        slack_queue.enqueue_message(
-            agent=agent_obj.agent_id,
-            channel=channel,
-            message=response_text,
-            thread_ts=reply_ts,
-            priority=2,
+        error_msg = f"I'm sorry, Don Jimmy. I encountered a critical internal error while processing your request: {e}"
+        # For terminal persistence & Slack mirror of the error
+        from famiglia_core.command_center.backend.api.services.response_distributor import response_distributor
+        response_distributor.dispatch(
+            agent_id=agent_obj.agent_id,
+            text=error_msg,
+            conversation_key=conversation_key,
+            metadata={"slack_channel": channel, "slack_thread_ts": reply_ts}
         )
 
 def incoming_event_worker(agents: dict, apps: dict, ack_emoji: str, app_env: str, dev_channel_id: Optional[str]):

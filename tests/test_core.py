@@ -18,11 +18,12 @@ def test_base_agent_initialization(mock_agent_deps_core):
 
 def test_base_agent_complete_task_dispatch(mock_agent_deps_core):
     agent = BaseAgent(name="Alfredo", role="Orchestrator", model_config={"primary": "gpt-4"})
-    with patch.object(agent.graph, "invoke") as mock_invoke:
-        mock_invoke.return_value = {"final_response": "Hello", "used_model": "gpt-4", "conversation_key": "test"}
+    # Mock the graph stream for core dispatch verification
+    with patch.object(agent.graph, "stream") as mock_stream:
+        mock_stream.return_value = [{"final_response": "Hello", "used_model": "gpt-4", "conversation_key": "test"}]
         res = agent.complete_task("Hi")
         assert "Hello" in res
-        assert mock_invoke.called
+        assert mock_stream.called
 
 # --- Task Helpers & Utilities ---
 

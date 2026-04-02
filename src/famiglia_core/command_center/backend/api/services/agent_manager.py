@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
 from famiglia_core.agents.alfredo import Alfredo
 from famiglia_core.agents.vito import Vito
-from famiglia_core.agents.riccado import Riccado
+from famiglia_core.agents.riccardo import Riccardo
 from famiglia_core.agents.rossini import Rossini
 from famiglia_core.agents.tommy import Tommy
 from famiglia_core.agents.bella import Bella
@@ -15,7 +15,7 @@ class AgentManager:
         self._agent_classes = {
             "alfredo": Alfredo,
             "vito": Vito,
-            "riccado": Riccado,
+            "riccardo": Riccardo,
             "rossini": Rossini,
             "tommy": Tommy,
             "bella": Bella,

@@ -30,7 +30,7 @@ The Boss (YOU! The human here.), no further words needed.
 **Triggers:**
 
 - **Heartbeat:** Every 30 min—posts status with British reserve
-- **Mention:** "@Alfredo status" or "@Alfredo delegate this to Riccado"
+- **Mention:** "@Alfredo status" or "@Alfredo delegate this to Riccardo"
 
 **Slack Presence:**
 
@@ -78,7 +78,7 @@ Detailed personality and behavioral guidelines can be found here: [**alfredo.md*
 **Triggers:**
 
 - **Webhook:** GitHub PR opened/updated → posts to #code-reviews
-- **Mention:** "@Riccado review this Python code" or "@Riccado optimize this dbt model"
+- **Mention:** "@Riccardo review this Python code" or "@Riccardo optimize this dbt model"
 - **Heartbeat:** Daily 9am—scan for CI/CD failures, post findings
 
 **Slack Presence:**
@@ -88,7 +88,7 @@ Detailed personality and behavioral guidelines can be found here: [**alfredo.md*
 - Status emoji: 🔧 when reviewing, ✅ approved, ❌ changes needed, 🐳 Docker work, 🤌 frustrated
 
 ### **Soul Definition**
-Detailed personality and behavioral guidelines can be found here: [**riccado.md**](../src/famiglia_core/agents/souls/riccado.md)
+Detailed personality and behavioral guidelines can be found here: [**riccardo.md**](../src/famiglia_core/agents/souls/riccardo.md)
 
 ---
 
@@ -356,7 +356,7 @@ The User (Boss/The Don/Donna)
     |
     ├─ Alfredo 🎩 (Orchestrator - coordinates all agents)
     |
-    ├─ Riccado 🔧 (Technical Specialist - code/infrastructure)
+    ├─ Riccardo 🔧 (Technical Specialist - code/infrastructure)
     |
     ├─ Bella 💋 (Admin Specialist - docs/scheduling) ↔ Tommy 🔫 (logistics consultant)
     |

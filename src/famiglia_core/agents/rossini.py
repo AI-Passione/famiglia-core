@@ -227,7 +227,14 @@ class Rossini(BaseAgent, CommonSkills, GitHubSkills, NotionSkills, Workflows):
                 print(f"[{self.name} 🔬] Grooming Graph Error: {e}")
                 return f"Error during grooming workflow: {e}"
 
-    def complete_task(self, task: str, sender: str = "Unknown", conversation_key: Optional[str] = None, on_intermediate_response: Optional[Callable[[str], None]] = None) -> str:
+    def complete_task(
+        self,
+        task: str,
+        sender: str = "Unknown",
+        conversation_key: Optional[str] = None,
+        on_intermediate_response: Optional[Callable[[str], None]] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> str:
         # Check if this topic specifically mentions "market research" or should trigger the specialized graph
         normalized = self._normalize_task_for_routing(task)
         if re.search(r"market\s+research|research\s+on", normalized):
@@ -288,5 +295,11 @@ class Rossini(BaseAgent, CommonSkills, GitHubSkills, NotionSkills, Workflows):
                     page_id = uuid_match.group(1)
             return self.run_grooming(notion_page_id=page_id, task=task, thread_ts=conversation_key)
 
-        return super().complete_task(task, sender, conversation_key, on_intermediate_response)
+        return super().complete_task(
+            task=task,
+            sender=sender,
+            conversation_key=conversation_key,
+            on_intermediate_response=on_intermediate_response,
+            metadata=metadata
+        )
 

@@ -75,8 +75,8 @@
       "channels": ["command-center", "townhall", "social"]
     },
     {
-      "username": "riccado",
-      "display_name": "Riccado",
+      "username": "riccardo",
+      "display_name": "Riccardo",
       "description": "Principal Data Engineer - Python/dbt/SQL/DevOps infrastructure master",
       "profile_pic": "docs/images/riccardo.png",
       "channels": ["tech", "townhall", "social"]

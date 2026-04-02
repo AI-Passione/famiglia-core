@@ -1,11 +1,11 @@
 # Agent Feature Modules
 
-This directory contains specialized LangGraph-driven features organized by domain. These workflows are orchestrated by supervisors and executed by **Dr. Rossini**, **Riccado**, and **Kowalski**.
+This directory contains specialized LangGraph-driven features organized by domain. These workflows are orchestrated by supervisors and executed by **Dr. Rossini**, **Riccardo**, and **Kowalski**.
 
 ## Table of Contents
 1. [Model Selection & Resolution](#model-selection--resolution)
 2. [Market Research Features (Rossini)](#market-research-features-rossini)
-3. [Product Development Features (Rossini & Riccado)](#product-development-features-rossini--riccado)
+3. [Product Development Features (Rossini & Riccardo)](#product-development-features-rossini--riccardo)
 4. [Analytics Features (Kowalski)](#analytics-features-kowalski)
 5. [Universal Notion & Slack Formatting Standards](#universal-notion--slack-formatting-standards)
 
@@ -61,7 +61,7 @@ graph TD;
 
 ---
 
-## Product Development Features (Rossini & Riccado)
+## Product Development Features (Rossini & Riccardo)
 
 Located in `product_development/`, these features cover the full lifecycle from PRD to Pull Request.
 
@@ -182,8 +182,8 @@ graph TD;
     classDef last fill:#bfb6fc
 ```
 
-### 4. Grooming (Rossini ↔ Riccado)
-Facilitates collaborative grooming where Rossini sets priorities and Riccado provides technical effort estimations (XS-XL).
+### 4. Grooming (Rossini ↔ Riccardo)
+Facilitates collaborative grooming where Rossini sets priorities and Riccardo provides technical effort estimations (XS-XL).
 - **File:** `product_development/grooming.py`
 - **Workflow Architecture:**
 ```mermaid
@@ -192,7 +192,7 @@ graph TD;
     load_context(load_context)
     fetch_github_state(fetch_github_state)
     rossini_review(rossini_review)
-    riccado_review(riccado_review)
+    riccardo_review(riccardo_review)
     synthesize(synthesize)
     debate_in_github(debate_in_github)
     consolidate(consolidate_and_refine)
@@ -203,9 +203,9 @@ graph TD;
     __start__ --> load_context;
     load_context --> fetch_github_state;
     fetch_github_state --> rossini_review;
-    fetch_github_state --> riccado_review;
+    fetch_github_state --> riccardo_review;
     rossini_review --> synthesize;
-    riccado_review --> synthesize;
+    riccardo_review --> synthesize;
     synthesize --> debate_in_github;
     debate_in_github --> consolidate;
     consolidate --> apply_updates;

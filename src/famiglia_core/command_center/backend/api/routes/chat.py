@@ -45,12 +45,21 @@ async def chat_standard(request: ChatRequest):
         user=request.platform_user_id or str(user_info.get("id", "0"))
     )
 
-    # 3. Call Agent
+    # 3. Resolve Metadata for Distribution
+    metadata = {
+        "platform": request.platform,
+        "thread_id": request.thread_id,
+        "user_id": request.platform_user_id or str(user_info.get("id", "0")),
+        "channel": request.metadata.get("channel_id", "web-dashboard")
+    }
+
+    # 4. Call Agent
     try:
         response = agent_obj.complete_task(
             request.message,
             sender=sender_context,
-            conversation_key=conversation_key
+            conversation_key=conversation_key,
+            metadata=metadata
         )
         return ChatResponse(
             agent_id=request.agent_id,
@@ -86,28 +95,39 @@ async def chat_stream(
 
     async def event_generator():
         queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
 
         def on_intermediate(text: str):
-            # Put intermediate chunks in the queue
-            asyncio.run_coroutine_threadsafe(
+            # Put intermediate chunks in the queue thread-safely
+            loop.call_soon_threadsafe(
+                asyncio.run_coroutine_threadsafe,
                 queue.put(StreamChunk(type="intermediate", content=text).model_dump_json()),
-                asyncio.get_event_loop()
+                loop
             )
 
+        # Prepare metadata
+        metadata = {
+            "platform": platform,
+            "thread_id": thread_id,
+            "user_id": platform_user_id or "0",
+            "channel": "web-dashboard"
+        }
+
         # Start agent task in a separate thread to prevent blocking
-        loop = asyncio.get_event_loop()
         task = loop.run_in_executor(
             None, 
             agent_obj.complete_task, 
             message, 
             sender_context, 
             conversation_key, 
-            on_intermediate
+            on_intermediate,
+            metadata
         )
 
         # Yield from queue until task is done
         while not task.done() or not queue.empty():
             try:
+                # Use a small timeout to keep checking task status
                 chunk = await asyncio.wait_for(queue.get(), timeout=0.1)
                 yield f"data: {chunk}\n\n"
             except asyncio.TimeoutError:

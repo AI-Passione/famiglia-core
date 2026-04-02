@@ -186,16 +186,17 @@ class BaseAgent(CommonSkills, TaskTools, OnDemandMasterSupervisor):
         sender: str = "Unknown",
         conversation_key: Optional[str] = None,
         on_intermediate_response: Optional[Callable[[str], None]] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Main orchestration loop powered by LangGraph.
         """
         # 1. Initialize state
-        state = self._get_initial_state(task, sender, conversation_key)
-        # 2. Execute graph
+        state = self._get_initial_state(task, sender, conversation_key, metadata=metadata)
+        # 2. Execute graph with streaming support
         callback = None
+        final_state = state
         try:
-            # We use invoke to run the graph to completion
             callback = langfuse_manager.get_callback_handler()
             callbacks = [callback] if callback else []
             
@@ -203,10 +204,35 @@ class BaseAgent(CommonSkills, TaskTools, OnDemandMasterSupervisor):
                 "configurable": {"thread_id": state.get("conversation_key", "default")},
                 "callbacks": callbacks,
             }
-            final_state = self.graph.invoke(state, config=config)
+            
+            # Use stream() to catch intermediate events
+            for chunk in self.graph.stream(state, config=config):
+                # LangGraph v0.2+ stream(stream_mode="updates") returns {node_name: {updates}}
+                for key, value in chunk.items():
+                    if isinstance(value, dict):
+                        state.update(value)
+                        node_name = key
+                    else:
+                        # Fallback/Test double support: update directly
+                        state[key] = value
+                        node_name = "unknown"
+                    
+                    # If we have a stream callback, notify the UI about the current node
+                    if on_intermediate_response:
+                        status_map = {
+                            "decide_domain": "Routing directive...",
+                            "product_worker": "Delegating to Product Specialist...",
+                            "support_handler": "Synthesizing response...",
+                            "operations_handler": "Monitoring technical signals...",
+                            "analytics_handler": "Processing intelligence data..."
+                        }
+                        status_msg = status_map.get(node_name, f"Executing {node_name}...")
+                        on_intermediate_response(f"[{status_msg}] ")
+                
+            final_state = state
         except Exception as e:
-            print(f"[{self.name}] LangGraph execution failed: {e}")
-            # Fallback to current state if graph fails halfway
+            print(f"[{self.name}] LangGraph streaming failed: {e}")
+            # Ensure we have something in final_state for response generation
             final_state = state
         finally:
             if callback:

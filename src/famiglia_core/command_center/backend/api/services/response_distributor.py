@@ -27,9 +27,10 @@ class ResponseDistributor:
         # This makes it visible in the Web Dashboard conversation history.
         try:
             context_store.log_message(
+                role="agent",
                 conversation_key=conversation_key,
                 agent_name=agent_id,
-                message=text,
+                content=text,
                 metadata=metadata
             )
         except Exception as e:

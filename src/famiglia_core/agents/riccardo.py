@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict, Any
 from famiglia_core.agents.base_agent import BaseAgent
 from famiglia_core.agents.tools.github import github_client
 from famiglia_core.command_center.backend.slack.client import slack_queue
@@ -302,7 +302,14 @@ class Riccardo(BaseAgent):
                 print(f"[{self.name} 🔧] Code Implementation Graph Error: {e}")
                 return f"Error during code implementation workflow: {e}"
 
-    def complete_task(self, task: str, sender: str = "Unknown", conversation_key: Optional[str] = None, on_intermediate_response: Optional[Callable[[str], None]] = None) -> str:
+    def complete_task(
+        self,
+        task: str,
+        sender: str = "Unknown",
+        conversation_key: Optional[str] = None,
+        on_intermediate_response: Optional[Callable[[str], None]] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> str:
         normalized = self._normalize_task_for_routing(task)
         if re.search(r"groom\s+(?:prd|milestones|issues)", normalized):
             pattern = r"groom\s+(?:prd|milestones|issues)\s+(?:for|of|from)?\s*(.*)"
@@ -318,4 +325,10 @@ class Riccardo(BaseAgent):
         if "groomed" in normalized and ("scan" in normalized or "implement" in normalized or "pr" in normalized or "fix" in normalized or "feature" in normalized):
             return self.run_code_implementation(task=task, thread_ts=conversation_key)
 
-        return super().complete_task(task, sender, conversation_key, on_intermediate_response)
+        return super().complete_task(
+            task=task,
+            sender=sender,
+            conversation_key=conversation_key,
+            on_intermediate_response=on_intermediate_response,
+            metadata=metadata
+        )

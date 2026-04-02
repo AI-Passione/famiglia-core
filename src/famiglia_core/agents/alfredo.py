@@ -683,6 +683,7 @@ class Alfredo(BaseAgent):
         sender: str = "Unknown",
         conversation_key: Optional[str] = None,
         on_intermediate_response: Optional[Callable[[str], None]] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> str:
         if f"({TASK_TYPE_ALFREDO_GREETING})" in task:
              return self._handle_alfredo_greeting_task()
@@ -782,4 +783,5 @@ class Alfredo(BaseAgent):
             sender=sender,
             conversation_key=conversation_key,
             on_intermediate_response=on_intermediate_response,
+            metadata=metadata
         )

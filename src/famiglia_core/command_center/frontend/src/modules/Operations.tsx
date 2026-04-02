@@ -334,6 +334,7 @@ function AgentActionLedger({
           <thead>
             <tr className="bg-surface-container-high/50 border-b border-outline-variant/10">
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest whitespace-nowrap">ID</th>
+              <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Date</th>
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Timestamp</th>
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Agent</th>
               <th className="px-8 py-4 font-label text-[10px] text-[#a38b88] uppercase tracking-widest">Action</th>
@@ -345,6 +346,9 @@ function AgentActionLedger({
             {actions?.map((action) => (
               <tr key={action.id} className="hover:bg-surface-container-highest/20 transition-colors group">
                 <td className="px-8 py-5 font-mono text-[11px] text-tertiary">{action.id}</td>
+                <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60 whitespace-nowrap">
+                  {new Date(action.timestamp).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase()}
+                </td>
                 <td className="px-8 py-5 font-mono text-[10px] text-[#a38b88] opacity-60">
                   {new Date(action.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </td>

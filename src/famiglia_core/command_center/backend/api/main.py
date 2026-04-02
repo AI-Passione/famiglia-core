@@ -53,7 +53,7 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(connections.router, prefix="/api/v1")
 app.include_router(settings.router, prefix="/api/v1")
 app.include_router(famiglia.router, prefix="/api/v1/famiglia")
-app.include_router(operations.router, prefix="/api/v1", tags=["Operations"])
+app.include_router(operations.router, prefix="/api/v1/operations", tags=["Operations"])
 app.include_router(sop.router, prefix="/api/v1", tags=["SOP"])
 
 # Serve static images

@@ -17,7 +17,7 @@ def test_get_graphs_endpoint(mock_parser):
         }
     ]
     
-    response = client.get("/api/v1/graphs")
+    response = client.get("/api/v1/operations/graphs")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -40,7 +40,7 @@ def test_get_mission_logs_endpoint(mock_store):
         }
     ]
     
-    response = client.get("/api/v1/mission-logs/prd_drafting")
+    response = client.get("/api/v1/operations/mission-logs/prd_drafting")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -65,7 +65,7 @@ def test_get_all_mission_logs_endpoint(mock_store):
         }
     ]
     
-    response = client.get("/api/v1/mission-logs/all")
+    response = client.get("/api/v1/operations/mission-logs/all")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -89,7 +89,7 @@ def test_execute_graph_endpoint(mock_parser, mock_walk, mock_store):
         "title": "Execute Operations: PRD Drafting"
     }
     
-    response = client.post("/api/v1/graphs/prd_drafting/execute")
+    response = client.post("/api/v1/operations/graphs/prd_drafting/execute")
     assert response.status_code == 200
     data = response.json()
     assert data["task_id"] == 999

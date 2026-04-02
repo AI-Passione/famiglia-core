@@ -6,11 +6,7 @@ import {
   PRIO_CHANNELS, 
   BUSINESS_CHANNELS, 
   INTEL_CHANNELS, 
-  OTHER_CHANNELS,
-  AGENT_IMAGE_MAP,
-  AGENT_ROLE_MAP,
-  Message,
-  ChatState
+  OTHER_CHANNELS
 } from './TerminalContext';
 
 interface TerminalProps {

@@ -2,7 +2,6 @@ import pytest
 import json
 from unittest.mock import MagicMock, patch
 from famiglia_core.agents.base_agent import BaseAgent
-from famiglia_core.agents.riccardo import Riccardo
 from famiglia_core.db.agents.context_store import AgentContextStore
 
 # --- Base Agent & Context Tests ---

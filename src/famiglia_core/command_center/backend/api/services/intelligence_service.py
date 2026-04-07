@@ -1,7 +1,10 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
+import logging
 from famiglia_core.db.agents.context_store import context_store
 from famiglia_core.command_center.backend.api.models.intelligence import IntelligenceItem, IntelligenceItemCreate, IntelligenceItemUpdate
+
+logger = logging.getLogger(__name__)
 
 class IntelligenceService:
     def list_items(self, item_type: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -18,7 +21,7 @@ class IntelligenceService:
                 cursor.execute(query, params)
                 return list(cursor.fetchall())
         except Exception as e:
-            print(f"[IntelligenceService] Failed to list items: {e}")
+            logger.error(f"[IntelligenceService] Failed to list items (type={item_type}): {e}")
             return []
 
     def get_item(self, item_id: int) -> Optional[Dict[str, Any]]:
@@ -28,10 +31,11 @@ class IntelligenceService:
                 cursor.execute("SELECT * FROM intelligence_items WHERE id = %s", (item_id,))
                 return cursor.fetchone()
         except Exception as e:
-            print(f"[IntelligenceService] Failed to get item {item_id}: {e}")
+            logger.error(f"[IntelligenceService] Failed to get item {item_id}: {e}")
             return None
 
     def create_item(self, item: IntelligenceItemCreate) -> Optional[Dict[str, Any]]:
+        logger.info(f"[IntelligenceService] Creating item: {item.title}")
         try:
             with context_store.db_session() as cursor:
                 if cursor is None: return None
@@ -51,12 +55,16 @@ class IntelligenceService:
                         context_store._safe_json(item.metadata)
                     ),
                 )
-                return cursor.fetchone()
+                row = cursor.fetchone()
+                if row:
+                    logger.info(f"[IntelligenceService] Item created successfully: ID {row['id']}")
+                return row
         except Exception as e:
-            print(f"[IntelligenceService] Failed to create item: {e}")
+            logger.error(f"[IntelligenceService] Failed to create item '{item.title}': {e}")
             return None
 
     def update_item(self, item_id: int, update: IntelligenceItemUpdate) -> Optional[Dict[str, Any]]:
+        logger.info(f"[IntelligenceService] Updating item {item_id}")
         # Build dynamic update query
         fields = []
         params = []
@@ -81,19 +89,26 @@ class IntelligenceService:
             with context_store.db_session() as cursor:
                 if cursor is None: return None
                 cursor.execute(query, params)
-                return cursor.fetchone()
+                row = cursor.fetchone()
+                if row:
+                    logger.info(f"[IntelligenceService] Item {item_id} updated successfully")
+                return row
         except Exception as e:
-            print(f"[IntelligenceService] Failed to update item {item_id}: {e}")
+            logger.error(f"[IntelligenceService] Failed to update item {item_id}: {e}")
             return None
 
     def delete_item(self, item_id: int) -> bool:
+        logger.warning(f"[IntelligenceService] Deleting item {item_id}")
         try:
             with context_store.db_session() as cursor:
                 if cursor is None: return False
                 cursor.execute("DELETE FROM intelligence_items WHERE id = %s", (item_id,))
-                return cursor.rowcount > 0
+                success = cursor.rowcount > 0
+                if success:
+                    logger.info(f"[IntelligenceService] Item {item_id} deleted successfully")
+                return success
         except Exception as e:
-            print(f"[IntelligenceService] Failed to delete item {item_id}: {e}")
+            logger.error(f"[IntelligenceService] Failed to delete item {item_id}: {e}")
             return False
 
     def sync_with_notion(self) -> Dict[str, Any]:
@@ -105,11 +120,11 @@ class IntelligenceService:
             with context_store.db_session() as cursor:
                 if cursor is None: return {"success": False, "error": "DB connection failed"}
                 cursor.execute("TRUNCATE TABLE intelligence_items RESTART IDENTITY CASCADE")
-                print("[IntelligenceSync] Local table truncated.")
+                logger.warning("[IntelligenceSync] Local table truncated for full resync.")
 
             # 2. Search Notion
             notion_items = notion_client.search()
-            print(f"[IntelligenceSync] Found {len(notion_items)} items in Notion.")
+            logger.info(f"[IntelligenceSync] Found {len(notion_items)} items in Notion.")
             
             synced_count = 0
             for item in notion_items:
@@ -182,14 +197,15 @@ class IntelligenceService:
                             )
                         )
                         synced_count += 1
-                        print(f"[IntelligenceSync] Synced: {title}")
+                        logger.info(f"[IntelligenceSync] Synced: {title}")
                 except Exception as ex:
-                    print(f"[IntelligenceSync] Skipping page {item.get('id')}: {ex}")
+                    logger.warning(f"[IntelligenceSync] Skipping page {item.get('id')}: {ex}")
 
+            logger.info(f"[IntelligenceSync] Sync complete. Total synced: {synced_count}")
             return {"success": True, "synced_count": synced_count}
             
         except Exception as e:
-            print(f"[IntelligenceSync] Global sync failed: {e}")
+            logger.error(f"[IntelligenceSync] Global sync failed: {e}")
             return {"success": False, "error": str(e)}
 
 intelligence_service = IntelligenceService()

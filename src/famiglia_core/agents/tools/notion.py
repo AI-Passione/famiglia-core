@@ -714,7 +714,7 @@ class NotionIntegration:
                 try:
                     level = int(btype.split("_")[1])
                     md.append("#" * level + " " + text)
-                except:
+                except (ValueError, IndexError):
                     md.append("### " + text)
             elif btype == "bulleted_list_item":
                 md.append("- " + text)

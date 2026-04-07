@@ -699,4 +699,38 @@ class NotionIntegration:
             return "".join([t.get("plain_text", "") for t in type_data.get("rich_text", [])])
         return None
 
+    def blocks_to_markdown(self, blocks: List[Dict[str, Any]]) -> str:
+        """Converts a list of Notion blocks (from read_page) into a single Markdown string."""
+        md = []
+        for b in blocks:
+            text = b.get("text", "")
+            btype = b.get("type", "")
+            if not btype or not text:
+                continue
+                
+            if btype == "paragraph":
+                md.append(text)
+            elif btype.startswith("heading_"):
+                try:
+                    level = int(btype.split("_")[1])
+                    md.append("#" * level + " " + text)
+                except:
+                    md.append("### " + text)
+            elif btype == "bulleted_list_item":
+                md.append("- " + text)
+            elif btype == "numbered_list_item":
+                md.append("1. " + text)
+            elif btype == "code":
+                md.append(f"```\n{text}\n```")
+            elif btype == "to_do":
+                md.append(f"- [ ] {text}")
+            elif btype == "quote":
+                md.append(f"> {text}")
+            elif btype == "callout":
+                md.append(f"> [!NOTE]\n> {text}")
+            else:
+                md.append(text)
+        
+        return "\n\n".join(md)
+
 notion_client = NotionIntegration()

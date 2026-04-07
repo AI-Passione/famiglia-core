@@ -41,3 +41,11 @@ async def delete_intelligence_item(item_id: int):
     if not success:
         raise HTTPException(status_code=404, detail="Intelligence item not found")
     return {"status": "success", "message": f"Item {item_id} deleted"}
+
+@router.post("/sync")
+async def sync_intelligence_with_notion():
+    """Trigger a sync with Notion to refresh intelligence items."""
+    result = intelligence_service.sync_with_notion()
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error", "Sync failed"))
+    return result

@@ -96,4 +96,82 @@ class IntelligenceService:
             print(f"[IntelligenceService] Failed to delete item {item_id}: {e}")
             return False
 
+    def sync_with_notion(self) -> Dict[str, Any]:
+        """Truncate local DB and import all accessible Notion pages."""
+        from famiglia_core.agents.tools.notion import notion_client
+        
+        try:
+            # 1. Truncate
+            with context_store.db_session() as cursor:
+                if cursor is None: return {"success": False, "error": "DB connection failed"}
+                cursor.execute("TRUNCATE TABLE intelligence_items RESTART IDENTITY CASCADE")
+                print("[IntelligenceSync] Local table truncated.")
+
+            # 2. Search Notion
+            notion_items = notion_client.search()
+            print(f"[IntelligenceSync] Found {len(notion_items)} items in Notion.")
+            
+            synced_count = 0
+            for item in notion_items:
+                if item.get("type") != "page": continue
+                
+                try:
+                    # Fetch full page details and blocks
+                    page_id = item["id"]
+                    page_data = notion_client.read_page(page_id, agent_name="SystemSync")
+                    
+                    # Convert blocks to markdown
+                    content_md = notion_client.blocks_to_markdown(page_data.get("blocks", []))
+                    
+                    # Map properties
+                    props = page_data.get("page_properties", {})
+                    title = props.get("title") or props.get("Name") or item.get("title") or "Unnamed Intelligence"
+                    
+                    # Guess item type (dossier vs blueprint)
+                    # We look for a 'Type' select property or default to dossier
+                    item_type = 'dossier'
+                    if 'Type' in props:
+                        val = str(props['Type']).lower()
+                        if 'blueprint' in val or 'prd' in val:
+                            item_type = 'blueprint'
+                    
+                    status = props.get("Status") or "Active"
+                    summary = content_md[:300] + "..." if len(content_md) > 300 else content_md
+                    
+                    # Prepare metadata
+                    metadata = {
+                        "notion_url": page_data.get("url"),
+                        "tags": props.get("Tags", []),
+                        "icon": "description"
+                    }
+                    
+                    # Insert into DB
+                    with context_store.db_session() as cursor:
+                        if cursor is None: continue
+                        cursor.execute(
+                            """
+                            INSERT INTO intelligence_items (title, content, summary, status, item_type, reference_id, metadata, updated_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                            """,
+                            (
+                                title,
+                                content_md,
+                                summary,
+                                str(status),
+                                item_type,
+                                page_id,
+                                context_store._safe_json(metadata)
+                            )
+                        )
+                        synced_count += 1
+                        print(f"[IntelligenceSync] Synced: {title}")
+                except Exception as ex:
+                    print(f"[IntelligenceSync] Skipping page {item.get('id')}: {ex}")
+
+            return {"success": True, "synced_count": synced_count}
+            
+        except Exception as e:
+            print(f"[IntelligenceSync] Global sync failed: {e}")
+            return {"success": False, "error": str(e)}
+
 intelligence_service = IntelligenceService()

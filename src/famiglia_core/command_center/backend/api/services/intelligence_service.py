@@ -156,12 +156,6 @@ class IntelligenceService:
                     status = props.get("Status") or "Active"
                     summary = content_md[:300] + "..." if len(content_md) > 300 else content_md
                     
-                    # Prepare metadata and properties
-                    metadata = {
-                        "notion_url": page_data.get("url"),
-                        "tags": props.get("Tags", []),
-                    }
-                    
                     # Insert into DB
                     with context_store.db_session() as cursor:
                         if cursor is None: continue

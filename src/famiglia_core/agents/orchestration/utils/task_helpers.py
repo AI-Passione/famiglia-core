@@ -191,23 +191,36 @@ class TaskTools:
         if self.propose_action(f"Create scheduled task: {title}"):
             print(f"[{self.name}] Tool executing: create_scheduled_task({title!r})")
             try:
-                task_data = context_store.create_scheduled_task(
-                    title=title,
-                    task_payload=task_payload,
-                    created_by_type="ai_agent",
-                    created_by_name=self.name,
-                    priority=priority,
-                    expected_agent=expected_agent,
-                    eta_pickup_at=eta_pickup_at,
-                    eta_completion_at=eta_completion_at,
-                    metadata=metadata,
-                    schedule_config=schedule_config,
-                )
+                if schedule_config:
+                    # Route to recurring task creation if a schedule is provided
+                    task_data = context_store.create_recurring_task(
+                        title=title,
+                        task_payload=task_payload,
+                        schedule_config=schedule_config,
+                        priority=priority,
+                        expected_agent=expected_agent,
+                        metadata=metadata,
+                    )
+                else:
+                    # Standard one-off scheduled task
+                    task_data = context_store.create_scheduled_task(
+                        title=title,
+                        task_payload=task_payload,
+                        created_by_type="ai_agent",
+                        created_by_name=self.name,
+                        priority=priority,
+                        expected_agent=expected_agent,
+                        eta_pickup_at=eta_pickup_at,
+                        eta_completion_at=eta_completion_at,
+                        metadata=metadata,
+                    )
+                
                 if task_data:
-                    return f"Successfully created scheduled task #{task_data['id']}: {title}"
-                return "Failed to create scheduled task."
+                    type_str = "recurring" if schedule_config else "scheduled"
+                    return f"Successfully created {type_str} task #{task_data['id']}: {title}"
+                return "Failed to create task."
             except Exception as e:
-                return f"Error creating scheduled task: {e}"
+                return f"Error creating task: {e}"
 
 
     def list_scheduled_tasks_tool(self, status: Optional[str] = None, user_prompt: Optional[str] = None) -> str:

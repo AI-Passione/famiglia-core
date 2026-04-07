@@ -107,12 +107,15 @@ def test_get_settings_endpoint(mock_user_service):
         "honorific": "Capo",
         "notificationsEnabled": False,
         "backgroundAnimationsEnabled": True,
+        "personalDirective": "Be efficient.",
+        "systemPrompt": "Shared baseline content",
     }
 
     response = client.get("/api/v1/settings")
     assert response.status_code == 200
     assert response.json()["honorific"] == "Capo"
     assert response.json()["notificationsEnabled"] is False
+    assert response.json()["personalDirective"] == "Be efficient."
 
 
 @patch("famiglia_core.command_center.backend.api.routes.settings.user_service")
@@ -122,12 +125,17 @@ def test_update_settings_endpoint(mock_user_service):
         "notificationsEnabled": True,
         "backgroundAnimationsEnabled": False,
     }
-    mock_user_service.update_don_settings.return_value = payload
+    expected_payload = {
+        **payload,
+        "personalDirective": "",
+        "systemPrompt": "",
+    }
+    mock_user_service.update_don_settings.return_value = expected_payload
 
     response = client.put("/api/v1/settings", json=payload)
     assert response.status_code == 200
-    assert response.json() == payload
-    mock_user_service.update_don_settings.assert_called_once_with(payload)
+    assert response.json() == expected_payload
+    mock_user_service.update_don_settings.assert_called_once_with(expected_payload)
 
 
 @patch("famiglia_core.command_center.backend.api.routes.famiglia.context_store")

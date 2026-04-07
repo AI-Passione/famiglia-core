@@ -1,14 +1,14 @@
 export function Sidebar({ activeTab, setActiveTab }: any) {
-  const items = [
+  const mainItems = [
     { id: 'situation_room', label: 'The Situation Room', icon: 'dashboard' },
     { id: 'operations', label: 'Operations', icon: 'description' },
     { id: 'agenda', label: 'The Agenda', icon: 'calendar_month' },
     { id: 'famiglia', label: 'The Famiglia', icon: 'groups' },
+  ];
+
+  const secondaryItems = [
     { id: 'intelligences', label: 'Intelligences', icon: 'insights' },
-    { id: 'lounge', label: 'The Lounge', icon: 'nightlife' },
     { id: 'terminal', label: 'The Terminal', icon: 'chat' },
-    { id: 'engine_room', label: 'The Engine Room', icon: 'precision_manufacturing' },
-    { id: 'connections', label: 'Connections', icon: 'hub' },
   ];
 
   return (
@@ -17,8 +17,27 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
         <h1 className="font-headline text-xl text-[#ffb3b5] tracking-tighter">La Passione Inc.</h1>
         <p className="font-body font-medium text-[10px] tracking-widest text-[#a38b88] uppercase mt-1">The Silent Concierge</p>
       </div>
-      <nav className="flex-1 px-4 space-y-1">
-        {items.map(item => (
+
+      <nav className="px-4 space-y-1">
+        {mainItems.map(item => (
+          <button
+            type="button"
+            key={item.id}
+            onClick={() => setActiveTab(item.id)}
+            className={`w-full flex items-center gap-4 px-4 py-3 rounded-sm transition-all duration-200 ${activeTab === item.id
+              ? 'translate-x-1 text-[#ffb3b5] font-bold bg-[#1c1b1b] border-l-4 border-[#4A0404]'
+              : 'hover:text-[#ffb3b5] text-[#a38b88] hover:bg-[#1c1b1b]/50'
+              }`}
+          >
+            <span className="material-symbols-outlined">{item.icon}</span>
+            <span className="font-body font-medium text-sm tracking-wide">{item.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      <div className="px-4 mt-auto space-y-1">
+        <div className="pt-6 border-t border-[#1c1b1b]/50 mb-2 invisible" />
+        {secondaryItems.map(item => (
           <button
             type="button"
             key={item.id}
@@ -38,8 +57,6 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
             <span className="font-body font-medium text-sm tracking-wide">{item.label}</span>
           </button>
         ))}
-      </nav>
-      <div className="px-4 mt-auto pt-6 space-y-1">
         <button
           type="button"
           onClick={() => setActiveTab('settings')}

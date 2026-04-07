@@ -65,6 +65,8 @@ def test_user_service_get_don_settings_from_user_settings_table(mock_store):
         "honorific": "Boss",
         "notifications_enabled": False,
         "background_animations_enabled": True,
+        "personal_directive": "Deference required.",
+        "system_prompt": "Global soul info",
     }
 
     service = UserService()
@@ -73,6 +75,8 @@ def test_user_service_get_don_settings_from_user_settings_table(mock_store):
     assert settings["honorific"] == "Boss"
     assert settings["notificationsEnabled"] is False
     assert settings["backgroundAnimationsEnabled"] is True
+    assert settings["personalDirective"] == "Deference required."
+    assert settings["systemPrompt"] == "Global soul info"
 
 
 @patch("famiglia_core.command_center.backend.api.services.user_service.context_store")
@@ -94,4 +98,6 @@ def test_user_service_update_don_settings_upserts_row(mock_store):
     assert updated["honorific"] == "Donna"
     assert updated["notificationsEnabled"] is True
     assert updated["backgroundAnimationsEnabled"] is False
+    assert "personalDirective" in updated
+    assert "systemPrompt" in updated
     assert mock_cursor.execute.call_count >= 2

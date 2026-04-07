@@ -13,13 +13,10 @@ import { TopNav } from './modules/ui/TopNav';
 import { Sidebar } from './modules/ui/Sidebar';
 import { Agenda } from './modules/Agenda';
 import { SituationRoom } from './modules/SituationRoom';
-import { EngineRoom } from './modules/EngineRoom';
 import { Operations } from './modules/Operations';
 import { Intelligences } from './modules/Intelligences';
-import { Connections } from './modules/Connections';
 import { Settings } from './modules/Settings';
 import { Famiglia } from './modules/Famiglia';
-import { Lounge } from './modules/Lounge';
 import { Terminal } from './modules/Terminal';
 import { DirectivesTerminal } from './modules/ui/DirectivesTerminal';
 import { TerminalProvider } from './modules/TerminalContext';
@@ -30,6 +27,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   honorific: 'Don',
   notificationsEnabled: true,
   backgroundAnimationsEnabled: true,
+  personalDirective: '',
+  systemPrompt: '',
 };
 
 function getInitialSettings(): AppSettings {
@@ -44,6 +43,8 @@ function getInitialSettings(): AppSettings {
       backgroundAnimationsEnabled:
         parsed.backgroundAnimationsEnabled ??
         DEFAULT_SETTINGS.backgroundAnimationsEnabled,
+      personalDirective: parsed.personalDirective || DEFAULT_SETTINGS.personalDirective,
+      systemPrompt: parsed.systemPrompt || DEFAULT_SETTINGS.systemPrompt,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -94,6 +95,8 @@ function App() {
             backgroundAnimationsEnabled:
               backendSettings.backgroundAnimationsEnabled ??
               DEFAULT_SETTINGS.backgroundAnimationsEnabled,
+            personalDirective: backendSettings.personalDirective || DEFAULT_SETTINGS.personalDirective,
+            systemPrompt: backendSettings.systemPrompt || DEFAULT_SETTINGS.systemPrompt,
           });
         }
       } catch (error) {
@@ -206,9 +209,6 @@ function App() {
                   honorific={settings.honorific}
                 />
               )}
-              {activeTab === 'engine_room' && (
-                <EngineRoom />
-              )}
               {activeTab === 'operations' && (
                 <Operations 
                   graphs={graphs} 
@@ -223,24 +223,20 @@ function App() {
               {activeTab === 'famiglia' && (
                 <Famiglia />
               )}
-              {activeTab === 'lounge' && (
-                <Lounge agents={agents} actions={actions} />
-              )}
-              {activeTab === 'connections' && (
-                <Connections
-                  successParam={githubConnected}
-                  errorParam={githubError}
-                  onClearParams={clearOAuthParams}
-                />
-              )}
               {activeTab === 'terminal' && (
                 <Terminal />
               )}
               {activeTab === 'settings' && (
-                <Settings settings={settings} onSettingsChange={setSettings} />
+                <Settings 
+                  settings={settings} 
+                  onSettingsChange={setSettings} 
+                  githubConnected={githubConnected}
+                  githubError={githubError}
+                  onClearOAuthParams={clearOAuthParams}
+                />
               )}
               {/* Fallback for other tabs */}
-              {!['terminal', 'agenda', 'situation_room', 'engine_room', 'operations', 'famiglia', 'lounge', 'intelligences', 'connections', 'settings'].includes(activeTab) && (
+              {!['terminal', 'agenda', 'situation_room', 'operations', 'famiglia', 'intelligences', 'settings'].includes(activeTab) && (
                 <div className="flex flex-col items-center justify-center py-40 opacity-40">
                   <span className="material-symbols-outlined text-6xl mb-4">construction</span>
                   <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>

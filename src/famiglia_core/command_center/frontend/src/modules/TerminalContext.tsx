@@ -161,25 +161,27 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       try {
         console.log("[TerminalContext] Rehydrating mission history...");
         const allChannels = [...PRIO_CHANNELS, ...BUSINESS_CHANNELS, ...INTEL_CHANNELS, ...OTHER_CHANNELS];
-        
-        for (const channel of allChannels) {
-          const res = await fetch(`${API_BASE}/chat/history?thread_id=${channel.id}&limit=20`);
-          if (res.ok) {
-            const history = await res.json();
-            if (history && history.length > 0) {
-              setChats(prev => {
-                const existingChat = prev[channel.id];
-                if (!existingChat) return prev;
+        const historyUpdates: Record<string, Message[]> = {};
 
+        await Promise.all(allChannels.map(async (channel) => {
+          try {
+            const res = await fetch(`${API_BASE}/chat/history?thread_id=${channel.id}&limit=50`);
+            if (res.ok) {
+              const history = await res.json();
+              if (history && history.length > 0) {
                 // Map backend messages to frontend format
                 const loadedMessages: Message[] = history.map((msg: any, idx: number) => {
-                   const isUser = msg.role === 'user' || msg.sender === 'Don Jimmy';
+                   const senderLower = (msg.sender || "").toLowerCase();
+                   const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
+                   
                    const targetSpeaker = isUser ? 'Don Jimmy' : (msg.sender || channel.agentSpeaker || 'Agent');
                    const targetRole = isUser ? 'Head of Family' : (msg.role || 'Agent');
-                   const targetAvatar = isUser ? undefined : AGENT_IMAGE_MAP[targetSpeaker.toLowerCase()] || AGENT_IMAGE_MAP[channel.agent_id?.toLowerCase() || 'alfredo'];
+                   // Use targetSpeaker without " (web_user)" for mapping
+                   const mappingKey = targetSpeaker.split('(')[0].trim().toLowerCase();
+                   const targetAvatar = isUser ? undefined : AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP[channel.agent_id?.toLowerCase() || 'alfredo'];
 
                    return {
-                     id: `hist-${channel.id}-${idx}`,
+                     id: `hist-${channel.id}-${idx}-${Date.now()}`,
                      type: isUser ? 'user' : 'agent',
                      speaker: targetSpeaker,
                      role: targetRole,
@@ -189,20 +191,28 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
                      avatar: targetAvatar
                    };
                 });
-
-                // Keep the init message at the top, then append history
-                const initMsg = existingChat.messages[0]; // the welcome message
-                
-                return {
-                  ...prev,
-                  [channel.id]: {
-                    ...existingChat,
-                    messages: [initMsg, ...loadedMessages]
-                  }
-                };
-              });
+                historyUpdates[channel.id] = loadedMessages;
+              }
             }
+          } catch (e) {
+            console.error(`[TerminalContext] Failed rehydrating ${channel.id}:`, e);
           }
+        }));
+
+        if (Object.keys(historyUpdates).length > 0) {
+          setChats(prev => {
+            const next = { ...prev };
+            Object.entries(historyUpdates).forEach(([chid, messages]) => {
+              if (next[chid]) {
+                const initMsg = next[chid].messages[0];
+                next[chid] = {
+                  ...next[chid],
+                  messages: [initMsg, ...messages]
+                };
+              }
+            });
+            return next;
+          });
         }
       } catch (err) {
         console.error("[TerminalContext] History rehydration failed.", err);

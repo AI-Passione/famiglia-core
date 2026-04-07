@@ -38,19 +38,18 @@ async def chat_standard(request: ChatRequest):
     sender_name = user_info.get("full_name", "Don Jimmy")
     sender_context = f"{sender_name} ({request.platform_user_id or 'web_user'})"
 
-    # 2. Build Conversation Key
     conversation_key = build_conversation_key(
         platform=request.platform,
         channel=request.metadata.get("channel_id", "web-dashboard"),
         thread=request.thread_id or "new-thread",
-        user=request.platform_user_id or str(user_info.get("id", "0"))
+        user=request.platform_user_id or "0"
     )
 
     # 3. Resolve Metadata for Distribution
     metadata = {
         "platform": request.platform,
         "thread_id": request.thread_id,
-        "user_id": request.platform_user_id or str(user_info.get("id", "0")),
+        "user_id": request.platform_user_id or "0",
         "channel": request.metadata.get("channel_id", "web-dashboard")
     }
 

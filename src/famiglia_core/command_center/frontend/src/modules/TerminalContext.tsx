@@ -75,6 +75,7 @@ export const BUSINESS_CHANNELS = [
 ];
 
 export const INTEL_CHANNELS = [
+  { id: 'intelligence-hub', label: 'intelligence-hub', icon: '🧠', description: 'Intel & Strategy Co-op', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, the Intelligence Hub is online. Topics will route to myself, Riccardo, or Kowalski accordingly.' },
   { id: 'analytics', label: 'analytics', icon: '📊', description: 'Analytics, BI & data science', agent_id: 'kowalski', agentSpeaker: 'Kowalski', welcome: 'Don Jimmy, the metrics have been digested. What requirements do you have?' },
   { id: 'research-insights', label: 'research-insights', icon: '✨', description: 'Research insights & intelligence briefs', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, I have compiled fresh intelligence for the Famiglia.' },
 ];
@@ -111,8 +112,8 @@ function buildInitialChats(): Record<string, ChatState> {
   return result;
 }
 
-export function TerminalProvider({ children }: { children: ReactNode }) {
-  const [activeChatId, setActiveChatId] = useState<string>('command-center');
+export function TerminalProvider({ children, initialChatId = 'command-center' }: { children: ReactNode, initialChatId?: string }) {
+  const [activeChatId, setActiveChatId] = useState<string>(initialChatId);
   const [chats, setChats] = useState<Record<string, ChatState>>(buildInitialChats());
   const [input, setInput] = useState('');
   const [agents, setAgents] = useState<FamigliaAgent[]>([]);
@@ -266,7 +267,20 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     setInput('');
 
     // 2. Resolve target agent
-    const targetAgentIdCandidate = currentChat.agent_id || (currentChatId === 'command-center' ? 'alfredo' : 'alfredo');
+    let targetAgentIdCandidate = currentChat.agent_id || (currentChatId === 'command-center' ? 'alfredo' : 'alfredo');
+    
+    // Dynamic Topic Routing for Intelligence Hub
+    if (currentChatId === 'intelligence-hub') {
+      const lowerText = text.toLowerCase();
+      if (lowerText.match(/\b(tech|code|system|devops|engineering|bug|deploy|architecture|app|repo|github)\b/)) {
+        targetAgentIdCandidate = 'riccardo';
+      } else if (lowerText.match(/\b(data|analytics|metrics|dashboard|sql|numbers|query|stats|duckdb)\b/)) {
+        targetAgentIdCandidate = 'kowalski';
+      } else {
+        targetAgentIdCandidate = 'rossini';
+      }
+    }
+
     const targetAgentId = targetAgentIdCandidate.toLowerCase();
 
     // 3. Add typing indicator (agent message placeholder)

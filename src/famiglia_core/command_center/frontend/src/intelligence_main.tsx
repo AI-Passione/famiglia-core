@@ -7,7 +7,7 @@ import './index.css'
 
 function IntelligenceApp() {
   return (
-    <TerminalProvider>
+    <TerminalProvider initialChatId="intelligence-hub">
       <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary/30 relative">
         {/* Background Map Overlay to maintain "La Passione" vibe */}
         <div className="fixed inset-0 noir-bg-map pointer-events-none opacity-20 z-0"></div>

@@ -1,5 +1,24 @@
 # [1.6.0](https://github.com/AI-Passione/famiglia-core/compare/v1.5.0...v1.6.0) (2026-04-07)
 
+
+### Bug Fixes
+
+* rename riccado to riccardo, clean up unused assets, and implement terminal interface ([780750e](https://github.com/AI-Passione/famiglia-core/commit/780750e81f693eac7d881663c3b2e5d1e1111fd4))
+
+
+### Features
+
+* add personal directive and system prompt fields to user settings with souls.md integration ([c8301c0](https://github.com/AI-Passione/famiglia-core/commit/c8301c02371971003e66ee5627e88e843bfb5bf6))
+* implement framer-motion transitions and layout animations for settings tab navigation ([a19dcdf](https://github.com/AI-Passione/famiglia-core/commit/a19dcdfc32a0a215c0b340e796d2d2d9f349434c))
+* implement streaming response support in agents and update terminal UI to handle real-time chat updates via refs ([0148d43](https://github.com/AI-Passione/famiglia-core/commit/0148d434e8318b2e7435825f39afe09d35ab3f23))
+* implement Terminal module with multi-channel chat and agent communication support ([7361d8f](https://github.com/AI-Passione/famiglia-core/commit/7361d8f251b1fecc4332ca9541f13e67fb30e480))
+* implement TerminalContext to manage chat state, agent messaging, and real-time data synchronization ([7ea89d8](https://github.com/AI-Passione/famiglia-core/commit/7ea89d8fb200994c06c93704e21d6ae5208586f6))
+* improve startup logging and move environment loading to main entry point to resolve initialization race conditions ([6036a44](https://github.com/AI-Passione/famiglia-core/commit/6036a4499bacf11d7b9434d3c9c71ef45be0d56b))
+* propagate metadata through agent task completion and update response distributor logging ([bc78724](https://github.com/AI-Passione/famiglia-core/commit/bc7872427d0f81f5fed24aec09477ad6c7994e58))
+* support recurring task creation in orchestration tools and reorganize sidebar navigation layout ([1fa5f24](https://github.com/AI-Passione/famiglia-core/commit/1fa5f241c58680f23c580065608cab0fe042b775))
+
+# [1.6.0](https://github.com/AI-Passione/famiglia-core/compare/v1.5.0...v1.6.0) (2026-04-07)
+
 ### Structural Reorganization
 * **Comms Module Refactor**: Flattened the `comms` directory by moving `queue.py` to the root and removing the redundant `common/` directory.
 * **Script Optimization**: Moved `migrate_sop_to_ops.py` from `scripts/` to `src/famiglia_core/db/` for better cohesion with database operations.

@@ -124,8 +124,10 @@ class PRDReviewWorkflow:
             metadata = item.get("metadata", {})
             if isinstance(metadata, str):
                 import json
-                try: metadata = json.loads(metadata)
-                except: metadata = {}
+                try:
+                    metadata = json.loads(metadata)
+                except Exception:
+                    metadata = {}
             comments = metadata.get("comments", [])
             updates["notion_comments"] = comments
             updates["prd_title"] = item.get("title", "Updated PRD")

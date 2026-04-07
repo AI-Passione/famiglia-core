@@ -4,8 +4,13 @@
 * **Comms Module Refactor**: Flattened the `comms` directory by moving `queue.py` to the root and removing the redundant `common/` directory.
 * **Script Optimization**: Moved `migrate_sop_to_ops.py` from `scripts/` to `src/famiglia_core/db/` for better cohesion with database operations.
 
+### Features
+* **Enhanced Communication Logging**: Implemented descriptive startup logs and summary reports for Slack and Mattermost agents, providing clear visibility into active vs. mock modes.
+* **Early Environment Loading**: Relocated `load_dotenv()` in `main.py` to guarantee that all singleton services correctly ingest configuration on startup.
+
 ### Bug Fixes
-* **Import Stabilization**: Systematically resolved `ModuleNotFoundError` exceptions across the entire codebase (agents, tools, features, tests) following the `comms` directory reorganization.
+* **Slack Enablement**: Fixed a race condition where Slack clients were initialized before environment variables were available in Docker environments.
+* **Import Stabilization**: Systematically resolved `ModuleNotFoundError` exceptions across the entire codebase following the `comms` directory reorganization.
 * **Test Suite Alignment**: Updated mock targets and import paths in the test suite to ensure 100% CI compliance with the new structure.
 
 # [1.5.0](https://github.com/AI-Passione/famiglia-core/compare/v1.4.0...v1.5.0) (2026-04-02)

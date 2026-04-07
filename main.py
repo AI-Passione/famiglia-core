@@ -10,6 +10,11 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
 from mattermostdriver.websocket import Websocket
 
+# Load configuration from .env as early as possible so that any module
+# importing slack_queue or mattermost_queue (which constructs their singletons immediately)
+# can read the proper tokens.
+load_dotenv()
+
 from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 from famiglia_core.command_center.backend.comms.mattermost.client import mattermost_queue
 from famiglia_core.db.agents.context_store import context_store
@@ -41,11 +46,7 @@ from famiglia_core.command_center.backend.comms.mattermost.handlers import (
     process_mattermost_event
 )
 
-# load configuration from .env as early as possible so that any module
-# importing slack_queue (which constructs its singleton immediately) can
-# read the proper tokens.  main() also calls load_dotenv again later for
-# good measure.
-load_dotenv()
+# load_dotenv() moved to the top of the file for early availability.
 
 apps = {} # Global registry for Socket Mode apps
 
@@ -54,7 +55,7 @@ def main():
     print("🎩 Starting Passione Inc. Agent Famiglia...")
     global apps
     
-    load_dotenv()
+    # load_dotenv() called at module level
     ack_emoji = os.getenv("SLACK_ACK_EMOJI", "eyes")
     app_env = os.getenv("APP_ENV", "production").lower()
     raw_dev_channel = os.getenv("DEV_CHANNEL_ID")

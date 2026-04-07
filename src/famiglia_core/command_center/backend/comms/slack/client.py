@@ -59,7 +59,7 @@ class SlackQueueClient(CommsQueue):
             active_token = token or default_token
             if token and default_token and token == default_token:
                 # explicit token matches the global one; warn the operator
-                print(f"[{agent}] WARNING: using the global SLACK_BOT_TOKEN as the agent-specific token.")
+                print(f"[SlackQueue 🔌] [{agent}] WARNING: using the global SLACK_BOT_TOKEN as the agent-specific token.")
 
             if not active_token:
                 # should have been caught above, but guard anyway
@@ -92,12 +92,22 @@ class SlackQueueClient(CommsQueue):
                 self.clients[agent] = client
                 self.bot_ids[agent] = user_id
                 self.bot_id_to_name[user_id] = agent
-                print(f"[{agent}] Authenticated as {user_id}")
+                print(f"[SlackQueue 🔌] [{agent}] Authenticated successfully as {user_id}")
             except SlackApiError as e:
-                print(f"[{agent}] Auth failed: {e.response['error']}")
+                print(f"[SlackQueue 🔌] [{agent}] Auth failed: {e.response['error']}")
         
         self.user_id = os.getenv("USER_SLACK_ID")
         self.user_name_cache: Dict[str, str] = {}
+        
+        # Summary report
+        active = list(self.clients.keys())
+        all_agents = list(self.agent_tokens.keys())
+        print(f"\n[SlackQueue 🔌] Initialization Complete.")
+        print(f"[SlackQueue 🔌] Active Agents: {', '.join(active) if active else 'NONE (Mock Mode active)'}")
+        missing = [a for a in all_agents if a not in active]
+        if missing:
+            print(f"[SlackQueue 🔌] Mock Agents: {', '.join(missing)}")
+        print("")
         if self.user_id:
             configured_user_name = self._lookup_slack_user_name(self.user_id)
             if configured_user_name:

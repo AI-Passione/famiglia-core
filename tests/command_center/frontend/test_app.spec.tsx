@@ -97,12 +97,6 @@ describe('App Component', () => {
     await waitFor(() => {
       expect(screen.getByTestId('famiglia-page')).toBeDefined();
     });
-
-    const loungeLink = screen.getByText('The Lounge');
-    fireEvent.click(loungeLink);
-    await waitFor(() => {
-      expect(screen.getByTestId('lounge-page')).toBeDefined();
-    });
   });
 
   it('fetches initial data on mount', async () => {

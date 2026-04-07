@@ -4,7 +4,6 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
     { id: 'operations', label: 'Operations', icon: 'description' },
     { id: 'agenda', label: 'The Agenda', icon: 'calendar_month' },
     { id: 'famiglia', label: 'The Famiglia', icon: 'groups' },
-    { id: 'lounge', label: 'The Lounge', icon: 'nightlife' },
   ];
 
   const secondaryItems = [

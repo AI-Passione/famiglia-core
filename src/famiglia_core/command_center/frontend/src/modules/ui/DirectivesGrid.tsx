@@ -70,7 +70,7 @@ export function DirectivesGrid({ tasks }: DirectivesGridProps) {
         <>
           <PlaceholderDirective id="09-A" title="The Venetian Protocol" text="Redirect all Mediterranean assets to secure the North trade corridor by 0400." status="In Progress" color="tertiary" icon="history_edu" />
           <PlaceholderDirective id="14-C" title="Silent Encryption" text="Upgrade all comms to 2048-bit lattice-based encryption immediately." status="Priority High" color="primary" icon="shield" />
-          <PlaceholderDirective id="02-B" title="Personnel Rotation" text="Shift Section 3 night watch to the Lounge for de-escalation briefing." status="Pending" color="outline" icon="diversity_3" />
+          <PlaceholderDirective id="02-B" title="Personnel Rotation" text="Shift Section 3 night watch to the Briefing Room for de-escalation briefing." status="Pending" color="outline" icon="diversity_3" />
         </>
       )}
     </div>

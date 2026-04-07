@@ -6,7 +6,8 @@ import json
 
 from famiglia_core.agents.orchestration.utils.state import AgentState
 from famiglia_core.agents.llm.client import client
-from famiglia_core.agents.tools.notion import notion_client
+# from famiglia_core.agents.tools.notion import notion_client
+from famiglia_core.command_center.backend.api.services.intelligence_service import intelligence_service
 from famiglia_core.agents.tools.github import github_client
 from famiglia_core.db.tools.github_store import github_store
 from famiglia_core.db.observability.checkpointer import PostgresCheckpointer
@@ -96,10 +97,13 @@ class MilestoneCreationWorkflow:
             if name_match:
                 target_name = (name_match.group(1) or name_match.group(2) or "").strip()
                 if target_name:
-                    print(f"[{self.name}] Searching Notion for PRD: '{target_name}'")
-                    results = notion_client.search(query=target_name, agent_name=self.name)
-                    if results:
-                        page_id = results[0]["id"]
+                    print(f"[{self.name}] Searching Intelligence DB for PRD: '{target_name}'")
+                    items = intelligence_service.list_items(item_type="prd")
+                    for item in items:
+                        if target_name.lower() in item.get("title", "").lower():
+                            page_id = str(item["id"])
+                            print(f"[{self.name}] Found potential PRD match: {item.get('title')} ({page_id})")
+                            break
 
         # 3. Guessing logic: If only one repo is accessible, and it has mappings
         if not page_id:
@@ -146,15 +150,14 @@ class MilestoneCreationWorkflow:
             }
 
         try:
-            page_data = notion_client.read_page(page_id, agent_name=self.name)
-            blocks = page_data.get("blocks", [])
-            props = page_data.get("page_properties", {})
-            prd_title = props.get("title", "Untitled PRD")
+            item = intelligence_service.get_item(int(page_id))
+            if not item:
+                raise Exception(f"Item {page_id} not found in DB.")
+                
+            prd_title = item.get("title", "Untitled PRD")
             print(f"[{self.name}] load_prd: Extracted title '{prd_title}'")
-            prd_markdown = "\n".join(
-                [b.get("text", "") if isinstance(b, dict) else str(b) for b in blocks]
-            )
-            notion_url = page_data.get("url", "")
+            prd_markdown = item.get("content", "")
+            notion_url = "" # Notion deprecated here
 
             # Verify the PRD is approved before proceeding
             # User wants to denote approval by adding "[Approved]" to the title (case-insensitive)

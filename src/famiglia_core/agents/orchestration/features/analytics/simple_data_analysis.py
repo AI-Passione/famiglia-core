@@ -6,7 +6,9 @@ import json
 
 from famiglia_core.agents.orchestration.utils.state import AgentState
 from famiglia_core.agents.llm.client import client
-from famiglia_core.agents.tools.notion import notion_client
+# from famiglia_core.agents.tools.notion import notion_client
+from famiglia_core.command_center.backend.api.services.intelligence_service import intelligence_service
+from famiglia_core.command_center.backend.api.models.intelligence import IntelligenceItemCreate
 # from famiglia_core.agents.orchestration.features.data_ingestion import setup_data_ingestion_graph
 
 class DataAnalysisState(AgentState):
@@ -438,29 +440,33 @@ class DataAnalysisWorkflow:
         state["final_response"] = final_res
         return state
 
-    def save_to_notion(self, state: DataAnalysisState) -> DataAnalysisState:
-        """Node 6: Save in-depth reports to Notion."""
+    def save_to_intelligence(self, state: DataAnalysisState) -> DataAnalysisState:
+        """Node 6: Save in-depth reports to Intelligence Database."""
         if state.get("report_type") != "in_depth":
             return state
             
-        print(f"[{self.name}] Analysis Node: save_to_notion", flush=True)
-        parent_page_id = os.getenv("NOTION_ANALYSIS_PARENT_ID", "32ef5d41fe97809c9a73ce7f83c1fa27")
+        print(f"[{self.name}] Analysis Node: save_to_intelligence", flush=True)
         title = f"Clinical Analysis: {state.get('task')[:50]}..."
         content = state.get("final_response", "")
         
         try:
-            result_str = notion_client.create_page(parent_page_id, title, content, agent_name=self.name)
-            url_match = re.search(r"URL:\s*([^\s]+)", result_str)
-            if url_match:
-                state["notion_url"] = url_match.group(1)
-            state["notion_success"] = True
+            item = IntelligenceItemCreate(
+                title=title,
+                content=content,
+                summary=content[:300] + "...",
+                status="Approved",
+                item_type="analysis",
+                metadata={"task": state.get("task")}
+            )
+            intelligence_service.create_item(item)
             
+            state["notion_success"] = True
             # Append success message to final response
-            state["final_response"] += f"\n\n🔗 *Deep-dive report saved to Notion:* {state['notion_url']}"
+            state["final_response"] += f"\n\n🔗 *Deep-dive report saved to the Intelligence Center.*"
         except Exception as e:
-            print(f"[{self.name}] Analysis Node: Notion Save Failed: {e}", flush=True)
+            print(f"[{self.name}] Analysis Node: Intelligence DB Save Failed: {e}", flush=True)
             state["notion_success"] = False
-            state["final_response"] += f"\n\n⚠️ *Warning:* Clinical analysis completed, but saving to Notion failed: {e}"
+            state["final_response"] += f"\n\n⚠️ *Warning:* Clinical analysis completed, but saving locally failed: {e}"
             
         return state
 
@@ -479,7 +485,7 @@ def setup_data_analysis_graph(agent):
     workflow.add_node("inform_missing_data", workflow_logic.inform_missing_data)
     workflow.add_node("query_duckdb", workflow_logic.query_duckdb)
     workflow.add_node("generate_report", workflow_logic.generate_report)
-    workflow.add_node("save_to_notion", workflow_logic.save_to_notion)
+    workflow.add_node("save_to_intelligence", workflow_logic.save_to_intelligence)
     
     workflow.set_entry_point("detect_intent")
     
@@ -502,12 +508,12 @@ def setup_data_analysis_graph(agent):
         "generate_report",
         lambda x: "save" if x.get("report_type") == "in_depth" else "finalize",
         {
-            "save": "save_to_notion",
+            "save": "save_to_intelligence",
             "finalize": END
         }
     )
     
-    workflow.add_edge("save_to_notion", END)
+    workflow.add_edge("save_to_intelligence", END)
     
     checkpointer = PostgresCheckpointer()
     return workflow.compile(checkpointer=checkpointer)

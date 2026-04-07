@@ -75,6 +75,7 @@ export const BUSINESS_CHANNELS = [
 ];
 
 export const INTEL_CHANNELS = [
+  { id: 'intelligence-hub', label: 'intelligence-hub', icon: '🧠', description: 'Intel & Strategy Co-op', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, the Intelligence Hub is online. Topics will route to myself, Riccardo, or Kowalski accordingly.' },
   { id: 'analytics', label: 'analytics', icon: '📊', description: 'Analytics, BI & data science', agent_id: 'kowalski', agentSpeaker: 'Kowalski', welcome: 'Don Jimmy, the metrics have been digested. What requirements do you have?' },
   { id: 'research-insights', label: 'research-insights', icon: '✨', description: 'Research insights & intelligence briefs', agent_id: 'rossini', agentSpeaker: 'Dr. Rossini', welcome: 'Don Jimmy, I have compiled fresh intelligence for the Famiglia.' },
 ];
@@ -111,8 +112,8 @@ function buildInitialChats(): Record<string, ChatState> {
   return result;
 }
 
-export function TerminalProvider({ children }: { children: ReactNode }) {
-  const [activeChatId, setActiveChatId] = useState<string>('command-center');
+export function TerminalProvider({ children, initialChatId = 'command-center' }: { children: ReactNode, initialChatId?: string }) {
+  const [activeChatId, setActiveChatId] = useState<string>(initialChatId);
   const [chats, setChats] = useState<Record<string, ChatState>>(buildInitialChats());
   const [input, setInput] = useState('');
   const [agents, setAgents] = useState<FamigliaAgent[]>([]);
@@ -159,11 +160,59 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     const fetchHistory = async () => {
       try {
         console.log("[TerminalContext] Rehydrating mission history...");
-        const res = await fetch(`${API_BASE}/chat/conversations?limit=50`);
-        if (res.ok) {
-          // const conversations = await res.json();
-          // Map backend conversations to chats if needed
-          // For now, we continue using the provisioned channels but we could load thread history here
+        const allChannels = [...PRIO_CHANNELS, ...BUSINESS_CHANNELS, ...INTEL_CHANNELS, ...OTHER_CHANNELS];
+        const historyUpdates: Record<string, Message[]> = {};
+
+        await Promise.all(allChannels.map(async (channel) => {
+          try {
+            const res = await fetch(`${API_BASE}/chat/history?thread_id=${channel.id}&limit=50`);
+            if (res.ok) {
+              const history = await res.json();
+              if (history && history.length > 0) {
+                // Map backend messages to frontend format
+                const loadedMessages: Message[] = history.map((msg: any, idx: number) => {
+                   const senderLower = (msg.sender || "").toLowerCase();
+                   const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
+                   
+                   const targetSpeaker = isUser ? 'Don Jimmy' : (msg.sender || channel.agentSpeaker || 'Agent');
+                   const targetRole = isUser ? 'Head of Family' : (msg.role || 'Agent');
+                   // Use targetSpeaker without " (web_user)" for mapping
+                   const mappingKey = targetSpeaker.split('(')[0].trim().toLowerCase();
+                   const targetAvatar = isUser ? undefined : AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP[channel.agent_id?.toLowerCase() || 'alfredo'];
+
+                   return {
+                     id: `hist-${channel.id}-${idx}-${Date.now()}`,
+                     type: isUser ? 'user' : 'agent',
+                     speaker: targetSpeaker,
+                     role: targetRole,
+                     content: msg.content,
+                     timestamp: new Date(msg.created_at || Date.now()),
+                     status: 'done',
+                     avatar: targetAvatar
+                   };
+                });
+                historyUpdates[channel.id] = loadedMessages;
+              }
+            }
+          } catch (e) {
+            console.error(`[TerminalContext] Failed rehydrating ${channel.id}:`, e);
+          }
+        }));
+
+        if (Object.keys(historyUpdates).length > 0) {
+          setChats(prev => {
+            const next = { ...prev };
+            Object.entries(historyUpdates).forEach(([chid, messages]) => {
+              if (next[chid]) {
+                const initMsg = next[chid].messages[0];
+                next[chid] = {
+                  ...next[chid],
+                  messages: [initMsg, ...messages]
+                };
+              }
+            });
+            return next;
+          });
         }
       } catch (err) {
         console.error("[TerminalContext] History rehydration failed.", err);
@@ -266,7 +315,20 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     setInput('');
 
     // 2. Resolve target agent
-    const targetAgentIdCandidate = currentChat.agent_id || (currentChatId === 'command-center' ? 'alfredo' : 'alfredo');
+    let targetAgentIdCandidate = currentChat.agent_id || (currentChatId === 'command-center' ? 'alfredo' : 'alfredo');
+    
+    // Dynamic Topic Routing for Intelligence Hub
+    if (currentChatId === 'intelligence-hub') {
+      const lowerText = text.toLowerCase();
+      if (lowerText.match(/\b(tech|code|system|devops|engineering|bug|deploy|architecture|app|repo|github)\b/)) {
+        targetAgentIdCandidate = 'riccardo';
+      } else if (lowerText.match(/\b(data|analytics|metrics|dashboard|sql|numbers|query|stats|duckdb)\b/)) {
+        targetAgentIdCandidate = 'kowalski';
+      } else {
+        targetAgentIdCandidate = 'rossini';
+      }
+    }
+
     const targetAgentId = targetAgentIdCandidate.toLowerCase();
 
     // 3. Add typing indicator (agent message placeholder)

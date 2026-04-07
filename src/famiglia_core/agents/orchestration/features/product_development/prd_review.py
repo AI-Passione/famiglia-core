@@ -6,7 +6,9 @@ import json
 
 from famiglia_core.agents.orchestration.utils.state import AgentState
 from famiglia_core.agents.llm.client import client
-from famiglia_core.agents.tools.notion import notion_client
+# from famiglia_core.agents.tools.notion import notion_client
+from famiglia_core.command_center.backend.api.services.intelligence_service import intelligence_service
+from famiglia_core.command_center.backend.api.models.intelligence import IntelligenceItemUpdate
 from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 from famiglia_core.db.observability.checkpointer import PostgresCheckpointer
 
@@ -92,61 +94,42 @@ class PRDReviewWorkflow:
                 if not target_name or target_name.lower() == "none":
                     target_name = None
                 
-                if target_name:
-                    print(f"[{self.name}] Page ID missing. Searching Notion for: {target_name}")
-                    results = notion_client.search(query=target_name, agent_name=self.name)
-                    # Filter for pages with IDs
-                    pages = [r for r in results if r.get("id")]
-                    
-                    if not pages:
-                        # Broaden search: just "PRD"
-                        print(f"[{self.name}] Specific search for '{target_name}' failed. Trying broader search and split words.")
-                        results = notion_client.search(query="PRD", agent_name=self.name)
-                        # Look for target_name or any of its words in titles
-                        pages = []
-                        words = [w.lower() for w in re.split(r"[\s_]+", target_name) if len(w) > 2]
-                        
-                        for r in results:
-                            title = str(r.get("title", "")).lower()
-                            # Check if whole target name is in title
-                            if target_name.lower() in title:
-                                pages.append(r)
-                                continue
-                            # Check if ANY major word is in title
-                            if any(word in title for word in words):
-                                pages.append(r)
-                    
-                    if pages:
-                        page_id = pages[0]["id"]
-                        found_title = pages[0].get("title", "Unknown")
-                        print(f"[{self.name}] Found potential PRD page match: {found_title} ({page_id})")
+                    if target_name:
+                        print(f"[{self.name}] Searching Intelligence DB for: {target_name}")
+                        from famiglia_core.command_center.backend.api.services.intelligence_service import intelligence_service
+                        items = intelligence_service.list_items(item_type="prd")
+                        for item in items:
+                            if target_name.lower() in item.get("title", "").lower():
+                                page_id = str(item["id"])
+                                found_title = item.get("title", "Unknown")
+                                print(f"[{self.name}] Found potential PRD match: {found_title} ({page_id})")
+                                break
 
         if not page_id:
-            msg = f"No Notion page ID found. Searched for keywords from: '{task_clean if 'task_clean' in locals() else 'None'}'. Please provide a direct link or ID."
+            msg = f"No PRD found. Searched for keywords from: '{task_clean if 'task_clean' in locals() else 'None'}'."
             print(f"[{self.name}] Final Lookup Error: {msg}")
             return {"last_error": msg, "notion_success": False}
 
         updates = {"notion_page_id": page_id}
         try:
-            # 1. Read Page Content (v2.4 metadata)
-            page_data = notion_client.read_page(page_id, agent_name=self.name)
-            blocks = page_data.get("blocks", [])
-            updates["prd_blocks"] = blocks
-            updates["notion_url"] = page_data.get("url")
+            # 1. Read Item Content
+            from famiglia_core.command_center.backend.api.services.intelligence_service import intelligence_service
+            item = intelligence_service.get_item(int(page_id))
+            if not item:
+                raise Exception(f"Item {page_id} not found in DB.")
+                
+            updates["current_prd_markdown"] = item.get("content", "")
             
-            # Simple fallback for standard markdown state
-            state_markdown = "\n".join([b.get("text", "") for b in blocks])
-            updates["current_prd_markdown"] = state_markdown
-            
-            # 2. Read Comments
-            comments = notion_client.list_comments(page_id, agent_name=self.name, deep_scan=True)
-            print(f"[{self.name}] [prd_review.py v2.7] PRD Review Load: Found {len(comments)} comments on page {page_id}")
-            print(f"[{self.name}] [prd_review.py v2.7] Page properties: {list(page_data.get('page_properties', {}).keys())}")
+            # 2. Read Comments (Dummy for now since DB lacks threads)
+            metadata = item.get("metadata", {})
+            if isinstance(metadata, str):
+                try:
+                    metadata = json.loads(metadata)
+                except Exception:
+                    metadata = {}
+            comments = metadata.get("comments", [])
             updates["notion_comments"] = comments
-            
-            # Simple title extraction
-            props = page_data.get("page_properties", {})
-            updates["prd_title"] = props.get("title", "Updated PRD")
+            updates["prd_title"] = item.get("title", "Updated PRD")
             
         except Exception as e:
             print(f"[{self.name}] PRD Review Load Failed: {e}")
@@ -256,83 +239,22 @@ class PRDReviewWorkflow:
         res, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name=self.name)
         return {"updated_prd_markdown": res.strip()}
 
-    def save_to_notion(self, state: PRDReviewState) -> PRDReviewState:
-        """Node 4: Update the Notion page surgically (Patch Mode)."""
+    def save_to_intelligence(self, state: PRDReviewState) -> PRDReviewState:
+        """Node 4: Update the Intelligence DB."""
         if state.get("last_error"):
             return {"notion_success": False}
         
-        print(f"[{self.name}] [prd_review.py v2.8] PRD Review Node: save_to_notion (Surgical Mode)")
+        print(f"[{self.name}] PRD Review Node: save_to_intelligence")
         page_id = state.get("notion_page_id")
-        comments = state.get("notion_comments", [])
-        blocks = state.get("prd_blocks", [])
-        evaluation = state.get("evaluation_results", "")
+        content = state.get("updated_prd_markdown")
         
         try:
-            # 1. Map comments to blocks
-            block_feedback = {}
-            for c in comments:
-                bid = c.get("parent_block_id")
-                if bid:
-                    if bid not in block_feedback:
-                        block_feedback[bid] = []
-                    block_feedback[bid].append(c["text"])
-
-            if not block_feedback:
-                print(f"[{self.name}] No block-level feedback found. Skipping surgical updates.")
-                return {"notion_success": True}
-
-            print(f"[{self.name}] Found feedback for {len(block_feedback)} unique IDs. Patching...")
-            
-            # 2. Patch each block surgically
-            for bid, fb_list in block_feedback.items():
-                # Check if it is the page itself
-                if bid == page_id:
-                    print(f"[{self.name}] Handling page-level feedback for {bid}...")
-                    # For page-level, we could update title or prepend a block. 
-                    # Let's prepend a "Director Note" block if it is on the page.
-                    note_prompt = f"Write a short Director's Note based on this page-level feedback:\n{fb_list}"
-                    new_note, _ = client.complete(note_prompt, self.agent.get_model_config(state), agent_name=self.name)
-                    notion_client.append_text_to_page(page_id, f"> **Director Note:** {new_note.strip()}", agent_name=self.name)
-                    continue
-
-                # Find the existing block
-                block = next((b for b in blocks if b["id"] == bid), None)
-                if not block:
-                    print(f"[{self.name}] Block {bid} not found in page blocks. Might be nested correctly but not in initial fetch.")
-                    continue
-                
-                print(f"[{self.name}] Surgically updating block {bid}...")
-                prompt = f"""
-                {self.personality}
-                
-                Task: Rewrite this specific PRD block based on the feedback and the Director's evaluation.
-                
-                Current Content:
-                {block['text']}
-                
-                Feedback on this block:
-                - {" - ".join(fb_list)}
-                
-                Evaluation Context:
-                {evaluation}
-                
-                Requirements:
-                1. Output ONLY the updated markdown for this single block.
-                2. If the feedback was REJECTED in the evaluation, you may return the ORIGINAL content.
-                3. If the feedback clearly requests REMOVAL/DELETION of this specific block and the Director agrees, output exactly "DELETE".
-                4. Do not add headers if the block was a paragraph.
-                """
-                new_text, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name=self.name)
-                
-                if new_text.strip().upper() == "DELETE":
-                    print(f"[{self.name}] Deleting (archiving) block {bid} as requested.")
-                    notion_client.archive_block(bid, agent_name=self.name)
-                else:
-                    notion_client.update_block(bid, new_text.strip(), agent_name=self.name)
-
+            summary = content[:300] + "..." if len(content) > 300 else content
+            update_data = IntelligenceItemUpdate(content=content, summary=summary)
+            intelligence_service.update_item(int(page_id), update_data)
             return {"notion_success": True}
         except Exception as e:
-            print(f"[{self.name}] PRD Review Surgical Patch Failed: {e}")
+            print(f"[{self.name}] DB Update Failed: {e}")
             return {"notion_success": False, "last_error": str(e)}
 
     def notify_slack(self, state: PRDReviewState) -> PRDReviewState:
@@ -346,10 +268,8 @@ class PRDReviewWorkflow:
         feedback = state.get("feedback_summary", "")
         if "No comments found" in feedback or "No changes requested" in feedback:
             msg = f"🔬 *PRD Review:* I've reviewed '{title}' but found no comments or requested changes."
-            if url: msg += f"\n🔗 <{url}|View PRD>"
         else:
-            msg = f"🔬 *PRD Update:* I've addressed the comments on '{title}' and surgically updated the Notion page."
-            if url: msg += f"\n🔗 <{url}|View Updated PRD>"
+            msg = f"🔬 *PRD Update:* I've addressed the comments on '{title}' and updated it in the Intelligence Center."
             
         error = state.get("last_error")
         decision = state.get("decision", "update")
@@ -365,57 +285,8 @@ class PRDReviewWorkflow:
         return {"final_response": msg}
 
     def post_replies(self, state: PRDReviewState) -> PRDReviewState:
-        """Node 6: Reply to all original Notion comment threads individually."""
-        print(f"[{self.name}] PRD Review Node: post_replies (Looping)")
-        comments = state.get("notion_comments", [])
-        evaluation = state.get("evaluation_results", "")
-        
-        if not comments:
-            return {}
-
-        # 1. Group comments by discussion_id
-        unique_discussions = {}
-        for c in comments:
-            did = c.get("discussion_id")
-            if did:
-                if did not in unique_discussions:
-                    unique_discussions[did] = []
-                unique_discussions[did].append(c["text"])
-
-        print(f"[{self.name}] Found {len(unique_discussions)} unique threads to reply to.")
-
-        # 2. Iterate and reply to each
-        for disc_id, thread_comments in unique_discussions.items():
-            print(f"[{self.name}] Generating reply for thread {disc_id}...")
-            
-            thread_text = "\n".join([f"- {txt}" for txt in thread_comments])
-            
-            prompt = f"""
-            {self.personality}
-            
-            Task: Write a professional reply to the following Notion comment thread based on the Product Director's evaluation results.
-            
-            Director's Evaluation Recap:
-            {evaluation}
-            
-            The Thread Content:
-            {thread_text}
-            
-            Requirements for the reply:
-            1. Clearly state if the feedback was CARRIED OUT, REJECTED, or ADJUSTED.
-            2. Be concise and professional.
-            3. Output ONLY the reply text, no placeholders or conversational filler.
-            """
-            
-            reply_text, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name=self.name)
-            
-            try:
-                # Post the reply
-                notion_client.create_comment(text=reply_text.strip(), discussion_id=disc_id, agent_name=self.name)
-                print(f"[{self.name}] Successfully replied to {disc_id}")
-            except Exception as e:
-                print(f"[{self.name}] Failed to post reply to {disc_id}: {e}")
-
+        """Node 6: Reply to threads (Disabled for local Intelligence Center)."""
+        print(f"[{self.name}] PRD Review Node: post_replies (Disabled)")
         return {}
 
     def route_error(self, state: PRDReviewState):
@@ -431,50 +302,21 @@ class PRDReviewWorkflow:
         return decision
 
     def discover_prds(self, state: PRDReviewState) -> PRDReviewState:
-        """Node 0: Discovery - Find PRDs with unaddressed human comments."""
-        print(f"[{self.name}] [prd_review.py v2.9] PRD Review Node: discover_prds")
+        """Node 0: Discovery - Find PRDs with unaddressed comments."""
+        print(f"[{self.name}] PRD Review Node: discover_prds")
         
         try:
-            # 1. Search for potential PRD pages
-            results = notion_client._make_request("POST", "/search", data={
-                "query": "PRD",
-                "filter": {"property": "object", "value": "page"},
-                "page_size": 20
-            })
-            
-            candidates = results.get("results", [])
-            print(f"[{self.name}] Discovery found {len(candidates)} candidate pages.")
-            
+            items = intelligence_service.list_items(item_type="prd")
             unaddressed_ids = []
             
-            for page in candidates:
-                page_id = page["id"]
-                title = "".join([t["plain_text"] for t in page.get("properties", {}).get("title", {}).get("title", [])])
-                
-                comments = notion_client.list_comments(page_id, agent_name=self.name, deep_scan=True)
-                
-                if not comments:
-                    continue
-                    
-                threads = {}
-                for c in comments:
-                    did = c["discussion_id"]
-                    if did not in threads or c["created_at"] > threads[did]["created_at"]:
-                        threads[did] = c
-                
-                found_unaddressed = False
-                for did, last_comment in threads.items():
-                    if last_comment.get("author_type") == "person":
-                        print(f"[{self.name}] Unaddressed human comment found on '{title}' in thread {did}")
-                        found_unaddressed = True
-                        break
-                
-                if found_unaddressed:
-                    unaddressed_ids.append(page_id)
+            for item in items:
+                metadata = item.get("metadata", {})
+                comments = metadata.get("comments", [])
+                if comments:
+                    unaddressed_ids.append(str(item["id"]))
             
-            print(f"[{self.name}] Discovery finished. Found {len(unaddressed_ids)} unaddressed PRDs.")
+            print(f"[{self.name}] Discovery found {len(unaddressed_ids)} PRDs with comments.")
             return {"pages_to_review": unaddressed_ids, "discovery_mode": True}
-            
         except Exception as e:
             print(f"[{self.name}] Discovery Error: {e}")
             return {"last_error": str(e)}
@@ -495,13 +337,13 @@ def setup_prd_review_graph(agent):
     workflow = StateGraph(PRDReviewState)
     review_workflow = PRDReviewWorkflow(agent)
 
-    # Define Nodes
     workflow.add_node("discover_prds", review_workflow.discover_prds)
     workflow.add_node("load_prd_and_comments", review_workflow.load_prd_and_comments)
     workflow.add_node("summarize_feedback", review_workflow.summarize_feedback)
     workflow.add_node("evaluate_feedback", review_workflow.evaluate_feedback)
     workflow.add_node("update_prd", review_workflow.update_prd)
-    workflow.add_node("save_to_notion", review_workflow.save_to_notion)
+    # workflow.add_node("save_to_notion", review_workflow.save_to_notion)
+    workflow.add_node("save_to_intelligence", review_workflow.save_to_intelligence)
     workflow.add_node("post_replies", review_workflow.post_replies)
     workflow.add_node("notify_slack", review_workflow.notify_slack)
 
@@ -564,8 +406,8 @@ def setup_prd_review_graph(agent):
         }
     )
     
-    workflow.add_edge("update_prd", "save_to_notion")
-    workflow.add_edge("save_to_notion", "post_replies")
+    workflow.add_edge("update_prd", "save_to_intelligence")
+    workflow.add_edge("save_to_intelligence", "post_replies")
     
     # After posting replies, if in discovery mode, go back to discover_prds to get next page
     # Actually, we can just pop from the list and loop.

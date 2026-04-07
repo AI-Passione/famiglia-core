@@ -7,7 +7,8 @@ from langgraph.graph import StateGraph, END
 
 from famiglia_core.agents.orchestration.utils.state import AgentState
 from famiglia_core.agents.llm.client import client
-from famiglia_core.agents.tools.notion import notion_client
+# from famiglia_core.agents.tools.notion import notion_client
+from famiglia_core.command_center.backend.api.services.intelligence_service import intelligence_service
 from famiglia_core.agents.tools.github import github_client
 from famiglia_core.db.tools.github_store import github_store
 from famiglia_core.db.observability.checkpointer import PostgresCheckpointer
@@ -72,16 +73,18 @@ class GroomingWorkflow:
             title_match = re.search(r"(?:groom|review|prd)\s+(?:for|on|named|titled)?\s*[\"']?([^\"'?.]+)[\"']?", task, re.IGNORECASE)
             if title_match:
                 target_name = title_match.group(1).strip()
-                print(f"[{self.name}] Searching Notion for PRD title: '{target_name}'")
-                results = notion_client.search(query=target_name, agent_name=self.name)
-                if results:
-                    # Only take it if it's mapped, otherwise we'll try guessing
-                    temp_id = results[0]["id"]
-                    if github_store.get_repo_for_prd(temp_id):
-                        page_id = temp_id
-                        print(f"[{self.name}] Found mapped page '{results[0].get('title')}' with ID {page_id}")
-                    else:
-                        print(f"[{self.name}] Search found '{results[0].get('title')}' but it's not mapped. Checking for alternatives...")
+                print(f"[{self.name}] Searching Intelligence DB for PRD title: '{target_name}'")
+                items = intelligence_service.list_items(item_type="prd")
+                for item in items:
+                    if target_name.lower() in item.get("title", "").lower():
+                        temp_id = str(item["id"])
+                        if github_store.get_repo_for_prd(temp_id) or github_store.get_repo_for_prd(str(item.get("notion_id"))):
+                            page_id = temp_id # we'll just use the item ID now
+                            print(f"[{self.name}] Found mapped page '{item.get('title')}' with ID {page_id}")
+                            break
+                        else:
+                            print(f"[{self.name}] Search found '{item.get('title')}' but it's not mapped. Checking for alternatives...")
+
 
         # 3. Guessing/Mapping logic: Try to find a mapped PRD for the relevant repo
         if not page_id:
@@ -135,17 +138,22 @@ class GroomingWorkflow:
         if not page_id:
             return {"last_error": "Could not determine which Notion PRD to groom. Please provide a Title, URL, or Page ID."}
 
-        # 4. Load PRD
+        # 4. Load PRD from local Intelligence Service
         try:
-            page_data = notion_client.read_page(page_id, agent_name=self.name)
-            blocks = page_data.get("blocks", [])
-            prd_title = page_data.get("page_properties", {}).get("title", "Untitled PRD")
-            prd_markdown = "\n".join([b.get("text", "") if isinstance(b, dict) else str(b) for b in blocks])
+            item = intelligence_service.get_item(int(page_id))
+            if not item:
+                raise Exception(f"Item {page_id} not found in intelligence database.")
+            prd_title = item.get("title", "Untitled PRD")
+            prd_markdown = item.get("content", "")
+            notion_id = item.get("notion_id")
         except Exception as e:
-            return {"last_error": f"Failed to read PRD with ID {page_id}: {e}"}
+            return {"last_error": f"Failed to read local PRD with ID {page_id}: {e}"}
 
-        # 5. Get final mapping data
-        cached_data = github_store.get_repo_for_prd(page_id)
+        # 5. Get final mapping data (try both local id and notion_id)
+        cached_data = github_store.get_repo_for_prd(str(page_id))
+        if not cached_data and notion_id:
+            cached_data = github_store.get_repo_for_prd(str(notion_id))
+
         if not cached_data:
             return {"last_error": f"PRD '{prd_title}' is not yet mapped to a GitHub repository. Please run Milestone Creation first."}
 

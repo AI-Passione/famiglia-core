@@ -2,7 +2,7 @@ import pytest
 import os
 import requests
 from unittest.mock import MagicMock, patch
-from famiglia_core.command_center.backend.slack.client import SlackQueueClient
+from famiglia_core.command_center.backend.comms.slack.client import SlackQueueClient
 
 @pytest.fixture
 def mock_redis(mocker):
@@ -60,7 +60,7 @@ def test_slack_resolve_sender_name_cache(mock_redis):
     
     assert client.resolve_sender_name("U123") == "Cached Name"
 
-@patch("famiglia_core.command_center.backend.slack.client.WebClient")
+@patch("famiglia_core.command_center.backend.comms.slack.client.WebClient")
 def test_slack_resolve_sender_name_api(mock_web_client_cls, mock_redis):
     mock_client = MagicMock()
     mock_web_client_cls.return_value = mock_client

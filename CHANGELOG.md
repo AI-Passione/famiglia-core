@@ -1,3 +1,13 @@
+# [1.6.0](https://github.com/AI-Passione/famiglia-core/compare/v1.5.0...v1.6.0) (2026-04-07)
+
+### Structural Reorganization
+* **Comms Module Refactor**: Flattened the `comms` directory by moving `queue.py` to the root and removing the redundant `common/` directory.
+* **Script Optimization**: Moved `migrate_sop_to_ops.py` from `scripts/` to `src/famiglia_core/db/` for better cohesion with database operations.
+
+### Bug Fixes
+* **Import Stabilization**: Systematically resolved `ModuleNotFoundError` exceptions across the entire codebase (agents, tools, features, tests) following the `comms` directory reorganization.
+* **Test Suite Alignment**: Updated mock targets and import paths in the test suite to ensure 100% CI compliance with the new structure.
+
 # [1.5.0](https://github.com/AI-Passione/famiglia-core/compare/v1.4.0...v1.5.0) (2026-04-02)
 
 

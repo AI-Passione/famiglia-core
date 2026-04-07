@@ -11,7 +11,7 @@ from famiglia_core.agents.tools.notion import notion_client
 from famiglia_core.agents.tools.github import github_client
 from famiglia_core.db.tools.github_store import github_store
 from famiglia_core.db.observability.checkpointer import PostgresCheckpointer
-from famiglia_core.command_center.backend.slack.client import slack_queue
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 
 class GroomingState(AgentState):
     """State for the GitHub Grooming workflow."""

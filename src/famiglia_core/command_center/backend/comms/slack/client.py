@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from famiglia_core.command_center.backend.comms.common.queue import (
+from famiglia_core.command_center.backend.comms.queue import (
     CommsQueue, 
     PRIORITY_CRITICAL, 
     PRIORITY_HIGH, 

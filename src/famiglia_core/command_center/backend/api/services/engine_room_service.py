@@ -16,7 +16,7 @@ import yaml
 
 from famiglia_core.command_center.backend.github.auth_github import github_oauth_client
 from famiglia_core.command_center.backend.notion.auth_notion import notion_oauth_client
-from famiglia_core.command_center.backend.slack.auth_slack import slack_oauth_client
+from famiglia_core.command_center.backend.comms.slack.auth_slack import slack_oauth_client
 from famiglia_core.db.tools.user_connections_store import user_connections_store
 
 

@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from famiglia_core.agents.base_agent import BaseAgent
 from famiglia_core.db.agents.context_store import context_store
-from famiglia_core.command_center.backend.slack.client import slack_queue
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 from famiglia_core.agents.orchestration.utils.task_helpers import Task, TASK_TYPE_REMINDER
 
 class TaskOrchestrator:

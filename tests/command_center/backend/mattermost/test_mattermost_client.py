@@ -1,7 +1,7 @@
 import pytest
 import os
 from unittest.mock import MagicMock, patch
-from famiglia_core.command_center.backend.mattermost.client import MattermostQueueClient
+from famiglia_core.command_center.backend.comms.mattermost.client import MattermostQueueClient
 
 @pytest.fixture
 def mock_redis(mocker):
@@ -11,7 +11,7 @@ def mock_redis(mocker):
 
 def test_mattermost_add_reaction_success(mock_redis, mocker):
     mock_driver = MagicMock()
-    mocker.patch("famiglia_core.command_center.backend.mattermost.client.Driver", return_value=mock_driver)
+    mocker.patch("famiglia_core.command_center.backend.comms.mattermost.client.Driver", return_value=mock_driver)
     
     mock_driver.login.return_value = None
     mock_driver.users.get_user.return_value = {"id": "user_123"}
@@ -25,7 +25,7 @@ def test_mattermost_add_reaction_success(mock_redis, mocker):
 
 def test_mattermost_download_file_success(mock_redis, mocker):
     mock_driver = MagicMock()
-    mocker.patch("famiglia_core.command_center.backend.mattermost.client.Driver", return_value=mock_driver)
+    mocker.patch("famiglia_core.command_center.backend.comms.mattermost.client.Driver", return_value=mock_driver)
     
     mock_driver.login.return_value = None
     mock_driver.files.get_file_info.return_value = {"name": "test_mm.png"}
@@ -43,7 +43,7 @@ def test_mattermost_download_file_success(mock_redis, mocker):
 
 def test_mattermost_resolve_sender_name(mock_redis, mocker):
     mock_driver = MagicMock()
-    mocker.patch("famiglia_core.command_center.backend.mattermost.client.Driver", return_value=mock_driver)
+    mocker.patch("famiglia_core.command_center.backend.comms.mattermost.client.Driver", return_value=mock_driver)
     
     mock_driver.login.return_value = None
     mock_driver.users.get_user.side_effect = [

@@ -4,7 +4,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 # Slack Imports
-from famiglia_core.command_center.backend.slack.client import (
+from famiglia_core.command_center.backend.comms.slack.client import (
     SlackQueueClient, 
     PRIORITY_CRITICAL, 
     PRIORITY_HIGH, 
@@ -13,7 +13,7 @@ from famiglia_core.command_center.backend.slack.client import (
 )
 
 # Mattermost Imports
-from famiglia_core.command_center.backend.mattermost.client import (
+from famiglia_core.command_center.backend.comms.mattermost.client import (
     MattermostQueueClient,
     PRIORITY_HIGH as MM_PRIORITY_HIGH
 )
@@ -177,7 +177,7 @@ def test_mattermost_post_message_mock(mocker):
     mock_driver = mocker.MagicMock()
     
     mocker.patch("redis.from_url", return_value=mock_redis)
-    mocker.patch("famiglia_core.command_center.backend.mattermost.client.Driver", return_value=mock_driver)
+    mocker.patch("famiglia_core.command_center.backend.comms.mattermost.client.Driver", return_value=mock_driver)
     
     # Setup mock driver behavior
     mock_driver.login.return_value = None

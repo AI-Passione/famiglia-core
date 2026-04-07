@@ -4,7 +4,7 @@ import time
 from typing import Optional, Callable, Dict, Any
 from famiglia_core.agents.base_agent import BaseAgent
 from famiglia_core.agents.tools.github import github_client
-from famiglia_core.command_center.backend.slack.client import slack_queue
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 from famiglia_core.agents.llm.models_registry import QWEN25_CODER_7B
 from famiglia_core.agents.orchestration.features.product_development.grooming import setup_grooming_graph
 from famiglia_core.agents.orchestration.features.product_development.code_implementation import setup_code_implementation_graph

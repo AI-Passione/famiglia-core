@@ -7,7 +7,7 @@ import random
 import logging
 import re
 from typing import Optional, Dict, Any, List
-from famiglia_core.command_center.backend.slack.client import slack_queue, PRIORITY_HIGH
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue, PRIORITY_HIGH
 from famiglia_core.db.tools.user_connections_store import user_connections_store
 
 logger = logging.getLogger("notion_client")

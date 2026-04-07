@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from urllib.parse import urlparse
 from mattermostdriver import Driver
 
-from famiglia_core.command_center.backend.comms.common.queue import (
+from famiglia_core.command_center.backend.comms.queue import (
     CommsQueue, 
     PRIORITY_CRITICAL, 
     PRIORITY_HIGH, 

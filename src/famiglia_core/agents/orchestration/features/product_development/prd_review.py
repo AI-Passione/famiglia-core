@@ -7,7 +7,7 @@ import json
 from famiglia_core.agents.orchestration.utils.state import AgentState
 from famiglia_core.agents.llm.client import client
 from famiglia_core.agents.tools.notion import notion_client
-from famiglia_core.command_center.backend.slack.client import slack_queue
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 from famiglia_core.db.observability.checkpointer import PostgresCheckpointer
 
 class PRDReviewState(AgentState):

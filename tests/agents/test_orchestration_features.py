@@ -107,7 +107,6 @@ def test_prd_drafting_synthesis(mock_agent, mock_llm):
 
 def test_full_market_research_graph(mock_agent, mock_llm, mock_services):
     # Synchronous graph test
-    workflow_logic = MarketResearchWorkflow(mock_agent)
     
     from famiglia_core.agents.orchestration.features.market_research.market_research import setup_market_research_graph
     from langgraph.checkpoint.memory import MemorySaver # Use real in-memory saver

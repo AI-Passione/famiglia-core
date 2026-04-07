@@ -60,8 +60,10 @@ export function Intelligences() {
     );
   }, [items, searchQuery]);
 
-  const dossiers = filteredItems.filter(item => item.item_type === 'dossier');
-  const blueprints = filteredItems.filter(item => item.item_type === 'blueprint');
+  const marketResearches = filteredItems.filter(item => item.item_type === 'market_research');
+  const prds = filteredItems.filter(item => item.item_type === 'prd');
+  const projects = filteredItems.filter(item => item.item_type === 'project');
+  const analysis = filteredItems.filter(item => item.item_type === 'analysis' || (!['market_research', 'prd', 'project'].includes(item.item_type || '')));
 
   if (loading) {
     return (
@@ -108,14 +110,14 @@ export function Intelligences() {
         </div>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-6">
-          {/* Executive Dossiers Group */}
+          {/* Market Researches Group */}
           <div>
             <div className="px-3 mb-2 flex items-center justify-between">
-              <span className="text-[10px] font-black font-label text-outline uppercase tracking-widest">Executive Dossiers</span>
-              <span className="text-[10px] font-bold text-tertiary bg-tertiary/10 px-1.5 py-0.5 rounded">{dossiers.length}</span>
+              <span className="text-[10px] font-black font-label text-outline uppercase tracking-widest">Market Researches</span>
+              <span className="text-[10px] font-bold text-tertiary bg-tertiary/10 px-1.5 py-0.5 rounded">{marketResearches.length}</span>
             </div>
             <div className="space-y-1">
-              {dossiers.map(item => (
+              {marketResearches.map(item => (
                 <SidebarItem 
                   key={item.id}
                   item={item}
@@ -126,14 +128,50 @@ export function Intelligences() {
             </div>
           </div>
 
-          {/* Project Blueprints Group */}
+          {/* PRDs Group */}
           <div>
             <div className="px-3 mb-2 flex items-center justify-between">
-              <span className="text-[10px] font-black font-label text-outline uppercase tracking-widest">Project Blueprints</span>
-              <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{blueprints.length}</span>
+              <span className="text-[10px] font-black font-label text-outline uppercase tracking-widest">PRDs</span>
+              <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{prds.length}</span>
             </div>
             <div className="space-y-1">
-              {blueprints.map(item => (
+              {prds.map(item => (
+                <SidebarItem 
+                  key={item.id}
+                  item={item}
+                  isSelected={selectedItemId === item.id}
+                  onClick={() => setSelectedItemId(item.id)}
+                />
+              ))}
+            </div>
+          </div>
+          
+          {/* Projects Group */}
+          <div>
+            <div className="px-3 mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-black font-label text-outline uppercase tracking-widest">Projects</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>{projects.length}</span>
+            </div>
+            <div className="space-y-1">
+              {projects.map(item => (
+                <SidebarItem 
+                  key={item.id}
+                  item={item}
+                  isSelected={selectedItemId === item.id}
+                  onClick={() => setSelectedItemId(item.id)}
+                />
+              ))}
+            </div>
+          </div>
+          
+          {/* Analysis Group */}
+          <div>
+            <div className="px-3 mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-black font-label text-outline uppercase tracking-widest">Analysis</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>{analysis.length}</span>
+            </div>
+            <div className="space-y-1">
+              {analysis.map(item => (
                 <SidebarItem 
                   key={item.id}
                   item={item}
@@ -192,7 +230,7 @@ export function Intelligences() {
                 {/* Floating Title & Icon */}
                 <div className="absolute bottom-8 left-12 right-12 flex items-end gap-6">
                   <div className="w-24 h-24 rounded-2xl bg-surface-container-highest/80 backdrop-blur-xl border border-white/10 flex items-center justify-center text-4xl shadow-2xl transform hover:scale-110 transition-transform">
-                    {renderNotionIcon(selectedItem.icon) || (selectedItem.item_type === 'dossier' ? '📂' : '📑')}
+                    {renderNotionIcon(selectedItem.icon) || (selectedItem.item_type === 'prd' ? '📑' : selectedItem.item_type === 'project' ? '🚀' : selectedItem.item_type === 'market_research' ? '📊' : '🔍')}
                   </div>
                   <div className="flex-1 pb-2">
                     <div className="flex items-center gap-3 mb-2">
@@ -226,7 +264,7 @@ export function Intelligences() {
                   <div>
                     <span className="text-[10px] font-black font-label text-tertiary uppercase tracking-widest mb-1 block">AI-Generated Intelligence Summary</span>
                     <p className="text-sm text-on-surface-variant font-body leading-relaxed italic">
-                      This {selectedItem.item_type} focuses on {selectedItem.title.toLowerCase()}. Key patterns indicate significant market movement. Recommended action: Deep-dive into technical layer.
+                      This {selectedItem.item_type?.replace('_', ' ')} focuses on {selectedItem.title.toLowerCase()}. Key patterns indicate significant market movement. Recommended action: Deep-dive into technical layer.
                     </p>
                   </div>
                 </div>
@@ -293,7 +331,7 @@ function SidebarItem({ item, isSelected, onClick }: { item: IntelligenceItem, is
         ${isSelected ? 'bg-primary/30 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
         {renderNotionIcon(item.icon) || (
           <span className="material-symbols-outlined text-lg">
-            {item.item_type === 'dossier' ? 'folder' : 'article'}
+            {item.item_type === 'prd' ? 'article' : item.item_type === 'project' ? 'rocket_launch' : item.item_type === 'market_research' ? 'query_stats' : 'search_insights'}
           </span>
         )}
       </div>
@@ -423,7 +461,7 @@ function IntelligenceHome({ items, onSelect }: { items: IntelligenceItem[], onSe
                 <div className="text-xl transition-colors group-hover:text-primary">
                   {renderNotionIcon(item.icon) || (
                     <span className="material-symbols-outlined">
-                      {item.item_type === 'dossier' ? 'folder_managed' : 'architecture'}
+                      {item.item_type === 'prd' ? 'architecture' : item.item_type === 'project' ? 'rocket_launch' : item.item_type === 'market_research' ? 'query_stats' : 'search_insights'}
                     </span>
                   )}
                 </div>

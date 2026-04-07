@@ -315,7 +315,7 @@ export interface IntelligenceItem {
   content: string | null;
   summary: string | null;
   status: string | null;
-  item_type: 'dossier' | 'blueprint';
+  item_type: 'market_research' | 'prd' | 'project' | 'analysis' | string;
   icon: any | null;
   cover: any | null;
   properties: Record<string, any>;

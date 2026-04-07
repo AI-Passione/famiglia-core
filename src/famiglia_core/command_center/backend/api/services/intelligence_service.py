@@ -127,13 +127,17 @@ class IntelligenceService:
                     props = page_data.get("page_properties", {})
                     title = props.get("title") or props.get("Name") or item.get("title") or "Unnamed Intelligence"
                     
-                    # Guess item type (dossier vs blueprint)
-                    # We look for a 'Type' select property or default to dossier
-                    item_type = 'dossier'
+                    item_type = 'analysis'
                     if 'Type' in props:
                         val = str(props['Type']).lower()
-                        if 'blueprint' in val or 'prd' in val:
-                            item_type = 'blueprint'
+                        if 'market' in val or 'research' in val:
+                            item_type = 'market_research'
+                        elif 'prd' in val or 'product requirement' in val:
+                            item_type = 'prd'
+                        elif 'project' in val:
+                            item_type = 'project'
+                        elif 'analysis' in val:
+                            item_type = 'analysis'
                     
                     status = props.get("Status") or "Active"
                     summary = content_md[:300] + "..." if len(content_md) > 300 else content_md

@@ -123,7 +123,6 @@ class PRDReviewWorkflow:
             # 2. Read Comments (Dummy for now since DB lacks threads)
             metadata = item.get("metadata", {})
             if isinstance(metadata, str):
-                import json
                 try:
                     metadata = json.loads(metadata)
                 except Exception:

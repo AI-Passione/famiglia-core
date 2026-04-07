@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Any
 import logging
 from famiglia_core.db.agents.context_store import context_store
-from famiglia_core.command_center.backend.api.models.intelligence import IntelligenceItem, IntelligenceItemCreate, IntelligenceItemUpdate
+from famiglia_core.command_center.backend.api.models.intelligence import IntelligenceItemCreate, IntelligenceItemUpdate
 
 logger = logging.getLogger(__name__)
 

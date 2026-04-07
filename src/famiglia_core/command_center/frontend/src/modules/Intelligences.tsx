@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { IntelligenceItem } from '../types';
+import type { IntelligenceItem } from '../types';
 import { API_BASE } from '../config';
 
 export function Intelligences() {

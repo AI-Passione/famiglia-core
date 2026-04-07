@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
         input: {
           main: resolve(__dirname, 'index.html'),
           terminal: resolve(__dirname, 'terminal.html'),
+          intelligence: resolve(__dirname, 'intelligence.html'),
         },
       },
     },

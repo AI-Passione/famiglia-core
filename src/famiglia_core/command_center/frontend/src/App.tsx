@@ -14,7 +14,6 @@ import { Sidebar } from './modules/ui/Sidebar';
 import { Agenda } from './modules/Agenda';
 import { SituationRoom } from './modules/SituationRoom';
 import { Operations } from './modules/Operations';
-import { Intelligences } from './modules/Intelligences';
 import { Settings } from './modules/Settings';
 import { Famiglia } from './modules/Famiglia';
 import { Terminal } from './modules/Terminal';
@@ -217,9 +216,6 @@ function App() {
                   initialTasks={tasks}
                 />
               )}
-              {activeTab === 'intelligences' && (
-                <Intelligences />
-              )}
               {activeTab === 'famiglia' && (
                 <Famiglia />
               )}
@@ -236,7 +232,7 @@ function App() {
                 />
               )}
               {/* Fallback for other tabs */}
-              {!['terminal', 'agenda', 'situation_room', 'operations', 'famiglia', 'intelligences', 'settings'].includes(activeTab) && (
+              {!['terminal', 'agenda', 'situation_room', 'operations', 'famiglia', 'settings'].includes(activeTab) && (
                 <div className="flex flex-col items-center justify-center py-40 opacity-40">
                   <span className="material-symbols-outlined text-6xl mb-4">construction</span>
                   <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>

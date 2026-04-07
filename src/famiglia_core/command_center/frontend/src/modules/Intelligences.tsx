@@ -91,7 +91,7 @@ export function Intelligences() {
   }
 
   return (
-    <div className="flex-1 flex h-[calc(100vh-120px)] overflow-hidden bg-surface-container-lowest/30 rounded-xl border border-outline-variant/10 shadow-2xl backdrop-blur-sm">
+    <div className="flex-1 flex h-full overflow-hidden bg-surface-container-lowest/30 backdrop-blur-sm">
       {/* Sidebar Navigation */}
       <div className="w-80 border-r border-outline-variant/10 flex flex-col bg-surface-container-lowest/50 backdrop-blur-md">
         <div className="p-4 border-b border-outline-variant/5">

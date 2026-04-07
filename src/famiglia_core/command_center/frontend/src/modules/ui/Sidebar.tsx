@@ -44,6 +44,8 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
             onClick={() => {
               if (item.id === 'terminal') {
                 window.open('/terminal.html', '_blank');
+              } else if (item.id === 'intelligences') {
+                window.open('/intelligence.html', '_blank');
               } else {
                 setActiveTab(item.id);
               }

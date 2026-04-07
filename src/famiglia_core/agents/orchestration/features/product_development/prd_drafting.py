@@ -5,7 +5,9 @@ import re
 
 from famiglia_core.agents.orchestration.utils.state import AgentState
 from famiglia_core.agents.llm.client import client
-from famiglia_core.agents.tools.notion import notion_client
+# from famiglia_core.agents.tools.notion import notion_client
+from famiglia_core.command_center.backend.api.services.intelligence_service import intelligence_service
+from famiglia_core.command_center.backend.api.models.intelligence import IntelligenceItemCreate
 from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 
 class PRDDraftingState(AgentState):
@@ -102,27 +104,28 @@ class PRDDraftingWorkflow:
             
         return updates
 
-    def gather_notion_intelligence(self, state: PRDDraftingState) -> PRDDraftingState:
-        """Node 2a: Read from Notion (Market Researches)."""
-        print(f"[{self.name}] PRD Node: gather_notion_intelligence")
-        subject = state.get("product_subject", "")
+    def gather_local_intelligence(self, state: PRDDraftingState) -> PRDDraftingState:
+        """Node 2a: Read from local Intelligence Center (Market Researches, etc)."""
+        print(f"[{self.name}] PRD Node: gather_local_intelligence")
+        subject = state.get("product_subject", "").lower()
         
         intelligence = ""
         try:
-            # Use general search focusing on the subject name
-            results = notion_client.search(query=subject, agent_name=self.name)
-            if results:
-                # Filter for things that look like research or match the context well
-                page_id = results[0]["id"]
-                content_dict = notion_client.read_page(page_id, agent_name=self.name)
-                # content_dict is {"page_properties": {}, "blocks": []}
-                blocks = content_dict.get("blocks", [])
-                body = "\n".join(blocks)
-                intelligence = f"Related Notion Content Found ({results[0].get('url')}):\n{body}"
+            items = intelligence_service.list_items()
+            relevant_items = [
+                item for item in items 
+                if subject in item.get("title", "").lower() or subject in item.get("content", "").lower()
+            ]
+            
+            if relevant_items:
+                best_item = relevant_items[0]
+                body = best_item.get("content", "")
+                title = best_item.get("title", "")
+                intelligence = f"Related Intelligence Found (Title: {title}):\n{body}"
         except Exception as e:
-            print(f"[{self.name}] Notion Intelligence gathering failed: {e}")
+            print(f"[{self.name}] Local Intelligence gathering failed: {e}")
 
-        return {"notion_intelligence": intelligence or "No specific Notion intelligence found."}
+        return {"notion_intelligence": intelligence or "No specific intelligence found."}
 
     def gather_github_intelligence(self, state: PRDDraftingState) -> PRDDraftingState:
         """Node 2b: Deep-dive into Github for technical context."""
@@ -296,30 +299,29 @@ class PRDDraftingWorkflow:
         res, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name=self.name)
         return {"prd_markdown": res}
 
-    def save_to_notion(self, state: PRDDraftingState) -> PRDDraftingState:
-        """Node 5: Save to Notion under PRD parent."""
-        print(f"[{self.name}] PRD Node: save_to_notion")
+    def save_to_intelligence(self, state: PRDDraftingState) -> PRDDraftingState:
+        """Node 5: Save to local Intelligence Database."""
+        print(f"[{self.name}] PRD Node: save_to_intelligence")
         
-        prd_parent_id = "325f5d41fe9780529f34c16d78e252c8" # Provided by user
         title = f"PRD: {state.get('prd_title')}"
         content = state.get("prd_markdown")
         
         updates = {}
         try:
-            result_str = notion_client.create_page(prd_parent_id, title, content, agent_name=self.name)
-            import re
-            id_match = re.search(r"ID:\s*([^\s.]+)", result_str)
-            url_match = re.search(r"URL:\s*([^\s]+)", result_str)
+            item = IntelligenceItemCreate(
+                title=title,
+                content=content,
+                summary=content[:300] + "...",
+                status="Draft",
+                item_type="prd",
+                metadata={"subject": state.get("product_subject")}
+            )
+            intelligence_service.create_item(item)
             
-            if id_match:
-                updates["notion_page_id"] = id_match.group(1)
-            if url_match:
-                updates["notion_url"] = url_match.group(1)
-                
             updates["notion_success"] = True
             return updates
         except Exception as e:
-            print(f"[{self.name}] Notion Save Failed: {e}")
+            print(f"[{self.name}] DB Save Failed: {e}")
             return {
                 "last_error": str(e),
                 "notion_success": False
@@ -334,7 +336,7 @@ class PRDDraftingWorkflow:
         notion_url = state.get("notion_url", "")
         notion_success = state.get("notion_success", False)
         
-        notion_status = f"PRD has been drafted and saved to Notion: {notion_url}" if notion_success else "⚠️ Note: I encountered an error saving the PRD to Notion, but it is ready for review."
+        notion_status = f"PRD has been drafted and saved to the Intelligence Center." if notion_success else "⚠️ Note: I encountered an error saving the PRD locally, but it is ready."
         
         summary_prompt = f"""
         {self.personality}
@@ -355,7 +357,7 @@ class PRDDraftingWorkflow:
         try:
             message = f"🔬 *PRD Drafting Update: {context}*\n\n{slack_msg}"
             if notion_success:
-                message += f"\n\n🔗 *Access Document:* {notion_url}"
+                message += f"\n\n🔗 *Document available in the Intelligence Center.*"
                 
             slack_queue.post_message(
                 agent=self.agent.agent_id,
@@ -365,7 +367,7 @@ class PRDDraftingWorkflow:
         except Exception as e:
             print(f"[{self.name}] Slack Notification Failed: {e}")
         return {
-            "final_response": f"I have completed the PRD draft for '{context}'.\n\nNotification sent to #product-rossini. " + (f"Link: {notion_url}" if notion_success else "Notion save failed.")
+            "final_response": f"I have completed the PRD draft for '{context}'.\n\nNotification sent to {channel}. " + ("" if notion_success else "Locally saving failed.")
         }
 
 from famiglia_core.db.observability.checkpointer import PostgresCheckpointer
@@ -379,7 +381,8 @@ def setup_prd_drafting_graph(agent):
     
     # ... (nodes and edges stay the same)
     workflow.add_node("understand_context", workflow_logic.understand_context)
-    workflow.add_node("gather_notion_intelligence", workflow_logic.gather_notion_intelligence)
+    # workflow.add_node("gather_notion_intelligence", workflow_logic.gather_notion_intelligence)
+    workflow.add_node("gather_local_intelligence", workflow_logic.gather_local_intelligence)
     workflow.add_node("gather_github_intelligence", workflow_logic.gather_github_intelligence)
     workflow.add_node("gather_web_intelligence", workflow_logic.gather_web_intelligence)
     workflow.add_node("summarize_notion", workflow_logic.summarize_notion)
@@ -387,21 +390,26 @@ def setup_prd_drafting_graph(agent):
     workflow.add_node("summarize_web", workflow_logic.summarize_web)
     workflow.add_node("synthesize", workflow_logic.synthesize)
     workflow.add_node("draft_prd", workflow_logic.draft_prd)
-    workflow.add_node("save_to_notion", workflow_logic.save_to_notion)
+    # workflow.add_node("save_to_notion", workflow_logic.save_to_notion)
+    workflow.add_node("save_to_intelligence", workflow_logic.save_to_intelligence)
     workflow.add_node("notify_slack", workflow_logic.notify_slack)
     
-    workflow.add_edge("understand_context", "gather_notion_intelligence")
+    # workflow.add_edge("understand_context", "gather_notion_intelligence")
+    workflow.add_edge("understand_context", "gather_local_intelligence")
     workflow.add_edge("understand_context", "gather_github_intelligence")
     workflow.add_edge("understand_context", "gather_web_intelligence")
-    workflow.add_edge("gather_notion_intelligence", "summarize_notion")
+    # workflow.add_edge("gather_notion_intelligence", "summarize_notion")
+    workflow.add_edge("gather_local_intelligence", "summarize_notion")
     workflow.add_edge("gather_github_intelligence", "summarize_github")
     workflow.add_edge("gather_web_intelligence", "summarize_web")
     workflow.add_edge("summarize_notion", "synthesize")
     workflow.add_edge("summarize_github", "synthesize")
     workflow.add_edge("summarize_web", "synthesize")
     workflow.add_edge("synthesize", "draft_prd")
-    workflow.add_edge("draft_prd", "save_to_notion")
-    workflow.add_edge("save_to_notion", "notify_slack")
+    # workflow.add_edge("draft_prd", "save_to_notion")
+    # workflow.add_edge("save_to_notion", "notify_slack")
+    workflow.add_edge("draft_prd", "save_to_intelligence")
+    workflow.add_edge("save_to_intelligence", "notify_slack")
     workflow.add_edge("notify_slack", END)
     
     workflow.set_entry_point("understand_context")

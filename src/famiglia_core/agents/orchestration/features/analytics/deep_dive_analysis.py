@@ -7,7 +7,9 @@ import operator
 
 from famiglia_core.agents.orchestration.utils.state import AgentState
 from famiglia_core.agents.llm.client import client
-from famiglia_core.agents.tools.notion import notion_client
+# from famiglia_core.agents.tools.notion import notion_client
+from famiglia_core.command_center.backend.api.services.intelligence_service import intelligence_service
+from famiglia_core.command_center.backend.api.models.intelligence import IntelligenceItemCreate
 from famiglia_core.db.observability.checkpointer import PostgresCheckpointer
 
 class DeepDiveAnalysisState(AgentState):
@@ -391,27 +393,32 @@ class DeepDiveAnalysisWorkflow:
         state["notion_markdown"] = notion_md
         return state
 
-    def save_to_notion(self, state: DeepDiveAnalysisState) -> DeepDiveAnalysisState:
-        """Node 6: Finalize report by saving prepared markdown to Notion."""
-        print(f"[{self.name}] Deep Dive: save_to_notion", flush=True)
-        parent_page_id = os.getenv("NOTION_ANALYSIS_PARENT_ID", "32ef5d41fe97809c9a73ce7f83c1fa27")
+    def save_to_intelligence(self, state: DeepDiveAnalysisState) -> DeepDiveAnalysisState:
+        """Node 6: Finalize report by saving prepared markdown to Intelligence DB."""
+        print(f"[{self.name}] Deep Dive: save_to_intelligence", flush=True)
         title = state.get("notion_title") or f"Deep-Dive Analysis: {state.get('task')[:50]}..."
         notion_markdown = state.get("notion_markdown", "# Data Analysis Report")
 
         try:
-            result_str = notion_client.create_page(parent_page_id, title, notion_markdown, agent_name=self.name)
-            url_match = re.search(r"URL:\s*([^\s]+)", result_str)
-            if url_match:
-                state["notion_url"] = url_match.group(1)
+            item = IntelligenceItemCreate(
+                title=title,
+                content=notion_markdown,
+                summary=notion_markdown[:300] + "...",
+                status="Approved",
+                item_type="analysis",
+                metadata={"task": state.get("task")}
+            )
+            intelligence_service.create_item(item)
+            
             state["notion_success"] = True
             
-            if state.get("notion_url"):
-                if state["notion_url"] not in state.get("final_response", ""):
-                    state["final_response"] += f"\n\n🔗 *Full Deep-Dive saved to Notion:* {state['notion_url']}"
+            if "notion_url" not in state:
+                 if "\n\n🔗 *Full Deep-Dive saved to the Intelligence Center.*" not in state.get("final_response", ""):
+                    state["final_response"] += f"\n\n🔗 *Full Deep-Dive saved to the Intelligence Center.*"
                       
         except Exception as e:
             state["notion_success"] = False
-            state["final_response"] += f"\n\n⚠️ *Notion Save Failed: {e}*"
+            state["final_response"] += f"\n\n⚠️ *Local DB Save Failed: {e}*"
             
         return state
 
@@ -427,7 +434,7 @@ def setup_deep_dive_analysis_graph(agent):
     workflow.add_node("execute_drilldown", workflow_logic.execute_drilldown_queries)
     workflow.add_node("synthesize_findings", workflow_logic.synthesize_findings)
     workflow.add_node("generate_report", workflow_logic.generate_report)
-    workflow.add_node("save_to_notion", workflow_logic.save_to_notion)
+    workflow.add_node("save_to_intelligence", workflow_logic.save_to_intelligence)
     
     workflow.set_entry_point("run_discovery")
     
@@ -449,8 +456,8 @@ def setup_deep_dive_analysis_graph(agent):
     )
     
     workflow.add_edge("synthesize_findings", "generate_report")
-    workflow.add_edge("generate_report", "save_to_notion")
-    workflow.add_edge("save_to_notion", END)
+    workflow.add_edge("generate_report", "save_to_intelligence")
+    workflow.add_edge("save_to_intelligence", END)
     
     checkpointer = PostgresCheckpointer()
     return workflow.compile(checkpointer=checkpointer)

@@ -5,7 +5,9 @@ import os
 from famiglia_core.agents.orchestration.utils.state import AgentState
 from famiglia_core.agents.llm.client import client
 from famiglia_core.agents.tools.web_search import web_search_client
-from famiglia_core.agents.tools.notion import notion_client
+# from famiglia_core.agents.tools.notion import notion_client
+from famiglia_core.command_center.backend.api.services.intelligence_service import intelligence_service
+from famiglia_core.command_center.backend.api.models.intelligence import IntelligenceItemCreate
 from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 
 class MarketResearchState(AgentState):
@@ -137,34 +139,63 @@ class MarketResearchWorkflow:
         state["curated_markdown"] = res_text
         return state
 
-    def save_to_notion(self, state: MarketResearchState) -> MarketResearchState:
-        """Node 3: Save curated results in Notion."""
-        print(f"[{self.name}] Research Node: save_to_notion (Attempt {state.get('retry_count', 0) + 1})")
+    def save_to_intelligence(self, state: MarketResearchState) -> MarketResearchState:
+        """Node 3: Save curated results in Intelligence DB."""
+        print(f"[{self.name}] Research Node: save_to_intelligence")
         
-        parent_page_id = os.getenv("NOTION_RESEARCH_PARENT_ID", "31ff5d41fe97808d9530f49bff903f92")
         title = f"Market Research: {state.get('research_topic') or state.get('task')}"
         content = state.get("curated_markdown", "")
+        summary = content[:300] + "..." if len(content) > 300 else content
         
         try:
-            result_str = notion_client.create_page(parent_page_id, title, content, agent_name=self.name)
-            import re
-            id_match = re.search(r"ID:\s*([^\s.]+)", result_str)
-            url_match = re.search(r"URL:\s*([^\s]+)", result_str)
-            
-            if id_match:
-                state["notion_page_id"] = id_match.group(1)
-            if url_match:
-                state["notion_url"] = url_match.group(1)
+            item = IntelligenceItemCreate(
+                title=title,
+                content=content,
+                summary=summary,
+                status="Completed",
+                item_type="market_research",
+                metadata={"topic": state.get("research_topic") or state.get("task")}
+            )
+            intelligence_service.create_item(item)
                 
             state["notion_success"] = True
-            state["final_response"] = f"Research saved to Notion. {result_str}"
+            state["final_response"] = f"Research saved to Intelligence Center."
         except Exception as e:
             error_msg = str(e)
-            print(f"[{self.name}] Notion Save Failed: {error_msg}")
+            print(f"[{self.name}] DB Save Failed: {error_msg}")
             state["last_error"] = error_msg
             state["notion_success"] = False
             
         return state
+
+    # def save_to_notion(self, state: MarketResearchState) -> MarketResearchState:
+    #     """Node 3: Save curated results in Notion."""
+    #     print(f"[{self.name}] Research Node: save_to_notion (Attempt {state.get('retry_count', 0) + 1})")
+    #     
+    #     parent_page_id = os.getenv("NOTION_RESEARCH_PARENT_ID", "31ff5d41fe97808d9530f49bff903f92")
+    #     title = f"Market Research: {state.get('research_topic') or state.get('task')}"
+    #     content = state.get("curated_markdown", "")
+    #     
+    #     try:
+    #         result_str = notion_client.create_page(parent_page_id, title, content, agent_name=self.name)
+    #         import re
+    #         id_match = re.search(r"ID:\s*([^\s.]+)", result_str)
+    #         url_match = re.search(r"URL:\s*([^\s]+)", result_str)
+    #         
+    #         if id_match:
+    #             state["notion_page_id"] = id_match.group(1)
+    #         if url_match:
+    #             state["notion_url"] = url_match.group(1)
+    #             
+    #         state["notion_success"] = True
+    #         state["final_response"] = f"Research saved to Notion. {result_str}"
+    #     except Exception as e:
+    #         error_msg = str(e)
+    #         print(f"[{self.name}] Notion Save Failed: {error_msg}")
+    #         state["last_error"] = error_msg
+    #         state["notion_success"] = False
+    #         
+    #     return state
 
     def fix_notion_error(self, state: MarketResearchState) -> MarketResearchState:
         """Node: Use LLM to self-correct the Markdown based on the Notion error."""
@@ -218,13 +249,13 @@ class MarketResearchWorkflow:
         res_text, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name=self.name)
         state["business_ideas"] = res_text
         
-        # Append to Notion if we have a page ID
-        page_id = state.get("notion_page_id")
-        if page_id:
-            try:
-                notion_client.append_text_to_page(page_id, f"\n\n{res_text}", agent_name=self.name)
-            except Exception as e:
-                print(f"[{self.name}] Idea Append Failed: {e}")
+        # Append to Notion if we have a page ID (DISABLED)
+        # page_id = state.get("notion_page_id")
+        # if page_id:
+        #     try:
+        #         notion_client.append_text_to_page(page_id, f"\n\n{res_text}", agent_name=self.name)
+        #     except Exception as e:
+        #         print(f"[{self.name}] Idea Append Failed: {e}")
                 
         return state
 
@@ -238,7 +269,7 @@ class MarketResearchWorkflow:
         notion_success = state.get("notion_success", False)
         ideas = state.get("business_ideas", "")
         
-        notion_status = f"Report saved in Notion: {notion_url}" if notion_success else "⚠️ Note: Full report saving in Notion failed after 3 attempts."
+        notion_status = f"Report saved in Intelligence Center." if notion_success else "⚠️ Note: Full report saving failed."
         
         summary_prompt = f"""
         {self.personality}
@@ -269,7 +300,7 @@ class MarketResearchWorkflow:
         try:
             channel_msg = f"🔬 *Market Research Update: {topic}*\n\n{formatted_slack_msg}"
             if notion_success:
-                channel_msg += f"\n\n🔗 *Full Report:* {notion_url}"
+                channel_msg += f"\n\n🔗 *Full Report is available in the Intelligence Center.*"
                 
             slack_queue.post_message(
                 agent=self.agent.agent_id,
@@ -280,7 +311,7 @@ class MarketResearchWorkflow:
             print(f"[{self.name}] Slack Notification Failed: {e}")
             
         # Final response for the orchestrator
-        final_report_msg = f"Full Report saved to Notion: {notion_url}" if notion_success else "⚠️ Full Report saving in Notion failed after 3 attempts."
+        final_report_msg = f"Full Report saved to Intelligence Center." if notion_success else "⚠️ Full Report saving failed."
         state["final_response"] = f"I have completed the market research on '{topic}'.\n\n{final_report_msg}\n\nInsights & Ideas have been posted to Slack."
         return state
 
@@ -297,8 +328,9 @@ def setup_market_research_graph(agent):
     workflow.add_node("perform_search", workflow_logic.perform_search)
     workflow.add_node("refine_search_query", workflow_logic.refine_search_query)
     workflow.add_node("curate_results", workflow_logic.curate_results)
-    workflow.add_node("save_to_notion", workflow_logic.save_to_notion)
-    workflow.add_node("fix_notion_error", workflow_logic.fix_notion_error)
+    # workflow.add_node("save_to_notion", workflow_logic.save_to_notion)
+    workflow.add_node("save_to_intelligence", workflow_logic.save_to_intelligence)
+    # workflow.add_node("fix_notion_error", workflow_logic.fix_notion_error)
     workflow.add_node("generate_ideas", workflow_logic.generate_ideas)
     workflow.add_node("notify_slack", workflow_logic.notify_slack)
     
@@ -321,25 +353,27 @@ def setup_market_research_graph(agent):
     
     workflow.add_edge("refine_search_query", "perform_search")
     
-    workflow.add_edge("curate_results", "save_to_notion")
+    workflow.add_edge("curate_results", "save_to_intelligence")
+    workflow.add_edge("save_to_intelligence", "generate_ideas")
     
-    def route_notion(state: MarketResearchState):
-        if state.get("notion_success"):
-            return "success"
-        if state.get("retry_count", 0) >= 2:
-            return "fail"
-        return "retry"
-        
-    workflow.add_conditional_edges(
-        "save_to_notion",
-        route_notion,
-        {
-            "success": "generate_ideas",
-            "retry": "fix_notion_error",
-            "fail": "generate_ideas"
-        }
-    )
-    workflow.add_edge("fix_notion_error", "save_to_notion")
+    # def route_notion(state: MarketResearchState):
+    #     if state.get("notion_success"):
+    #         return "success"
+    #     if state.get("retry_count", 0) >= 2:
+    #         return "fail"
+    #     return "retry"
+    #     
+    # workflow.add_conditional_edges(
+    #     "save_to_notion",
+    #     route_notion,
+    #     {
+    #         "success": "generate_ideas",
+    #         "retry": "fix_notion_error",
+    #         "fail": "generate_ideas"
+    #     }
+    # )
+    # workflow.add_edge("fix_notion_error", "save_to_notion")
+    
     workflow.add_edge("generate_ideas", "notify_slack")
     workflow.add_edge("notify_slack", END)
     

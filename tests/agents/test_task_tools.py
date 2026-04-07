@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from famiglia_core.agents.orchestration.utils.task_helpers import TaskTools
 
 class MockAgent(TaskTools):

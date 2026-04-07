@@ -96,15 +96,22 @@ export function Intelligences() {
     <div className="flex-1 flex h-full overflow-hidden bg-surface-container-lowest/30 backdrop-blur-sm">
       {/* Sidebar Navigation */}
       <div className="w-80 border-r border-outline-variant/10 flex flex-col bg-surface-container-lowest/50 backdrop-blur-md">
-        <div className="p-4 border-b border-outline-variant/5">
-          <div className="relative group">
+        <div className="p-4 border-b border-outline-variant/5 flex items-center justify-between gap-4">
+          <a 
+            href="/"
+            className="flex items-center gap-2 text-[10px] font-black font-label text-outline hover:text-white transition-colors group"
+          >
+            <span className="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
+            COMMAND CENTER
+          </a>
+          <div className="flex-1 relative group">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm group-focus-within:text-primary transition-colors">search</span>
             <input 
               type="text" 
-              placeholder="Search intelligence..."
+              placeholder="Filter..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-surface-container-low border border-outline-variant/10 rounded-lg py-2 pl-10 pr-4 text-xs text-white placeholder:text-outline focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all font-body"
+              className="w-full bg-surface-container-low border border-outline-variant/10 rounded-lg py-1.5 pl-10 pr-4 text-[10px] text-white placeholder:text-outline focus:outline-none focus:border-primary/50 transition-all font-body uppercase tracking-tighter"
             />
           </div>
         </div>
@@ -196,14 +203,11 @@ export function Intelligences() {
             </span>
             {syncing ? 'SYNCING...' : 'SYNC WITH NOTION'}
           </button>
-          <button className="w-full py-2 bg-surface-container-high hover:bg-surface-bright text-white text-[10px] font-black font-label tracking-widest uppercase transition-all rounded">
-            GENERATE SUMMARY
-          </button>
         </div>
       </div>
 
       {/* Main Content Viewport */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+      <div className="flex-1 overflow-y-auto custom-scrollbar relative flex flex-col">
         <AnimatePresence mode="wait">
           {selectedItem ? (
             <motion.div 
@@ -212,68 +216,112 @@ export function Intelligences() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="min-h-full flex flex-col"
+              className="flex-1 flex"
             >
-              {/* Cover Image Area */}
-              <div className="relative h-64 w-full bg-surface-container-high overflow-hidden">
-                {selectedItem.cover ? (
-                  <img 
-                    src={selectedItem.cover.external?.url || selectedItem.cover.file?.url} 
-                    alt="Cover" 
-                    className="w-full h-full object-cover opacity-60 grayscale-[30%] blur-[1px] hover:blur-0 transition-all duration-700"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent anim-pulse-slow" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent" />
-                
-                {/* Floating Title & Icon */}
-                <div className="absolute bottom-8 left-12 right-12 flex items-end gap-6">
-                  <div className="w-24 h-24 rounded-2xl bg-surface-container-highest/80 backdrop-blur-xl border border-white/10 flex items-center justify-center text-4xl shadow-2xl transform hover:scale-110 transition-transform">
-                    {renderNotionIcon(selectedItem.icon) || (selectedItem.item_type === 'prd' ? '📑' : selectedItem.item_type === 'project' ? '🚀' : selectedItem.item_type === 'market_research' ? '📊' : '🔍')}
-                  </div>
-                  <div className="flex-1 pb-2">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-black uppercase tracking-tighter border border-primary/30">
-                        {selectedItem.item_type}
-                      </span>
-                      <span className="text-white/40 text-[10px] font-mono tracking-tighter">
-                        {selectedItem.notion_id?.substring(0, 8)}...
-                      </span>
+              <div className="flex-1 flex flex-col min-h-full">
+                {/* Cover Image Area */}
+                <div className="relative h-64 w-full bg-surface-container-high overflow-hidden">
+                  {selectedItem.cover ? (
+                    <img 
+                      src={selectedItem.cover.external?.url || selectedItem.cover.file?.url} 
+                      alt="Cover" 
+                      className="w-full h-full object-cover opacity-60 grayscale-[30%] blur-[1px] hover:blur-0 transition-all duration-700"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent anim-pulse-slow" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent" />
+                  
+                  {/* Floating Title & Icon */}
+                  <div className="absolute bottom-8 left-12 right-12 flex items-end gap-6">
+                    <div className="w-24 h-24 rounded-2xl bg-surface-container-highest/80 backdrop-blur-xl border border-white/10 flex items-center justify-center text-4xl shadow-2xl transform hover:scale-110 transition-transform">
+                      {renderNotionIcon(selectedItem.icon) || (selectedItem.item_type === 'prd' ? '📑' : selectedItem.item_type === 'project' ? '🚀' : selectedItem.item_type === 'market_research' ? '📊' : '🔍')}
                     </div>
-                    <h1 className="text-4xl font-black text-white font-title tracking-tight drop-shadow-lg">
-                      {selectedItem.title}
-                    </h1>
-                  </div>
-                </div>
-              </div>
-
-              {/* Document Metadata / Properties */}
-              <div className="px-12 py-8 grid grid-cols-1 md:grid-cols-4 gap-6 border-b border-outline-variant/10">
-                <PropertyItem icon="analytics" label="Status" value={selectedItem.status || 'Active'} isStatus />
-                <PropertyItem icon="link" label="Source" value="Notion" href={selectedItem.url || '#'} />
-                <PropertyItem icon="schedule" label="Created" value={selectedItem.created_time ? new Date(selectedItem.created_time).toLocaleDateString() : 'N/A'} />
-                <PropertyItem icon="history" label="Last Edited" value={selectedItem.last_edited_time ? new Date(selectedItem.last_edited_time).toLocaleDateString() : 'N/A'} />
-              </div>
-
-              {/* Content Area */}
-              <div className="px-24 py-12 flex-1 max-w-5xl">
-                {/* Summary Callout */}
-                <div className="mb-12 p-6 bg-tertiary/5 rounded-xl border border-tertiary/20 flex gap-4">
-                  <span className="material-symbols-outlined text-tertiary text-2xl">auto_awesome</span>
-                  <div>
-                    <span className="text-[10px] font-black font-label text-tertiary uppercase tracking-widest mb-1 block">AI-Generated Intelligence Summary</span>
-                    <p className="text-sm text-on-surface-variant font-body leading-relaxed italic">
-                      This {selectedItem.item_type?.replace('_', ' ')} focuses on {selectedItem.title.toLowerCase()}. Key patterns indicate significant market movement. Recommended action: Deep-dive into technical layer.
-                    </p>
+                    <div className="flex-1 pb-2">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-black uppercase tracking-tighter border border-primary/30">
+                          {selectedItem.item_type}
+                        </span>
+                        <span className="text-white/40 text-[10px] font-mono tracking-tighter uppercase">
+                          {selectedItem.notion_id ? `NOTION ID: ${selectedItem.notion_id.substring(0, 8)}` : `LOCAL ID: ${selectedItem.id}`}
+                        </span>
+                      </div>
+                      <h1 className="text-4xl font-black text-white font-title tracking-tight drop-shadow-lg">
+                        {selectedItem.title}
+                      </h1>
+                    </div>
                   </div>
                 </div>
 
-                {/* Main Content Rendering */}
-                <div className="prose prose-invert prose-sm max-w-none font-body text-white/80 leading-relaxed space-y-6">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {selectedItem.content || ''}
-                  </ReactMarkdown>
+                {/* Document Metadata / Properties */}
+                <div className="px-12 py-8 grid grid-cols-1 md:grid-cols-4 gap-6 border-b border-outline-variant/10">
+                  <PropertyItem 
+                    icon="analytics" 
+                    label="Status" 
+                    value={selectedItem.status || 'Active'} 
+                    isStatus 
+                  />
+                  <PropertyItem 
+                    icon={selectedItem.notion_id ? "link" : "database"} 
+                    label="Source" 
+                    value={selectedItem.notion_id ? "Notion" : "AI Passion (Local)"} 
+                    href={selectedItem.url || undefined} 
+                  />
+                  <PropertyItem 
+                    icon="schedule" 
+                    label="Created" 
+                    value={new Date(selectedItem.created_time || selectedItem.created_at).toLocaleDateString(undefined, {
+                      year: 'numeric', month: 'short', day: 'numeric'
+                    })} 
+                  />
+                  <PropertyItem 
+                    icon="history" 
+                    label="Last Edited" 
+                    value={new Date(selectedItem.last_edited_time || selectedItem.updated_at).toLocaleDateString(undefined, {
+                      year: 'numeric', month: 'short', day: 'numeric'
+                    })} 
+                  />
+                </div>
+
+                {/* Content Area with TOC Sidebar optionally */}
+                <div className="flex-1 flex relative">
+                  <div className="flex-1 px-12 md:px-24 py-12 max-w-5xl mx-auto">
+                    {/* Summary Callout */}
+                    <div className="mb-12 p-6 bg-tertiary/5 rounded-xl border border-tertiary/20 flex gap-4">
+                      <span className="material-symbols-outlined text-tertiary text-2xl">auto_awesome</span>
+                      <div>
+                        <span className="text-[10px] font-black font-label text-tertiary uppercase tracking-widest mb-1 block">AI-Generated Intelligence Summary</span>
+                        <p className="text-sm text-on-surface-variant font-body leading-relaxed italic">
+                          {selectedItem.summary || `This ${selectedItem.item_type?.replace('_', ' ')} focuses on ${selectedItem.title.toLowerCase()}. Key patterns indicate significant market movement. Recommended action: Deep-dive into technical layer.`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Main Content Rendering */}
+                    <div className="prose-container max-w-none font-body text-white/80 leading-relaxed mb-40">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          h1: ({node, ...props}) => <h1 id={props.children?.toString().toLowerCase().replace(/\s+/g, '-')} className="markdown-h1" {...props} />,
+                          h2: ({node, ...props}) => <h2 id={props.children?.toString().toLowerCase().replace(/\s+/g, '-')} className="markdown-h2" {...props} />,
+                          h3: ({node, ...props}) => <h3 id={props.children?.toString().toLowerCase().replace(/\s+/g, '-')} className="markdown-h3" {...props} />,
+                          p: ({node, ...props}) => <p className="markdown-p" {...props} />,
+                          li: ({node, ...props}) => <li className="markdown-li" {...props} />,
+                          ul: ({node, ...props}) => <ul className="markdown-ul" {...props} />,
+                          ol: ({node, ...props}) => <ol className="markdown-ol" {...props} />,
+                          code: ({node, ...props}) => <code className="markdown-code" {...props} />,
+                          pre: ({node, ...props}) => <pre className="markdown-pre" {...props} />,
+                          strong: ({node, ...props}) => <strong className="markdown-strong" {...props} />,
+                          hr: () => <hr className="markdown-hr" />
+                        }}
+                      >
+                        {selectedItem.content || ''}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+
+                  {/* Table of Contents Side Pane */}
+                  <TOC content={selectedItem.content || ''} />
                 </div>
               </div>
             </motion.div>
@@ -300,11 +348,128 @@ export function Intelligences() {
         .animate-pulse-slow {
           animation: pulse-slow 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
+
+        /* PREMIUM MARKDOWN STYLING */
+        .prose-container {
+          color: rgba(255, 255, 255, 0.85);
+          line-height: 1.8;
+          font-size: 1.05rem;
+        }
+        .markdown-h1 {
+          font-family: 'Noto Serif', serif;
+          font-size: 2.5rem;
+          font-weight: 900;
+          color: white;
+          margin-top: 3rem;
+          margin-bottom: 1.5rem;
+          letter-spacing: -0.02em;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          padding-bottom: 0.5rem;
+        }
+        .markdown-h2 {
+          font-family: 'Noto Serif', serif;
+          font-size: 1.8rem;
+          font-weight: 800;
+          color: #ffb3b5; /* Primary accent */
+          margin-top: 2.5rem;
+          margin-bottom: 1rem;
+          letter-spacing: -0.01em;
+        }
+        .markdown-h3 {
+          font-family: 'Noto Serif', serif;
+          font-size: 1.3rem;
+          font-weight: 700;
+          color: #eac34a; /* Tertiary accent */
+          margin-top: 2rem;
+          margin-bottom: 0.75rem;
+        }
+        .markdown-p {
+          margin-bottom: 1.5rem;
+        }
+        .markdown-ul, .markdown-ol {
+          margin-bottom: 1.5rem;
+          padding-left: 1.5rem;
+          list-style-type: square;
+        }
+        .markdown-li {
+          margin-bottom: 0.5rem;
+        }
+        .markdown-strong {
+          color: white;
+          font-weight: 700;
+        }
+        .markdown-code {
+          background: rgba(255, 255, 255, 0.05);
+          padding: 0.2rem 0.4rem;
+          border-radius: 4px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.9em;
+          color: #ffb3b5;
+        }
+        .markdown-pre {
+          background: #0e0e0e;
+          padding: 1.5rem;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          overflow-x: auto;
+          margin-bottom: 2rem;
+        }
+        .markdown-hr {
+          border: 0;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          margin: 3rem 0;
+        }
+
         @keyframes pulse-slow {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.6; }
         }
       `}} />
+    </div>
+  );
+}
+
+function TOC({ content }: { content: string }) {
+  const headings = useMemo(() => {
+    const lines = content.split('\n');
+    const result: { id: string, text: string, level: number }[] = [];
+    
+    lines.forEach(line => {
+      const match = line.match(/^(#{1,3})\s+(.+)$/);
+      if (match) {
+        const level = match[1].length;
+        const text = match[2].trim();
+        const id = text.toLowerCase().replace(/\s+/g, '-');
+        result.push({ id, text, level });
+      }
+    });
+    
+    return result;
+  }, [content]);
+
+  if (headings.length === 0) return null;
+
+  return (
+    <div className="hidden lg:block w-72 sticky top-0 h-screen overflow-y-auto p-8 border-l border-outline-variant/10 bg-surface-container-lowest/20 backdrop-blur-sm">
+      <div className="flex items-center gap-2 mb-6 text-outline">
+        <span className="material-symbols-outlined text-sm">segment</span>
+        <span className="text-[10px] font-black font-label uppercase tracking-widest">Outline</span>
+      </div>
+      <nav className="space-y-1">
+        {headings.map((h, i) => (
+          <a 
+            key={i}
+            href={`#${h.id}`}
+            className={`block text-[11px] font-medium transition-all hover:text-primary leading-tight py-1
+              ${h.level === 1 ? 'text-white font-bold mt-4 border-b border-outline-variant/5 pb-1 mb-2' : ''}
+              ${h.level === 2 ? 'pl-4 text-outline mb-1' : ''}
+              ${h.level === 3 ? 'pl-8 text-outline/60' : ''}
+            `}
+          >
+            {h.text}
+          </a>
+        ))}
+      </nav>
     </div>
   );
 }

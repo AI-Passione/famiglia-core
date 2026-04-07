@@ -307,3 +307,16 @@ export interface SOPWorkflowCreate {
   category_id?: number;
   nodes: Omit<SOPNode, 'id' | 'workflow_id'>[];
 }
+
+export interface IntelligenceItem {
+  id: number;
+  title: string;
+  content: string | null;
+  summary: string | null;
+  status: string | null;
+  item_type: 'dossier' | 'blueprint';
+  reference_id: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}

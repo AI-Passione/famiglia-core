@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 from famiglia_core.agents.tools.notion import notion_client
 from famiglia_core.agents.tools.github import github_client
-from famiglia_core.command_center.backend.slack.client import slack_queue, PRIORITY_MEDIUM
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue, PRIORITY_MEDIUM
 
 
 class Workflows:

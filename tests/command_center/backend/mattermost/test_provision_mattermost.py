@@ -2,15 +2,15 @@ import pytest
 import json
 import os
 from unittest.mock import MagicMock, patch, mock_open
-from famiglia_core.command_center.backend.mattermost.provision_mattermost import setup_mattermost
+from famiglia_core.command_center.backend.comms.mattermost.provision_mattermost import setup_mattermost
 
 @pytest.fixture
 def mock_driver_cls(mocker):
-    return mocker.patch("famiglia_core.command_center.backend.mattermost.provision_mattermost.Driver")
+    return mocker.patch("famiglia_core.command_center.backend.comms.mattermost.provision_mattermost.Driver")
 
 @pytest.fixture
 def mock_requests(mocker):
-    return mocker.patch("famiglia_core.command_center.backend.mattermost.provision_mattermost.requests")
+    return mocker.patch("famiglia_core.command_center.backend.comms.mattermost.provision_mattermost.requests")
 
 def test_setup_mattermost_full_flow(mock_driver_cls, mock_requests, mocker):
     mock_driver = MagicMock()

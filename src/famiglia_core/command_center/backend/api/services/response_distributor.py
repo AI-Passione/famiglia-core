@@ -2,8 +2,8 @@ import logging
 from typing import Optional, Dict, Any
 
 from famiglia_core.db.agents.context_store import context_store
-from famiglia_core.command_center.backend.slack.client import slack_queue
-from famiglia_core.command_center.backend.mattermost.client import mattermost_queue
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue
+from famiglia_core.command_center.backend.comms.mattermost.client import mattermost_queue
 
 logger = logging.getLogger(__name__)
 

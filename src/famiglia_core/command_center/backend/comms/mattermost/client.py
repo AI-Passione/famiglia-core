@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from urllib.parse import urlparse
 from mattermostdriver import Driver
 
-from famiglia_core.command_center.backend.comms.common.queue import (
+from famiglia_core.command_center.backend.comms.queue import (
     CommsQueue, 
     PRIORITY_CRITICAL, 
     PRIORITY_HIGH, 
@@ -21,7 +21,7 @@ class MattermostQueueClient(CommsQueue):
     def __init__(self, redis_url: Optional[str] = None):
         super().__init__(platform="mattermost", redis_url=redis_url)
         load_dotenv()
-        print("[MattermostQueueClient] Initializing v2 (hostname fix)...")
+        print("[MattermostQueue 🔌] Initializing...")
         
         # Connection settings
         self.url = os.getenv("MATTERMOST_URL", "http://localhost:8065")
@@ -66,15 +66,25 @@ class MattermostQueueClient(CommsQueue):
                 user = driver.users.get_user('me')
                 self.user_ids[agent_key] = user['id']
                 self.drivers[agent_key] = driver
-                # Silent init to let main.py handle the "Initializing listener..." log
+                print(f"[MattermostQueue 🔌] [{agent}] Authenticated successfully as {user['id']} ({user.get('username')})")
             except Exception as e:
-                print(f"[Mattermost ❌] [{agent}] Auth failed for bot {agent}: {e}")
+                print(f"[MattermostQueue 🔌] [❌] [{agent}] Auth failed: {e}")
                 # Don't keep broken drivers
                 if agent_key in self.drivers:
                     del self.drivers[agent_key]
 
 
         self.app_env = os.getenv("APP_ENV", "production").lower()
+        
+        # Summary report
+        active = list(self.drivers.keys())
+        all_agents = [k for k, v in self.agent_tokens.items() if v] 
+        print(f"\n[MattermostQueue 🔌] Initialization Complete.")
+        print(f"[MattermostQueue 🔌] Active Agents: {', '.join(active) if active else 'NONE (Mock Mode active)'}")
+        missing = [a for a in all_agents if a not in active]
+        if missing:
+            print(f"[MattermostQueue 🔌] Failed/Missing Agents: {', '.join(missing)}")
+        print("")
 
     def get_driver(self, agent: str) -> Optional[Driver]:
         return self.drivers.get(agent.lower()) or self.drivers.get("alfredo") or self.drivers.get("system")

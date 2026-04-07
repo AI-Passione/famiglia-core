@@ -3,7 +3,7 @@ import time
 import json
 import traceback
 from typing import Optional
-from famiglia_core.command_center.backend.mattermost.client import mattermost_queue
+from famiglia_core.command_center.backend.comms.mattermost.client import mattermost_queue
 from famiglia_core.command_center.backend.utils import LLM_SEMAPHORE
 from famiglia_core.agents.base_agent import BaseAgent
 

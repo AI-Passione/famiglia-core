@@ -5,7 +5,7 @@ import json
 import traceback
 from typing import Optional, List, Set, Any
 from slack_bolt import App
-from famiglia_core.command_center.backend.slack.client import slack_queue
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 from famiglia_core.command_center.backend.utils import LLM_SEMAPHORE
 from famiglia_core.agents.base_agent import BaseAgent
 

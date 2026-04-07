@@ -10,8 +10,13 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
 from mattermostdriver.websocket import Websocket
 
-from famiglia_core.command_center.backend.slack.client import slack_queue
-from famiglia_core.command_center.backend.mattermost.client import mattermost_queue
+# Load configuration from .env as early as possible so that any module
+# importing slack_queue or mattermost_queue (which constructs their singletons immediately)
+# can read the proper tokens.
+load_dotenv()
+
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue
+from famiglia_core.command_center.backend.comms.mattermost.client import mattermost_queue
 from famiglia_core.db.agents.context_store import context_store
 from famiglia_core.db.init_db import init_db
 from famiglia_core.agents.alfredo import Alfredo
@@ -31,21 +36,17 @@ from famiglia_core.agents.base_agent import (
 )
 from famiglia_core.agents.orchestration.utils.task_helpers import TASK_TYPE_PRD_AUTOSCAN
 from famiglia_core.command_center.backend.utils import LLM_SEMAPHORE
-from famiglia_core.command_center.backend.slack.handlers import (
+from famiglia_core.command_center.backend.comms.slack.handlers import (
     incoming_event_worker as slack_worker, 
     process_incoming_event, 
     should_handle_message
 )
-from famiglia_core.command_center.backend.mattermost.handlers import (
+from famiglia_core.command_center.backend.comms.mattermost.handlers import (
     incoming_event_worker as mm_worker, 
     process_mattermost_event
 )
 
-# load configuration from .env as early as possible so that any module
-# importing slack_queue (which constructs its singleton immediately) can
-# read the proper tokens.  main() also calls load_dotenv again later for
-# good measure.
-load_dotenv()
+# load_dotenv() moved to the top of the file for early availability.
 
 apps = {} # Global registry for Socket Mode apps
 
@@ -54,7 +55,7 @@ def main():
     print("🎩 Starting Passione Inc. Agent Famiglia...")
     global apps
     
-    load_dotenv()
+    # load_dotenv() called at module level
     ack_emoji = os.getenv("SLACK_ACK_EMOJI", "eyes")
     app_env = os.getenv("APP_ENV", "production").lower()
     raw_dev_channel = os.getenv("DEV_CHANNEL_ID")

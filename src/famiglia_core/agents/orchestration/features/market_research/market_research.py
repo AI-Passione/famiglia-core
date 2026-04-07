@@ -6,7 +6,7 @@ from famiglia_core.agents.orchestration.utils.state import AgentState
 from famiglia_core.agents.llm.client import client
 from famiglia_core.agents.tools.web_search import web_search_client
 from famiglia_core.agents.tools.notion import notion_client
-from famiglia_core.command_center.backend.slack.client import slack_queue
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 
 class MarketResearchState(AgentState):
     """Extension of AgentState for specialized Market Research tasks."""

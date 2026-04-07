@@ -67,7 +67,7 @@ class IntelligenceService:
             
         for key, value in update_data.items():
             fields.append(f"{key} = %s")
-            if key == "metadata":
+            if key in ("metadata", "properties", "icon", "cover", "parent", "created_by", "last_edited_by"):
                 params.append(context_store._safe_json(value))
             else:
                 params.append(value)

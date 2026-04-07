@@ -17,6 +17,8 @@ class IntelligenceItemBase(BaseModel):
     url: Optional[str] = None
     public_url: Optional[str] = None
     in_trash: bool = False
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    reference_id: Optional[str] = None
     created_time: Optional[datetime] = None
     last_edited_time: Optional[datetime] = None
     created_by: Optional[Dict[str, Any]] = None

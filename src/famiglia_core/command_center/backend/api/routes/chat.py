@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from famiglia_core.command_center.backend.api.models.chat import ChatRequest, ChatResponse, StreamChunk
 from famiglia_core.command_center.backend.api.services.agent_manager import agent_manager
 from famiglia_core.command_center.backend.api.services.user_service import user_service
+from famiglia_core.db.agents.context_store import context_store
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -53,7 +54,17 @@ async def chat_standard(request: ChatRequest):
         "channel": request.metadata.get("channel_id", "web-dashboard")
     }
 
-    # 4. Call Agent
+    # 4. Log User Message for Web Dashboard persistence
+    context_store.log_message(
+        agent_name=request.agent_id,
+        conversation_key=conversation_key,
+        role="user",
+        content=request.message,
+        sender=sender_context,
+        metadata=metadata
+    )
+
+    # 5. Call Agent
     try:
         response = agent_obj.complete_task(
             request.message,
@@ -91,6 +102,21 @@ async def chat_stream(
         channel="web-dashboard",
         thread=thread_id or str(uuid.uuid4()),
         user=platform_user_id or "0"
+    )
+
+    # 1. Log User Message for Web Dashboard persistence
+    context_store.log_message(
+        agent_name=agent_id,
+        conversation_key=conversation_key,
+        role="user",
+        content=message,
+        sender=sender_context,
+        metadata={
+            "platform": platform,
+            "thread_id": thread_id,
+            "user_id": platform_user_id or "0",
+            "channel": "web-dashboard"
+        }
     )
 
     async def event_generator():
@@ -176,10 +202,33 @@ async def upload_file(
 @router.get("/conversations")
 async def list_conversations(limit: int = Query(20), offset: int = Query(0)):
     """List recent agent conversations."""
-    from famiglia_core.db.agents.context_store import context_store
     conversations = context_store.list_conversations(limit=limit, offset=offset)
     # Serialize datetimes for JSON response
     for conv in conversations:
         if conv.get("updated_at"):
             conv["updated_at"] = conv["updated_at"].isoformat()
     return conversations
+
+@router.get("/history")
+async def get_chat_history(
+    platform: str = Query("web"),
+    channel: str = Query("web-dashboard"),
+    thread_id: str = Query(...),
+    platform_user_id: Optional[str] = Query(None),
+    limit: int = Query(50)
+):
+    """Retrieve history for a specific thread/channel from agent_messages."""
+    conversation_key = build_conversation_key(
+        platform=platform,
+        channel=channel,
+        thread=thread_id,
+        user=platform_user_id or "0"
+    )
+    
+    messages = context_store.get_recent_messages(conversation_key, limit=limit)
+    # Ensure datetimes are ISO
+    for msg in messages:
+        if msg.get("created_at"):
+            msg["created_at"] = msg["created_at"].isoformat()
+    
+    return messages

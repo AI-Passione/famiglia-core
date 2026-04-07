@@ -160,11 +160,49 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
     const fetchHistory = async () => {
       try {
         console.log("[TerminalContext] Rehydrating mission history...");
-        const res = await fetch(`${API_BASE}/chat/conversations?limit=50`);
-        if (res.ok) {
-          // const conversations = await res.json();
-          // Map backend conversations to chats if needed
-          // For now, we continue using the provisioned channels but we could load thread history here
+        const allChannels = [...PRIO_CHANNELS, ...BUSINESS_CHANNELS, ...INTEL_CHANNELS, ...OTHER_CHANNELS];
+        
+        for (const channel of allChannels) {
+          const res = await fetch(`${API_BASE}/chat/history?thread_id=${channel.id}&limit=20`);
+          if (res.ok) {
+            const history = await res.json();
+            if (history && history.length > 0) {
+              setChats(prev => {
+                const existingChat = prev[channel.id];
+                if (!existingChat) return prev;
+
+                // Map backend messages to frontend format
+                const loadedMessages: Message[] = history.map((msg: any, idx: number) => {
+                   const isUser = msg.role === 'user' || msg.sender === 'Don Jimmy';
+                   const targetSpeaker = isUser ? 'Don Jimmy' : (msg.sender || channel.agentSpeaker || 'Agent');
+                   const targetRole = isUser ? 'Head of Family' : (msg.role || 'Agent');
+                   const targetAvatar = isUser ? undefined : AGENT_IMAGE_MAP[targetSpeaker.toLowerCase()] || AGENT_IMAGE_MAP[channel.agent_id?.toLowerCase() || 'alfredo'];
+
+                   return {
+                     id: `hist-${channel.id}-${idx}`,
+                     type: isUser ? 'user' : 'agent',
+                     speaker: targetSpeaker,
+                     role: targetRole,
+                     content: msg.content,
+                     timestamp: new Date(msg.created_at || Date.now()),
+                     status: 'done',
+                     avatar: targetAvatar
+                   };
+                });
+
+                // Keep the init message at the top, then append history
+                const initMsg = existingChat.messages[0]; // the welcome message
+                
+                return {
+                  ...prev,
+                  [channel.id]: {
+                    ...existingChat,
+                    messages: [initMsg, ...loadedMessages]
+                  }
+                };
+              });
+            }
+          }
         }
       } catch (err) {
         console.error("[TerminalContext] History rehydration failed.", err);

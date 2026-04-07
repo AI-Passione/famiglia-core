@@ -264,16 +264,29 @@ CREATE INDEX IF NOT EXISTS idx_user_connections_lookup
 -- 12. Intelligence Items (Source of Truth replacing Notion)
 CREATE TABLE IF NOT EXISTS intelligence_items (
   id SERIAL PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
+  notion_id UUID UNIQUE,
+  title TEXT NOT NULL,
   content TEXT,
   summary TEXT,
   status VARCHAR(50), -- e.g., 'active', 'archived', 'approved', 'drafted'
   item_type VARCHAR(50) NOT NULL, -- 'dossier', 'blueprint'
-  reference_id VARCHAR(100),
-  metadata JSONB DEFAULT '{}',
+  icon JSONB,
+  cover JSONB,
+  properties JSONB DEFAULT '{}',
+  parent JSONB,
+  url TEXT,
+  public_url TEXT,
+  in_trash BOOLEAN DEFAULT FALSE,
+  created_time TIMESTAMPTZ,
+  last_edited_time TIMESTAMPTZ,
+  created_by JSONB,
+  last_edited_by JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_intelligence_items_notion_id
+  ON intelligence_items(notion_id);
 
 CREATE INDEX IF NOT EXISTS idx_intelligence_items_type_status
   ON intelligence_items(item_type, status);

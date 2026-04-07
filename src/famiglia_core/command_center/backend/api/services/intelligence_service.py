@@ -138,11 +138,10 @@ class IntelligenceService:
                     status = props.get("Status") or "Active"
                     summary = content_md[:300] + "..." if len(content_md) > 300 else content_md
                     
-                    # Prepare metadata
+                    # Prepare metadata and properties
                     metadata = {
                         "notion_url": page_data.get("url"),
                         "tags": props.get("Tags", []),
-                        "icon": "description"
                     }
                     
                     # Insert into DB
@@ -150,17 +149,32 @@ class IntelligenceService:
                         if cursor is None: continue
                         cursor.execute(
                             """
-                            INSERT INTO intelligence_items (title, content, summary, status, item_type, reference_id, metadata, updated_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                            INSERT INTO intelligence_items (
+                                notion_id, title, content, summary, status, item_type, 
+                                icon, cover, properties, parent, url, public_url, 
+                                in_trash, created_time, last_edited_time, created_by, last_edited_by,
+                                updated_at
+                            )
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                             """,
                             (
+                                page_id,
                                 title,
                                 content_md,
                                 summary,
                                 str(status),
                                 item_type,
-                                page_id,
-                                context_store._safe_json(metadata)
+                                context_store._safe_json(page_data.get("icon")),
+                                context_store._safe_json(page_data.get("cover")),
+                                context_store._safe_json(props),
+                                context_store._safe_json(page_data.get("parent")),
+                                page_data.get("url"),
+                                page_data.get("public_url"),
+                                page_data.get("in_trash", False),
+                                page_data.get("created_time"),
+                                page_data.get("last_edited_time"),
+                                context_store._safe_json(page_data.get("created_by")),
+                                context_store._safe_json(page_data.get("last_edited_by"))
                             )
                         )
                         synced_count += 1

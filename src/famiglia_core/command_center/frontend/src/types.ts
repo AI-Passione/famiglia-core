@@ -310,13 +310,21 @@ export interface SOPWorkflowCreate {
 
 export interface IntelligenceItem {
   id: number;
+  notion_id: string | null;
   title: string;
   content: string | null;
   summary: string | null;
   status: string | null;
   item_type: 'dossier' | 'blueprint';
-  reference_id: string | null;
-  metadata: Record<string, any>;
+  icon: any | null;
+  cover: any | null;
+  properties: Record<string, any>;
+  parent: any | null;
+  url: string | null;
+  public_url: string | null;
+  in_trash: boolean;
+  created_time: string | null;
+  last_edited_time: string | null;
   created_at: string;
   updated_at: string;
 }

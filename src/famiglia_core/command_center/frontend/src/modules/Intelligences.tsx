@@ -56,7 +56,7 @@ export function Intelligences() {
     return items.filter(item => 
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.content || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.metadata?.tags?.some((t: string) => t.toLowerCase().includes(searchQuery.toLowerCase()))
+      Object.entries(item.properties || {}).some(([_, val]) => String(val).toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [items, searchQuery]);
 
@@ -176,37 +176,46 @@ export function Intelligences() {
               transition={{ duration: 0.3 }}
               className="min-h-full flex flex-col"
             >
-              {/* Cover/Header Area */}
-              <div className="h-48 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-surface-container-lowest to-tertiary/20 animate-pulse-slow"></div>
-                <div className="absolute inset-0 backdrop-blur-[100px]"></div>
-                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-surface-container-lowest to-transparent"></div>
+              {/* Cover Image Area */}
+              <div className="relative h-64 w-full bg-surface-container-high overflow-hidden">
+                {selectedItem.cover ? (
+                  <img 
+                    src={selectedItem.cover.external?.url || selectedItem.cover.file?.url} 
+                    alt="Cover" 
+                    className="w-full h-full object-cover opacity-60 grayscale-[30%] blur-[1px] hover:blur-0 transition-all duration-700"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent anim-pulse-slow" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent" />
                 
-                <div className="absolute bottom-8 left-12 flex items-end gap-6">
-                  <div className="w-20 h-20 bg-surface-container-high rounded-2xl flex items-center justify-center shadow-2xl border border-outline-variant/20">
-                    <span className="material-symbols-outlined text-4xl text-white">
-                      {selectedItem.metadata?.icon || (selectedItem.item_type === 'dossier' ? 'folder_managed' : 'architecture')}
-                    </span>
+                {/* Floating Title & Icon */}
+                <div className="absolute bottom-8 left-12 right-12 flex items-end gap-6">
+                  <div className="w-24 h-24 rounded-2xl bg-surface-container-highest/80 backdrop-blur-xl border border-white/10 flex items-center justify-center text-4xl shadow-2xl transform hover:scale-110 transition-transform">
+                    {renderNotionIcon(selectedItem.icon) || (selectedItem.item_type === 'dossier' ? '📂' : '📑')}
                   </div>
-                  <div className="mb-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] font-black font-label text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                  <div className="flex-1 pb-2">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-black uppercase tracking-tighter border border-primary/30">
                         {selectedItem.item_type}
                       </span>
-                      {selectedItem.metadata?.tags?.map((tag: string) => (
-                        <span key={tag} className="text-[10px] font-bold font-label text-outline uppercase tracking-widest">#{tag}</span>
-                      ))}
+                      <span className="text-white/40 text-[10px] font-mono tracking-tighter">
+                        {selectedItem.notion_id?.substring(0, 8)}...
+                      </span>
                     </div>
-                    <h1 className="text-4xl font-headline font-black text-white tracking-tighter leading-none">{selectedItem.title}</h1>
+                    <h1 className="text-4xl font-black text-white font-title tracking-tight drop-shadow-lg">
+                      {selectedItem.title}
+                    </h1>
                   </div>
                 </div>
               </div>
 
               {/* Document Metadata / Properties */}
-              <div className="px-12 py-8 grid grid-cols-1 md:grid-cols-3 gap-8 border-b border-outline-variant/10">
+              <div className="px-12 py-8 grid grid-cols-1 md:grid-cols-4 gap-6 border-b border-outline-variant/10">
                 <PropertyItem icon="analytics" label="Status" value={selectedItem.status || 'Active'} isStatus />
-                <PropertyItem icon="fingerprint" label="Reference ID" value={selectedItem.reference_id || 'N/A'} />
-                <PropertyItem icon="history" label="Last Updated" value={new Date(selectedItem.updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} />
+                <PropertyItem icon="link" label="Source" value="Notion" href={selectedItem.url || '#'} />
+                <PropertyItem icon="schedule" label="Created" value={selectedItem.created_time ? new Date(selectedItem.created_time).toLocaleDateString() : 'N/A'} />
+                <PropertyItem icon="history" label="Last Edited" value={selectedItem.last_edited_time ? new Date(selectedItem.last_edited_time).toLocaleDateString() : 'N/A'} />
               </div>
 
               {/* Content Area */}
@@ -262,6 +271,14 @@ export function Intelligences() {
   );
 }
 
+function renderNotionIcon(icon: any) {
+  if (!icon) return null;
+  if (icon.type === 'emoji') return icon.emoji;
+  if (icon.type === 'external') return <img src={icon.external.url} className="w-5 h-5 object-contain" alt="Icon" />;
+  if (icon.type === 'file') return <img src={icon.file.url} className="w-5 h-5 object-contain" alt="Icon" />;
+  return null;
+}
+
 function SidebarItem({ item, isSelected, onClick }: { item: IntelligenceItem, isSelected: boolean, onClick: () => void }) {
   return (
     <button 
@@ -272,11 +289,14 @@ function SidebarItem({ item, isSelected, onClick }: { item: IntelligenceItem, is
           : 'hover:bg-surface-container-high border border-transparent hover:border-outline-variant/10'
       }`}
     >
-      <span className={`material-symbols-outlined text-lg transition-colors ${
-        isSelected ? 'text-primary' : 'text-outline group-hover:text-white'
-      }`}>
-        {item.metadata?.icon || (item.item_type === 'dossier' ? 'folder_managed' : 'architecture')}
-      </span>
+      <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 transition-colors
+        ${isSelected ? 'bg-primary/30 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+        {renderNotionIcon(item.icon) || (
+          <span className="material-symbols-outlined text-lg">
+            {item.item_type === 'dossier' ? 'folder' : 'article'}
+          </span>
+        )}
+      </div>
       <div className="flex-1 truncate">
         <p className={`text-xs font-medium truncate transition-colors ${
           isSelected ? 'text-white font-bold' : 'text-outline group-hover:text-white'
@@ -297,9 +317,9 @@ function SidebarItem({ item, isSelected, onClick }: { item: IntelligenceItem, is
   );
 }
 
-function PropertyItem({ icon, label, value, isStatus }: { icon: string, label: string, value: string, isStatus?: boolean }) {
-  return (
-    <div className="flex items-center gap-4 group">
+function PropertyItem({ icon, label, value, isStatus, href }: { icon: string, label: string, value: string, isStatus?: boolean, href?: string }) {
+  const content = (
+    <>
       <div className="p-2.5 bg-surface-container-low rounded-lg border border-outline-variant/5 group-hover:border-outline-variant/20 transition-all shadow-inner">
         <span className="material-symbols-outlined text-outline text-lg">{icon}</span>
       </div>
@@ -316,6 +336,20 @@ function PropertyItem({ icon, label, value, isStatus }: { icon: string, label: s
           <p className="text-white font-bold text-sm">{value}</p>
         </div>
       </div>
+    </>
+  );
+
+  if (href && href !== '#') {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className="flex items-center gap-4 group hover:bg-white/5 p-2 rounded-xl transition-all">
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-4 group">
+      {content}
     </div>
   );
 }
@@ -386,9 +420,13 @@ function IntelligenceHome({ items, onSelect }: { items: IntelligenceItem[], onSe
               className="p-4 bg-surface-container-low hover:bg-surface-container-high transition-all border border-outline-variant/5 rounded-xl flex items-center gap-4 cursor-pointer group"
             >
               <div className="w-12 h-12 bg-surface-container-lowest rounded-lg flex items-center justify-center border border-outline-variant/10 group-hover:border-primary/20 transition-all">
-                <span className="material-symbols-outlined text-overlay transition-colors group-hover:text-primary">
-                  {item.metadata?.icon || (item.item_type === 'dossier' ? 'folder_managed' : 'architecture')}
-                </span>
+                <div className="text-xl transition-colors group-hover:text-primary">
+                  {renderNotionIcon(item.icon) || (
+                    <span className="material-symbols-outlined">
+                      {item.item_type === 'dossier' ? 'folder_managed' : 'architecture'}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex-1 overflow-hidden">
                 <h4 className="text-white font-bold text-sm truncate">{item.title}</h4>

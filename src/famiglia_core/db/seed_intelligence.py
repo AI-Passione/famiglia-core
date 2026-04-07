@@ -96,5 +96,4 @@ def seed_intelligence():
         print(f"Error seeding intelligence items: {e}")
 
 if __name__ == "__main__":
-    from psycopg2.extras import Json
     seed_intelligence()

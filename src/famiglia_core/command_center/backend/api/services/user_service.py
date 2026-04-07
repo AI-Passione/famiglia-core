@@ -1,10 +1,30 @@
 from typing import Optional, Dict, Any
 from famiglia_core.db.agents.context_store import context_store
 
+import os
+
+DEFAULT_SOULS_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "agents", "souls", "souls.md")
+
+def get_shared_baseline_from_souls():
+    try:
+        if not os.path.exists(DEFAULT_SOULS_PATH):
+            return ""
+        with open(DEFAULT_SOULS_PATH, "r") as f:
+            content = f.read()
+            if "## Shared Baseline (All Agents)" in content:
+                baseline = content.split("## Shared Baseline (All Agents)")[1].split("##")[0].strip()
+                return baseline
+            return content.strip()
+    except Exception as e:
+        print(f"[UserService] Error reading souls.md: {e}")
+        return ""
+
 DEFAULT_SETTINGS = {
     "honorific": "Don",
     "notificationsEnabled": True,
     "backgroundAnimationsEnabled": True,
+    "personalDirective": "",
+    "systemPrompt": get_shared_baseline_from_souls(),
 }
 
 class UserService:
@@ -65,9 +85,11 @@ class UserService:
                 cursor.execute(
                     """
                     SELECT
-                        us.honorific,
+                    us.honorific,
                         us.notifications_enabled,
-                        us.background_animations_enabled
+                        us.background_animations_enabled,
+                        us.personal_directive,
+                        us.system_prompt
                     FROM user_settings us
                     JOIN users u ON u.id = us.user_id
                     WHERE u.role = 'don'
@@ -86,6 +108,8 @@ class UserService:
                     "backgroundAnimationsEnabled": row.get("background_animations_enabled")
                     if row.get("background_animations_enabled") is not None
                     else DEFAULT_SETTINGS["backgroundAnimationsEnabled"],
+                    "personalDirective": row.get("personal_directive") or DEFAULT_SETTINGS["personalDirective"],
+                    "systemPrompt": row.get("system_prompt") or DEFAULT_SETTINGS["systemPrompt"],
                 }
         except Exception as e:
             print(f"[UserService] Error loading Don settings: {e}")
@@ -95,13 +119,10 @@ class UserService:
         """Persist Command Center settings into the dedicated user_settings table."""
         normalized_settings = {
             "honorific": settings.get("honorific", DEFAULT_SETTINGS["honorific"]),
-            "notificationsEnabled": settings.get(
-                "notificationsEnabled", DEFAULT_SETTINGS["notificationsEnabled"]
-            ),
-            "backgroundAnimationsEnabled": settings.get(
-                "backgroundAnimationsEnabled",
-                DEFAULT_SETTINGS["backgroundAnimationsEnabled"],
-            ),
+            "notificationsEnabled": settings.get("notificationsEnabled", DEFAULT_SETTINGS["notificationsEnabled"]),
+            "backgroundAnimationsEnabled": settings.get("backgroundAnimationsEnabled", DEFAULT_SETTINGS["backgroundAnimationsEnabled"]),
+            "personalDirective": settings.get("personalDirective", DEFAULT_SETTINGS["personalDirective"]),
+            "systemPrompt": settings.get("systemPrompt", DEFAULT_SETTINGS["systemPrompt"]),
         }
         try:
             with context_store.db_session() as cursor:
@@ -141,14 +162,18 @@ class UserService:
                         honorific,
                         notifications_enabled,
                         background_animations_enabled,
+                        personal_directive,
+                        system_prompt,
                         updated_at
                     )
-                    VALUES (%s, %s, %s, %s, NOW())
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (user_id) DO UPDATE
                     SET
                       honorific = EXCLUDED.honorific,
                       notifications_enabled = EXCLUDED.notifications_enabled,
                       background_animations_enabled = EXCLUDED.background_animations_enabled,
+                      personal_directive = EXCLUDED.personal_directive,
+                      system_prompt = EXCLUDED.system_prompt,
                       updated_at = NOW()
                     RETURNING id;
                     """,
@@ -157,6 +182,8 @@ class UserService:
                         normalized_settings["honorific"],
                         normalized_settings["notificationsEnabled"],
                         normalized_settings["backgroundAnimationsEnabled"],
+                        normalized_settings["personalDirective"],
+                        normalized_settings["systemPrompt"],
                     ),
                 )
                 return normalized_settings

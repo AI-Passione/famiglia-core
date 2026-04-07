@@ -86,32 +86,10 @@ describe('App Component', () => {
       expect(screen.getByTestId('situation-room')).toBeDefined();
     });
 
-    const engineRoomLink = screen.getByText('The Engine Room');
-    fireEvent.click(engineRoomLink);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('engine-room-page')).toBeDefined();
-    });
-    
-    // Find the Operations link in the Sidebar (assuming Sidebar uses these names)
-    const operationsLink = screen.getByText('Operations');
-    fireEvent.click(operationsLink);
-    
-    await waitFor(() => {
-      expect(screen.getByTestId('operations-page')).toBeDefined();
-    });
-
-    const connectionsLink = screen.getByText('Connections');
-    fireEvent.click(connectionsLink);
-    
-    await waitFor(() => {
-      expect(screen.getByTestId('connections-page')).toBeDefined();
-    });
-
     const settingsLink = screen.getByText('Settings');
     fireEvent.click(settingsLink);
     await waitFor(() => {
-      expect(screen.getByText(/Configure how the Command Center addresses you/i)).toBeDefined();
+      expect(screen.getByText(/Command Center Configuration & Telemetry/i)).toBeDefined();
     });
 
     const famigliaLink = screen.getByText('The Famiglia');
@@ -142,6 +120,8 @@ describe('App Component', () => {
         honorific: 'Donna',
         notificationsEnabled: false,
         backgroundAnimationsEnabled: true,
+        personalDirective: '',
+        systemPrompt: '',
       })
     );
 
@@ -177,6 +157,8 @@ describe('App Component', () => {
             honorific: 'Capo',
             notificationsEnabled: true,
             backgroundAnimationsEnabled: false,
+            personalDirective: '',
+            systemPrompt: '',
           }),
         });
       }

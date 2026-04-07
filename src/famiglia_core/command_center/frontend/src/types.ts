@@ -125,6 +125,8 @@ export interface AppSettings {
   honorific: string;
   notificationsEnabled: boolean;
   backgroundAnimationsEnabled: boolean;
+  personalDirective: string;
+  systemPrompt: string;
 }
 
 export interface FamigliaAgent {

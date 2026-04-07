@@ -13,6 +13,8 @@ describe('Settings Module', () => {
           honorific: 'Donna',
           notificationsEnabled: false,
           backgroundAnimationsEnabled: true,
+          personalDirective: 'Test directive',
+          systemPrompt: 'Test prompt',
         }}
         onSettingsChange={onSettingsChange}
       />
@@ -20,7 +22,8 @@ describe('Settings Module', () => {
 
     expect(screen.getByPlaceholderText('Custom honorific')).toHaveValue('Donna');
     expect(screen.getByLabelText('Honorific')).toBeDefined();
-    expect(screen.getByText('Welcome back, Donna')).toBeDefined();
+    expect(screen.getByText('Active Identity')).toBeDefined();
+    expect(screen.getByTestId('active-honorific')).toHaveTextContent('Donna');
   });
 
   it('emits updates when honorific input and toggles change', () => {
@@ -32,6 +35,8 @@ describe('Settings Module', () => {
           honorific: 'Don',
           notificationsEnabled: true,
           backgroundAnimationsEnabled: true,
+          personalDirective: '',
+          systemPrompt: '',
         }}
         onSettingsChange={onSettingsChange}
       />
@@ -44,6 +49,8 @@ describe('Settings Module', () => {
       honorific: 'Boss',
       notificationsEnabled: true,
       backgroundAnimationsEnabled: true,
+      personalDirective: '',
+      systemPrompt: '',
     });
 
     const checkboxes = screen.getAllByRole('checkbox');
@@ -52,6 +59,8 @@ describe('Settings Module', () => {
       honorific: 'Don',
       notificationsEnabled: false,
       backgroundAnimationsEnabled: true,
+      personalDirective: '',
+      systemPrompt: '',
     });
   });
 });

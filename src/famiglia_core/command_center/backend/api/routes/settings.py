@@ -8,6 +8,8 @@ class AppSettingsPayload(BaseModel):
     honorific: str = Field(default="Don", min_length=1, max_length=64)
     notificationsEnabled: bool = True
     backgroundAnimationsEnabled: bool = True
+    personalDirective: str = ""
+    systemPrompt: str = ""
 
 
 @router.get("/")

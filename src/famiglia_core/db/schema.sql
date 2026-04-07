@@ -233,6 +233,8 @@ CREATE TABLE IF NOT EXISTS user_settings (
   honorific                       VARCHAR(64) NOT NULL DEFAULT 'Don',
   notifications_enabled           BOOLEAN NOT NULL DEFAULT TRUE,
   background_animations_enabled   BOOLEAN NOT NULL DEFAULT TRUE,
+  personal_directive             TEXT,
+  system_prompt                  TEXT,
   created_at                      TIMESTAMPTZ DEFAULT NOW(),
   updated_at                      TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (user_id)

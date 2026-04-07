@@ -7,8 +7,6 @@ export function Sidebar({ activeTab, setActiveTab }: any) {
     { id: 'intelligences', label: 'Intelligences', icon: 'insights' },
     { id: 'lounge', label: 'The Lounge', icon: 'nightlife' },
     { id: 'terminal', label: 'The Terminal', icon: 'chat' },
-    { id: 'engine_room', label: 'The Engine Room', icon: 'precision_manufacturing' },
-    { id: 'connections', label: 'Connections', icon: 'hub' },
   ];
 
   return (

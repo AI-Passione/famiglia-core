@@ -39,6 +39,12 @@ Object.defineProperty(window, 'ResizeObserver', {
   value: ResizeObserverMock,
 });
 
+// Mock scrollIntoView and scrollTo as they are not implemented in JSDOM
+if (typeof Array !== 'undefined' && typeof window !== 'undefined') {
+  window.Element.prototype.scrollIntoView = vi.fn();
+  window.Element.prototype.scrollTo = vi.fn();
+}
+
 const localStorageStore = new Map<string, string>();
 
 Object.defineProperty(window, 'localStorage', {
@@ -60,7 +66,13 @@ vi.mock('framer-motion', async () => {
     return React.forwardRef(({ children, ...props }: any, ref: any) => {
       // Filter out motion-specific props
       const filteredProps = { ...props };
-      const motionProps = ['initial', 'animate', 'exit', 'transition', 'variants', 'whileHover', 'whileTap', 'whileDrag', 'whileFocus', 'whileInView', 'onAnimationStart', 'onAnimationComplete', 'onUpdate', 'onPan', 'onPanStart', 'onPanEnd', 'onTap', 'onTapStart', 'onTapCancel'];
+      const motionProps = [
+        'initial', 'animate', 'exit', 'transition', 'variants', 
+        'whileHover', 'whileTap', 'whileDrag', 'whileFocus', 'whileInView', 
+        'onAnimationStart', 'onAnimationComplete', 'onUpdate', 
+        'onPan', 'onPanStart', 'onPanEnd', 'onTap', 'onTapStart', 'onTapCancel',
+        'layout', 'layoutId', 'layoutRoot', 'drag', 'dragConstraints', 'dragElastic', 'dragSnapToOrigin'
+      ];
       motionProps.forEach(p => delete filteredProps[p]);
       
       return React.createElement(tag, { ...filteredProps, ref }, children);

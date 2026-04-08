@@ -45,8 +45,13 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     if (scrollRef.current) {
-       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
-       setHasNewMessages(false);
+      if (typeof scrollRef.current.scrollTo === 'function') {
+        scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
+      } else {
+        // Fallback for environments like JSDOM where scrollTo is not defined
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+      setHasNewMessages(false);
     }
   };
 

@@ -6,6 +6,7 @@ import { API_BASE, BACKEND_BASE } from '../config';
 
 export interface Message {
   id: string;
+  db_id?: number; // Backend DB ID for threading
   type: 'user' | 'agent';
   speaker: string;
   role: string;
@@ -13,6 +14,7 @@ export interface Message {
   timestamp: Date;
   status?: 'sending' | 'typing' | 'done' | 'error';
   avatar?: string;
+  parent_id?: number;
 }
 
 export interface ChatState {
@@ -29,12 +31,17 @@ export interface ChatState {
 interface TerminalContextType {
   activeChatId: string;
   setActiveChatId: (id: string) => void;
+  activeThreadId: number | null;
+  openThread: (messageDbId: number) => void;
+  closeThread: () => void;
   chats: Record<string, ChatState>;
   setChats: React.Dispatch<React.SetStateAction<Record<string, ChatState>>>;
   input: string;
   setInput: (val: string) => void;
-  sendMessage: (text: string) => void;
+  sendMessage: (text: string, parentId?: number) => void;
   isTyping: boolean;
+  isTerminalOpen: boolean;
+  setTerminalOpen: (open: boolean) => void;
 }
 
 const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
@@ -113,9 +120,67 @@ function buildInitialChats(): Record<string, ChatState> {
 }
 
 export function TerminalProvider({ children, initialChatId = 'command-center' }: { children: ReactNode, initialChatId?: string }) {
-  const [activeChatId, setActiveChatId] = useState<string>(initialChatId);
+  // Persistence: Restore last selected channel
+  const [activeChatId, setActiveChatIdState] = useState<string>(() => {
+    return localStorage.getItem('last_active_chat') || initialChatId;
+  });
+  const [activeThreadId, setActiveThreadId] = useState<number | null>(null);
+
+  const setActiveChatId = (id: string) => {
+    setActiveChatIdState(id);
+    localStorage.setItem('last_active_chat', id);
+  };
+
+  const openThread = async (dbId: number) => {
+    setActiveThreadId(dbId);
+    // Optional: Fetch thread history if not already present or to ensure sync
+    try {
+      const res = await fetch(`${API_BASE}/chat/thread?parent_id=${dbId}`);
+      if (res.ok) {
+        const history = await res.json();
+        const threadMessages = history.map((msg: any, idx: number) => {
+          const senderLower = (msg.sender || "").toLowerCase();
+          const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
+          const targetSpeaker = isUser ? 'Don Jimmy' : (msg.sender || 'Agent');
+          const targetRole = isUser ? 'Head of Family' : (msg.role || 'Agent');
+          const mappingKey = targetSpeaker.split('(')[0].trim().toLowerCase();
+          const targetAvatar = isUser ? undefined : AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP['alfredo'];
+
+          return {
+            id: `thread-${dbId}-${idx}-${Date.now()}`,
+            db_id: msg.id,
+            type: isUser ? 'user' : 'agent',
+            speaker: targetSpeaker,
+            role: targetRole,
+            content: msg.content,
+            timestamp: new Date(msg.created_at || Date.now()),
+            status: 'done',
+            avatar: targetAvatar,
+            parent_id: dbId
+          };
+        });
+
+        setChats(prev => {
+          const next = { ...prev };
+          const chat = next[activeChatIdRef.current];
+          if (chat) {
+            // Merge thread messages ensuring no duplicates
+            const existingIds = new Set(chat.messages.map(m => m.db_id));
+            const newMessages = threadMessages.filter((m: any) => !existingIds.has(m.db_id));
+            chat.messages = [...chat.messages, ...newMessages].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+          }
+          return next;
+        });
+      }
+    } catch (e) {
+      console.error("[TerminalContext] Failed fetching thread history:", e);
+    }
+  };
+  const closeThread = () => setActiveThreadId(null);
+
   const [chats, setChats] = useState<Record<string, ChatState>>(buildInitialChats());
   const [input, setInput] = useState('');
+  const [isTerminalOpen, setTerminalOpen] = useState(false);
   const [agents, setAgents] = useState<FamigliaAgent[]>([]);
   const [actions, setActions] = useState<ActionLog[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -180,16 +245,18 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
                    const mappingKey = targetSpeaker.split('(')[0].trim().toLowerCase();
                    const targetAvatar = isUser ? undefined : AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP[channel.agent_id?.toLowerCase() || 'alfredo'];
 
-                   return {
-                     id: `hist-${channel.id}-${idx}-${Date.now()}`,
-                     type: isUser ? 'user' : 'agent',
-                     speaker: targetSpeaker,
-                     role: targetRole,
-                     content: msg.content,
-                     timestamp: new Date(msg.created_at || Date.now()),
-                     status: 'done',
-                     avatar: targetAvatar
-                   };
+                    return {
+                      id: `hist-${channel.id}-${idx}-${Date.now()}`,
+                      db_id: msg.id,
+                      type: isUser ? 'user' : 'agent',
+                      speaker: targetSpeaker,
+                      role: targetRole,
+                      content: msg.content,
+                      timestamp: new Date(msg.created_at || Date.now()),
+                      status: 'done',
+                      avatar: targetAvatar,
+                      parent_id: msg.parent_id
+                    };
                 });
                 historyUpdates[channel.id] = loadedMessages;
               }
@@ -274,21 +341,23 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
     return () => eventSourceRef.current?.close();
   }, []);
 
-  const sendMessage = async (text: string) => {
+  const sendMessage = async (text: string, parentId?: number) => {
     if (!text.trim()) return;
 
     // USE REFS for mission-critical logic to avoid stale closures
     const currentChatId = activeChatIdRef.current;
     const currentChat = chatsRef.current[currentChatId];
 
-    console.log(`[LA_PASSIONE_SYNC_v4] sendMessage triggered for channel [${currentChatId}]: "${text.slice(0, 20)}..."`);
+    console.log(`[LA_PASSIONE_SYNC_v4] sendMessage triggered [parent=${parentId}] for channel [${currentChatId}]: "${text.slice(0, 20)}..."`);
     
     if (!currentChat) {
       console.warn("[TerminalContext] No chat state found for ID:", currentChatId);
       return;
     }
 
-    if (currentChat.isTyping) {
+    // Only block main channel inputs, threads can be concurrent maybe? 
+    // For now, let's keep it simple and block if the specific "context" is typing.
+    if (currentChat.isTyping && !parentId) {
       console.warn("[TerminalContext] Chat is busy, ignoring.");
       return;
     }
@@ -300,7 +369,8 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       role: 'Head of Family',
       content: text,
       timestamp: new Date(),
-      status: 'done'
+      status: 'done',
+      parent_id: parentId
     };
 
     // 1. Add user message
@@ -312,13 +382,13 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       }
     }));
     
-    setInput('');
+    if (!parentId) setInput('');
 
     // 2. Resolve target agent
     let targetAgentIdCandidate = currentChat.agent_id || (currentChatId === 'command-center' ? 'alfredo' : 'alfredo');
     
     // Dynamic Topic Routing for Intelligence Hub
-    if (currentChatId === 'intelligence-hub') {
+    if (currentChatId === 'intelligence-hub' && !parentId) {
       const lowerText = text.toLowerCase();
       if (lowerText.match(/\b(tech|code|system|devops|engineering|bug|deploy|architecture|app|repo|github)\b/)) {
         targetAgentIdCandidate = 'riccardo';
@@ -341,14 +411,15 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       content: '',
       timestamp: new Date(),
       status: 'typing',
-      avatar: AGENT_IMAGE_MAP[targetAgentId]
+      avatar: AGENT_IMAGE_MAP[targetAgentId],
+      parent_id: parentId
     };
     
     setChats(prev => ({
       ...prev,
       [currentChatId]: {
         ...prev[currentChatId],
-        isTyping: true,
+        isTyping: !parentId ? true : prev[currentChatId].isTyping,
         messages: [...prev[currentChatId].messages, newAgentMessage]
       }
     }));
@@ -358,6 +429,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       url.searchParams.append('message', text);
       url.searchParams.append('agent_id', targetAgentId);
       url.searchParams.append('thread_id', currentChatId); // Use channel ID as thread
+      if (parentId) url.searchParams.append('parent_id', parentId.toString());
       
       console.log("[TerminalContext] 🚀 Connection initialized:", url.toString());
 
@@ -451,12 +523,17 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
     <TerminalContext.Provider value={{
       activeChatId,
       setActiveChatId,
+      activeThreadId,
+      openThread,
+      closeThread,
       chats,
       setChats,
       input,
       setInput,
       sendMessage,
-      isTyping: activeChat?.isTyping || false
+      isTyping: activeChat?.isTyping || false,
+      isTerminalOpen,
+      setTerminalOpen
     }}>
       {children}
     </TerminalContext.Provider>

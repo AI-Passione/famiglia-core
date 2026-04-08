@@ -5,8 +5,9 @@ import {
   PRIO_CHANNELS, 
   BUSINESS_CHANNELS, 
   INTEL_CHANNELS, 
-  OTHER_CHANNELS
+  OTHER_CHANNELS 
 } from './TerminalContext';
+import { ThreadPanel } from './ThreadPanel';
 
 interface TerminalProps {
   variant?: 'full' | 'compact';
@@ -16,6 +17,8 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
   const { 
     activeChatId, 
     setActiveChatId, 
+    activeThreadId,
+    openThread,
     chats, 
     input, 
     setInput, 
@@ -23,16 +26,43 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
     isTyping 
   } = useTerminal();
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+  const lastMessageCount = useRef(0);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeChat = chats[activeChatId];
   const [showSummary, setShowSummary] = useState(variant === 'compact');
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+    setIsAtBottom(atBottom);
+    if (atBottom) setHasNewMessages(false);
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    if (scrollRef.current) {
+       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior });
+       setHasNewMessages(false);
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    const currentCount = activeChat?.messages.length || 0;
+    const lastMsg = activeChat?.messages[currentCount - 1];
+    const isUserMsg = lastMsg?.type === 'user';
+
+    if (currentCount > lastMessageCount.current) {
+      if (isAtBottom || isUserMsg) {
+        scrollToBottom(isUserMsg ? "auto" : "smooth");
+      } else {
+        setHasNewMessages(true);
+      }
+    }
+    lastMessageCount.current = currentCount;
   }, [activeChat?.messages, isTyping]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -114,7 +144,8 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
         </aside>
       )}
 
-      <main className="flex-1 flex flex-col bg-background/20 relative">
+      <div className="flex-1 flex flex-row overflow-hidden relative">
+        <main className="flex-1 flex flex-col bg-background/20 relative overflow-hidden">
         {/* Information Compression Layer (Summary Bar) */}
         <AnimatePresence>
           {showSummary && activeChat.summary && (
@@ -177,8 +208,12 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
         </header>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative">
-          {activeChat.messages.map((msg, i) => {
+        <div 
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative"
+        >
+          {activeChat.messages.filter(m => !m.parent_id).map((msg, i) => {
             const isUser = msg.type === 'user';
             return (
               <motion.div 
@@ -205,6 +240,15 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
                     : 'bg-surface-container-high/40 text-on-surface rounded-tl-none border border-outline/5 hover:bg-surface-container-high/60 shadow-sm'
                   }`}>
                     {msg.content}
+                    
+                    {/* Thread Trigger */}
+                    <button 
+                      onClick={() => msg.db_id && openThread(msg.db_id)}
+                      className="absolute top-2 right-2 p-1.5 bg-background/80 rounded-lg border border-outline/10 opacity-0 group-hover:opacity-100 transition-all hover:text-primary hover:border-primary/30 shadow-lg translate-x-2"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">reply</span>
+                    </button>
+
                     {msg.status === 'typing' && (
                       <div className="flex gap-1 py-1 mt-1">
                         <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-primary"></motion.div>
@@ -219,6 +263,22 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
           })}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Jump to Bottom */}
+        <AnimatePresence>
+          {hasNewMessages && (
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              onClick={() => scrollToBottom()}
+              className="absolute bottom-32 left-1/2 -translate-x-1/2 px-4 py-2 bg-primary text-on-primary rounded-full shadow-2xl flex items-center gap-2 z-30 font-label text-[10px] uppercase tracking-widest"
+            >
+              <span className="material-symbols-outlined text-sm">arrow_downward</span>
+              New Messages
+            </motion.button>
+          )}
+        </AnimatePresence>
 
         {/* Input */}
         <footer className="p-6 pt-2 bg-surface-container-lowest/50 backdrop-blur-xl border-t border-outline/5">
@@ -258,6 +318,12 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
           </div>
         </footer>
       </main>
+
+      {/* Thread Sidebar */}
+      <AnimatePresence mode="wait">
+        {activeThreadId && <ThreadPanel key={activeThreadId} />}
+      </AnimatePresence>
     </div>
+  </div>
   );
 }

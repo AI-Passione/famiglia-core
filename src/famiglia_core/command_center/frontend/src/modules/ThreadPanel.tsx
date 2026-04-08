@@ -39,7 +39,7 @@ export function ThreadPanel() {
     }
   };
 
-  if (!activeThreadId) return null;
+  if (activeThreadId === null) return null;
 
   return (
     <motion.aside 
@@ -47,6 +47,7 @@ export function ThreadPanel() {
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      data-testid="thread-panel"
       className="w-96 border-l border-outline/10 bg-surface-container-low/95 backdrop-blur-xl flex flex-col shadow-2xl z-20"
     >
       {/* Header */}

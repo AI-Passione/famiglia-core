@@ -216,6 +216,7 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
         <div 
           ref={scrollRef}
           onScroll={handleScroll}
+          data-testid="terminal-scroll-container"
           className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative"
         >
           {activeChat.messages.filter(m => !m.parent_id).map((msg, i) => {
@@ -249,6 +250,7 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
                     {/* Thread Trigger */}
                     <button 
                       onClick={() => msg.db_id && openThread(msg.db_id)}
+                      data-testid="reply-button"
                       className="absolute top-2 right-2 p-1.5 bg-background/80 rounded-lg border border-outline/10 opacity-0 group-hover:opacity-100 transition-all hover:text-primary hover:border-primary/30 shadow-lg translate-x-2"
                     >
                       <span className="material-symbols-outlined text-[16px]">reply</span>
@@ -277,6 +279,7 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               onClick={() => scrollToBottom()}
+              data-testid="new-messages-button"
               className="absolute bottom-32 left-1/2 -translate-x-1/2 px-4 py-2 bg-primary text-on-primary rounded-full shadow-2xl flex items-center gap-2 z-30 font-label text-[10px] uppercase tracking-widest"
             >
               <span className="material-symbols-outlined text-sm">arrow_downward</span>

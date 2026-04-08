@@ -4,7 +4,7 @@ import { TerminalProvider } from './modules/TerminalContext';
 export function TerminalApp() {
   return (
     <TerminalProvider>
-      <div className="min-h-screen bg-background p-6 font-body flex flex-col overflow-hidden">
+      <div className="h-screen bg-background p-6 font-body flex flex-col overflow-hidden">
         <header className="mb-6 flex items-center justify-between px-2">
            <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-3xl text-primary">terminal</span>

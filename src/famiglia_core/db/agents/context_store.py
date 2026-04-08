@@ -178,6 +178,7 @@ class AgentContextStore:
         content: str,
         sender: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        parent_id: Optional[int] = None,
     ) -> int:
         conversation_id = self._get_or_create_conversation_id(conversation_key)
         if conversation_id is None:
@@ -189,11 +190,11 @@ class AgentContextStore:
                 cursor.execute(
                     """
                     INSERT INTO agent_messages (
-                      conversation_id, agent_name, sender, role, content, metadata
-                    ) VALUES (%s, %s, %s, %s, %s, %s)
+                      conversation_id, agent_name, sender, role, content, metadata, parent_id
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                     """,
-                    (conversation_id, agent_name, sender, role, content, self._safe_json(metadata)),
+                    (conversation_id, agent_name, sender, role, content, self._safe_json(metadata), parent_id),
                 )
                 row = cursor.fetchone()
                 message_id = row["id"] if row else -1
@@ -216,10 +217,10 @@ class AgentContextStore:
                 if cursor is None: return []
                 cursor.execute(
                     """
-                    SELECT m.role, m.content, m.sender, m.created_at
+                    SELECT m.id, m.parent_id, m.role, m.content, m.sender, m.created_at
                     FROM agent_messages m
                     INNER JOIN agent_conversations c ON c.id = m.conversation_id
-                    WHERE c.conversation_key = %s
+                    WHERE c.conversation_key = %s AND m.parent_id IS NULL
                     ORDER BY m.created_at DESC
                     LIMIT %s
                     """,
@@ -230,6 +231,24 @@ class AgentContextStore:
                 return rows
         except Exception as e:
             print(f"[ContextStore] Failed to fetch recent messages: {e}")
+            return []
+
+    def get_thread_messages(self, parent_id: int) -> List[Dict[str, Any]]:
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    """
+                    SELECT m.id, m.parent_id, m.role, m.content, m.sender, m.created_at
+                    FROM agent_messages m
+                    WHERE m.parent_id = %s
+                    ORDER BY m.created_at ASC
+                    """,
+                    (parent_id,),
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch thread messages: {e}")
             return []
 
     def list_conversations(self, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:

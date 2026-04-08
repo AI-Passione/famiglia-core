@@ -8,6 +8,7 @@ class ChatRequest(BaseModel):
     platform: str = Field("web", description="The platform where the message originates")
     platform_user_id: Optional[str] = Field(None, description="The user's ID on the originating platform")
     thread_id: Optional[str] = Field(None, description="Optional thread/conversation ID")
+    parent_id: Optional[int] = Field(None, description="The ID of the parent message for threaded replies")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional context/metadata")
 
 class ChatResponse(BaseModel):

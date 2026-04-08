@@ -60,7 +60,8 @@ async def chat_standard(request: ChatRequest):
         role="user",
         content=request.message,
         sender=sender_context,
-        metadata=metadata
+        metadata=metadata,
+        parent_id=request.parent_id
     )
 
     # 5. Call Agent
@@ -85,7 +86,8 @@ async def chat_stream(
     agent_id: str = Query("alfredo"),
     platform: str = Query("web"),
     platform_user_id: Optional[str] = Query(None),
-    thread_id: Optional[str] = Query(None)
+    thread_id: Optional[str] = Query(None),
+    parent_id: Optional[int] = Query(None)
 ):
     """Stream agent thinking process and final response via SSE."""
     agent_obj = agent_manager.get_agent(agent_id)
@@ -115,7 +117,8 @@ async def chat_stream(
             "thread_id": thread_id,
             "user_id": platform_user_id or "0",
             "channel": "web-dashboard"
-        }
+        },
+        parent_id=parent_id
     )
 
     async def event_generator():
@@ -225,6 +228,19 @@ async def get_chat_history(
     )
     
     messages = context_store.get_recent_messages(conversation_key, limit=limit)
+    # Ensure datetimes are ISO
+    for msg in messages:
+        if msg.get("created_at"):
+            msg["created_at"] = msg["created_at"].isoformat()
+    
+    return messages
+
+@router.get("/thread")
+async def get_thread_history(
+    parent_id: int = Query(...)
+):
+    """Retrieve history for a specific thread from agent_messages."""
+    messages = context_store.get_thread_messages(parent_id)
     # Ensure datetimes are ISO
     for msg in messages:
         if msg.get("created_at"):

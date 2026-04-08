@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS agent_messages (
   role VARCHAR(20) NOT NULL,
   content TEXT NOT NULL,
   metadata JSONB,
+  parent_id INT REFERENCES agent_messages(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

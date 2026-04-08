@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal } from '../Terminal';
+import { useTerminal } from '../TerminalContext';
 
 export function DirectivesTerminal() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isTerminalOpen: isOpen, setTerminalOpen: setIsOpen } = useTerminal();
   const [isMaximized, setIsMaximized] = useState(false);
   
   return (

@@ -186,7 +186,7 @@ function App() {
         <TopNav />
         <div className="flex">
           <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-          <main className="flex-1 ml-72 pt-16 relative overflow-hidden">
+          <main className="flex-1 ml-72 h-screen pt-16 relative overflow-hidden">
             {/* Background Map Overlay */}
             <div className="absolute inset-0 noir-bg-map pointer-events-none opacity-20"></div>
             

@@ -8,9 +8,6 @@ import React from 'react';
 vi.mock('@/modules/Agenda', () => ({
   Agenda: () => <div data-testid="agenda-page">Agenda Page</div>
 }));
-vi.mock('@/modules/SituationRoom', () => ({
-  SituationRoom: () => <div data-testid="situation-room">Situation Room</div>
-}));
 vi.mock('@/modules/EngineRoom', () => ({
   EngineRoom: () => <div data-testid="engine-room-page">Engine Room</div>
 }));
@@ -197,5 +194,32 @@ describe('App Component', () => {
         expect.objectContaining({ method: 'PUT' })
       );
     });
+  });
+
+  it('handles backend 404s and malformed data gracefully without corrupting the render tree', async () => {
+    // Override fetch mock perfectly for this exact crash scenario
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      // Simulate 404 Not Found object returns for all data streams
+      return Promise.resolve({ 
+        ok: false, 
+        json: async () => ({ detail: "Not Found" }) 
+      });
+    });
+
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    );
+
+    // If it handled it safely, the Situation Room structure still renders without crashing.
+    // The "Execute Directive" header comes from OperationsHub.
+    await waitFor(() => {
+      expect(screen.getAllByText('Execute Directive').length).toBeGreaterThan(0);
+    });
+    
+    // There should be a "No pending directives" or "Awaiting Intel..." message since it's empty
+    expect(screen.getByText('No pending directives')).toBeDefined();
+    expect(screen.getByText('Awaiting Intel...')).toBeDefined();
   });
 });

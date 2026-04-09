@@ -34,6 +34,8 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeChat = chats[activeChatId];
   const [showSummary, setShowSummary] = useState(variant === 'compact');
+  const [showChannelDropdown, setShowChannelDropdown] = useState(false);
+  const allChannels = [...PRIO_CHANNELS, ...BUSINESS_CHANNELS, ...INTEL_CHANNELS, ...OTHER_CHANNELS];
 
   const handleScroll = () => {
     if (!scrollRef.current) return;
@@ -188,12 +190,59 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
             <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/30 shadow-[0_0_15px_rgba(255,179,181,0.1)]">
               <span className="text-xl">{chatIcon}</span>
             </div>
-            <div>
-              <h1 className="font-headline text-lg italic tracking-tight text-on-surface">#{chatName}</h1>
+            <div className="relative">
+              <div 
+                className="flex items-center gap-2 cursor-pointer group"
+                onClick={() => variant === 'compact' && setShowChannelDropdown(!showChannelDropdown)}
+              >
+                <h1 className="font-headline text-lg italic tracking-tight text-on-surface group-hover:text-primary transition-colors">
+                  #{chatName}
+                </h1>
+                {variant === 'compact' && (
+                  <span className="material-symbols-outlined text-[16px] text-outline group-hover:text-primary transition-colors">
+                    {showChannelDropdown ? 'expand_less' : 'expand_more'}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
                 <span className="text-[10px] uppercase font-label tracking-widest text-outline">Channel Synchronized</span>
               </div>
+
+              {/* Dropdown Menu for Compact Variant */}
+              <AnimatePresence>
+                {showChannelDropdown && variant === 'compact' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute top-full left-0 mt-2 w-64 bg-surface-container-highest border border-outline/10 rounded-xl shadow-[0_16px_32px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
+                  >
+                    <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                      {allChannels.map(ch => (
+                        <button
+                          key={ch.id}
+                          onClick={() => {
+                            setActiveChatId(ch.id);
+                            setShowChannelDropdown(false);
+                          }}
+                          className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
+                            activeChatId === ch.id 
+                              ? 'bg-primary/20 text-primary' 
+                              : 'text-on-surface hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="text-lg">{ch.icon}</span>
+                          <div>
+                            <span className="font-label text-xs uppercase tracking-widest block">{ch.label}</span>
+                            <span className="text-[9px] text-outline line-clamp-1">{ch.description}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
           <div className="flex items-center gap-2">

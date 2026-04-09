@@ -12,6 +12,7 @@ export function Intelligences() {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const fetchIntelligence = async () => {
     setLoading(true);
@@ -31,7 +32,18 @@ export function Intelligences() {
   };
 
   useEffect(() => {
+    if (!loading && activeFilter && items.length > 0 && selectedItemId === null) {
+      const firstItem = items.find(item => item.item_type === activeFilter);
+      if (firstItem) setSelectedItemId(firstItem.id);
+    }
+  }, [loading, activeFilter, items, selectedItemId]);
+
+  useEffect(() => {
     fetchIntelligence();
+    // Deep-link support: ?filter=market_research filters by item_type
+    const params = new URLSearchParams(window.location.search);
+    const filter = params.get('filter');
+    if (filter) setActiveFilter(filter);
   }, []);
 
   const handleSync = async () => {
@@ -53,12 +65,19 @@ export function Intelligences() {
   [items, selectedItemId]);
 
   const filteredItems = useMemo(() => {
-    return items.filter(item => 
-      (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.content || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      Object.entries(item.properties || {}).some(([_, val]) => String(val).toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-  }, [items, searchQuery]);
+    let result = items;
+    if (activeFilter) {
+      result = result.filter(item => item.item_type === activeFilter);
+    }
+    if (searchQuery) {
+      result = result.filter(item => 
+        (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.content || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        Object.entries(item.properties || {}).some(([_, val]) => String(val).toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+    return result;
+  }, [items, searchQuery, activeFilter]);
 
   const marketResearches = filteredItems.filter(item => item.item_type === 'market_research');
   const prds = filteredItems.filter(item => item.item_type === 'prd');

@@ -1,27 +1,38 @@
-import type { Agent, Action, Task } from '../types';
+import type { Action, Task, GraphDefinition } from '../types';
 import { HeroSection } from './ui/HeroSection';
 import { OpsPulse } from './ui/OpsPulse';
 import { IntelligenceFeed } from './ui/IntelligenceFeed';
-import { DirectivesGrid } from './ui/DirectivesGrid';
-import { SystemHealth } from './ui/SystemHealth';
+import { InsightsTicker } from './ui/InsightsTicker';
+import { OperationsHub } from './ui/OperationsHub';
 
 interface SituationRoomProps {
-  agents: Agent[];
   actions: Action[];
   tasks: Task[];
+  graphs?: GraphDefinition[];
   honorific: string;
 }
 
-export function SituationRoom({ agents, actions, tasks, honorific }: SituationRoomProps) {
+export function SituationRoom({ actions, tasks, graphs = [], honorific }: SituationRoomProps) {
+  const completedTasks = (tasks || []).filter(t => t?.status === 'completed' || t?.status === 'success').length;
+  const scheduledTasks = (tasks || []).filter(t => t?.status === 'pending').length;
+  const failedTasks = (tasks || []).filter(t => t?.status === 'failed').length;
+
   return (
-    <>
+    <div data-testid="situation-room">
       <HeroSection honorific={honorific} />
-      <div className="grid grid-cols-12 gap-6">
-        <OpsPulse agentsCount={agents.length} highPriorityCount={tasks.filter(t => t.priority === 'high').length} />
+      <div className="grid grid-cols-12 gap-6 items-start">
+        <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
+          <OpsPulse
+            completedTasks={completedTasks}
+            scheduledTasks={scheduledTasks}
+            failedTasks={failedTasks}
+            tasks={tasks}
+          />
+          <OperationsHub graphs={graphs} />
+          <InsightsTicker />
+        </div>
         <IntelligenceFeed actions={actions} />
-        <DirectivesGrid tasks={tasks.slice(0, 3)} />
-        <SystemHealth />
       </div>
-    </>
+    </div>
   );
 }

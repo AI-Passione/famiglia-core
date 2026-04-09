@@ -151,16 +151,22 @@ function App() {
           fetch(`${API_BASE}/recurring-tasks`)
         ]);
         
-        if (agentsRes.ok) setAgents(await agentsRes.json());
+        if (agentsRes.ok) {
+          const data = await agentsRes.json();
+          setAgents(Array.isArray(data) ? data : []);
+        }
         if (actionsRes.ok) {
           const data = await actionsRes.json() as PaginatedActions;
-          setActions(data.actions);
+          setActions(Array.isArray(data.actions) ? data.actions : []);
         }
         if (tasksRes.ok) {
           const data = await tasksRes.json() as PaginatedTasks;
-          setTasks(data.tasks);
+          setTasks(Array.isArray(data.tasks) ? data.tasks : []);
         }
-        if (recurringTasksRes.ok) setRecurringTasks(await recurringTasksRes.json());
+        if (recurringTasksRes.ok) {
+          const data = await recurringTasksRes.json();
+          setRecurringTasks(Array.isArray(data) ? data : []);
+        }
       } catch (err) {
         console.error("Failed to fetch data:", err);
       }
@@ -169,13 +175,19 @@ function App() {
     const fetchGraphs = async () => {
       try {
         const response = await fetch(`${API_BASE}/graphs`);
-        const data = await response.json();
-        setGraphs(data);
-        if (data.length > 0 && !selectedGraph) {
-          setSelectedGraph(data[0]);
+        if (response.ok) {
+          const data = await response.json();
+          const validGraphs = Array.isArray(data) ? data : [];
+          setGraphs(validGraphs);
+          if (validGraphs.length > 0 && !selectedGraph) {
+            setSelectedGraph(validGraphs[0]);
+          }
+        } else {
+          setGraphs([]);
         }
       } catch (error) {
         console.error("Failed to fetch graphs:", error);
+        setGraphs([]);
       }
     };
 
@@ -215,9 +227,9 @@ function App() {
                   path="/situation_room" 
                   element={
                     <SituationRoom 
-                      agents={agents} 
                       actions={actions} 
                       tasks={tasks} 
+                      graphs={graphs}
                       honorific={settings.honorific}
                     />
                   } 

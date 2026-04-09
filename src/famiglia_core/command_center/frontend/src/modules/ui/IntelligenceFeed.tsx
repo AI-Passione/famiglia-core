@@ -63,7 +63,7 @@ interface IntelligenceFeedProps {
 }
 
 export function IntelligenceFeed({ actions }: IntelligenceFeedProps) {
-  const displayActions = actions.slice(0, 5);
+  const displayActions = (actions || []).slice(0, 5);
   
   return (
     <div className="col-span-12 lg:col-span-4 h-[calc(100vh-200px)] sticky top-6">

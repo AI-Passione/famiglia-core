@@ -21,7 +21,7 @@ export function SituationRoom({ agents, actions, tasks, graphs = [], honorific }
       <div className="grid grid-cols-12 gap-6 items-start">
         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
           <InsightsTicker />
-          <OpsPulse agentsCount={agents.length} highPriorityCount={tasks.filter(t => t.priority === 'high').length} />
+          <OpsPulse agentsCount={(agents || []).length} highPriorityCount={(tasks || []).filter(t => t?.priority === 'high').length} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[400px]">
             <LatestMissions tasks={tasks} />
             <OperationsHub graphs={graphs} />

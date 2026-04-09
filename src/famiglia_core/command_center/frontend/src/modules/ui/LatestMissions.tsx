@@ -7,8 +7,8 @@ interface LatestMissionsProps {
 
 export function LatestMissions({ tasks }: LatestMissionsProps) {
   // Filter for tasks that are not pending, mostly completed/failed/in_progress but recently updated
-  const recentTasks = tasks
-    .filter(t => t.status !== 'pending')
+  const recentTasks = (tasks || [])
+    .filter(t => t && t.status !== 'pending')
     .slice(0, 4);
 
   return (
@@ -47,7 +47,7 @@ export function LatestMissions({ tasks }: LatestMissionsProps) {
                   </p>
                   <div className="flex items-center gap-2">
                     <span className={`font-label text-[9px] uppercase tracking-widest ${colorClass}`}>
-                      {task.status.replace('_', ' ')}
+                      {task.status ? task.status.replace('_', ' ') : 'UNKNOWN'}
                     </span>
                     <span className="text-[10px] text-outline/50">•</span>
                     <span className="font-label text-[9px] text-outline">

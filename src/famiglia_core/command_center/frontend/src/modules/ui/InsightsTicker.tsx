@@ -27,7 +27,7 @@ export function InsightsTicker() {
   useEffect(() => {
     if (insights.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % insights.length);
+      setCurrentIndex((prev) => (prev + 1) % Math.max(1, insights.length));
     }, 5000); // slide every 5 seconds
     return () => clearInterval(timer);
   }, [insights.length]);
@@ -54,10 +54,10 @@ export function InsightsTicker() {
               className="absolute inset-0"
             >
               <h4 className="font-headline text-lg text-on-surface line-clamp-1 mb-1">
-                {insights[currentIndex].title}
+                {insights[currentIndex]?.title || 'Insight Unavailable'}
               </h4>
               <p className="font-body text-sm text-on-surface-variant line-clamp-2 italic opacity-80">
-                "{insights[currentIndex].rossini_tldr || 'Analyzing latest signals...'}"
+                "{insights[currentIndex]?.rossini_tldr || 'Analyzing latest signals...'}"
               </p>
             </motion.div>
           </AnimatePresence>

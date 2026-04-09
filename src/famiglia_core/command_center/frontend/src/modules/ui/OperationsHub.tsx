@@ -38,7 +38,7 @@ export function OperationsHub({ graphs }: OperationsHubProps) {
     }
   };
 
-  const actionGraphs = graphs.slice(0, 3); // show top 3 for brevity in Situation Room
+  const actionGraphs = (graphs || []).slice(0, 3); // show top 3 for brevity in Situation Room
 
   return (
     <div className="bg-surface-container-highest p-6 h-full flex flex-col border border-primary/10 relative shadow-[inset_0_0_24px_rgba(255,179,181,0.02)]">

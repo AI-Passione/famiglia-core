@@ -1,7 +1,5 @@
-import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock, patch
-from datetime import datetime, timezone
+from unittest.mock import patch
 
 from famiglia_core.command_center.backend.api.main import app
 

@@ -81,19 +81,20 @@ describe('SituationRoom Component & New Widgets', () => {
   });
 
   it('OperationsHub triggers execute correctly', async () => {
+    const mockExecute = vi.fn();
     render(
       <TerminalProvider>
-        <SituationRoom actions={[]} tasks={[]} graphs={mockGraphs} honorific="Don" />
+        <SituationRoom actions={[]} tasks={[]} graphs={mockGraphs} honorific="Don" onExecuteDirective={mockExecute} />
       </TerminalProvider>
     );
     
-    const executeBtn = screen.getByText('Execute').closest('button');
+    // The button text is "Execute Directive" (with a bolt icon span before it)
+    const executeBtn = screen.getAllByText('Execute Directive')[0].closest('button');
     expect(executeBtn).not.toBeNull();
     
     fireEvent.click(executeBtn!);
     
-    await waitFor(() => {
-      expect(screen.getByText('Directive Executed Test')).toBeDefined();
-    });
+    // Clicking the button should invoke the handler passed as prop
+    expect(mockExecute).toHaveBeenCalledTimes(1);
   });
 });

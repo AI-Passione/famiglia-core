@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DirectiveModal } from '@/modules/ui/DirectiveModal';
-import { ToastProvider, useToast } from '@/modules/ui/ToastProvider';
+import { useToast } from '@/modules/ui/ToastProvider';
 import { TerminalProvider } from '@/modules/TerminalContext';
 import React from 'react';
 import type { GraphDefinition } from '@/types';

@@ -232,6 +232,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
   id                              SERIAL PRIMARY KEY,
   user_id                         INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   honorific                       VARCHAR(64) NOT NULL DEFAULT 'Don',
+  famiglia_name                   VARCHAR(128) NOT NULL DEFAULT 'The Family',
   notifications_enabled           BOOLEAN NOT NULL DEFAULT TRUE,
   background_animations_enabled   BOOLEAN NOT NULL DEFAULT TRUE,
   personal_directive             TEXT,

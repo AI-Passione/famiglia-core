@@ -21,6 +21,7 @@ def get_shared_baseline_from_souls():
 
 DEFAULT_SETTINGS = {
     "honorific": "Don",
+    "famigliaName": "The Family",
     "notificationsEnabled": True,
     "backgroundAnimationsEnabled": True,
     "personalDirective": "",
@@ -86,6 +87,7 @@ class UserService:
                     """
                     SELECT
                     us.honorific,
+                        us.famiglia_name,
                         us.notifications_enabled,
                         us.background_animations_enabled,
                         us.personal_directive,
@@ -102,6 +104,7 @@ class UserService:
 
                 return {
                     "honorific": row.get("honorific") or DEFAULT_SETTINGS["honorific"],
+                    "famigliaName": row.get("famiglia_name") or DEFAULT_SETTINGS["famigliaName"],
                     "notificationsEnabled": row.get("notifications_enabled")
                     if row.get("notifications_enabled") is not None
                     else DEFAULT_SETTINGS["notificationsEnabled"],
@@ -119,6 +122,7 @@ class UserService:
         """Persist Command Center settings into the dedicated user_settings table."""
         normalized_settings = {
             "honorific": settings.get("honorific", DEFAULT_SETTINGS["honorific"]),
+            "famigliaName": settings.get("famigliaName", DEFAULT_SETTINGS["famigliaName"]),
             "notificationsEnabled": settings.get("notificationsEnabled", DEFAULT_SETTINGS["notificationsEnabled"]),
             "backgroundAnimationsEnabled": settings.get("backgroundAnimationsEnabled", DEFAULT_SETTINGS["backgroundAnimationsEnabled"]),
             "personalDirective": settings.get("personalDirective", DEFAULT_SETTINGS["personalDirective"]),
@@ -160,16 +164,18 @@ class UserService:
                     INSERT INTO user_settings (
                         user_id,
                         honorific,
+                        famiglia_name,
                         notifications_enabled,
                         background_animations_enabled,
                         personal_directive,
                         system_prompt,
                         updated_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (user_id) DO UPDATE
                     SET
                       honorific = EXCLUDED.honorific,
+                      famiglia_name = EXCLUDED.famiglia_name,
                       notifications_enabled = EXCLUDED.notifications_enabled,
                       background_animations_enabled = EXCLUDED.background_animations_enabled,
                       personal_directive = EXCLUDED.personal_directive,
@@ -180,6 +186,7 @@ class UserService:
                     (
                         don_user_id,
                         normalized_settings["honorific"],
+                        normalized_settings["famigliaName"],
                         normalized_settings["notificationsEnabled"],
                         normalized_settings["backgroundAnimationsEnabled"],
                         normalized_settings["personalDirective"],

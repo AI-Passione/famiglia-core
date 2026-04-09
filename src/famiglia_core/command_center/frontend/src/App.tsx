@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import type {
   Agent,
   Task,
@@ -24,6 +25,7 @@ import { API_BASE } from './config';
 const SETTINGS_STORAGE_KEY = 'command_center_settings';
 const DEFAULT_SETTINGS: AppSettings = {
   honorific: 'Don',
+  famigliaName: 'The Family',
   notificationsEnabled: true,
   backgroundAnimationsEnabled: true,
   personalDirective: '',
@@ -37,6 +39,7 @@ function getInitialSettings(): AppSettings {
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
     return {
       honorific: parsed.honorific || DEFAULT_SETTINGS.honorific,
+      famigliaName: parsed.famigliaName || DEFAULT_SETTINGS.famigliaName,
       notificationsEnabled:
         parsed.notificationsEnabled ?? DEFAULT_SETTINGS.notificationsEnabled,
       backgroundAnimationsEnabled:
@@ -51,13 +54,13 @@ function getInitialSettings(): AppSettings {
 }
 
 function App() {
+  const navigate = useNavigate();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [actions, setActions] = useState<ActionLog[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>([]);
   const [graphs, setGraphs] = useState<GraphDefinition[]>([]);
   const [selectedGraph, setSelectedGraph] = useState<GraphDefinition | null>(null);
-  const [activeTab, setActiveTab] = useState('situation_room');
   const [settings, setSettings] = useState<AppSettings>(() => getInitialSettings());
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const hasSyncedSettings = useRef(false);
@@ -70,8 +73,10 @@ function App() {
   // If we landed here via the OAuth callback tab param, switch to connections
   useEffect(() => {
     const tabParam = params.get('tab');
-    if (tabParam) setActiveTab(tabParam);
-  }, []);
+    if (tabParam) {
+      navigate(`/${tabParam}`, { replace: true });
+    }
+  }, [navigate, params]);
 
   const clearOAuthParams = useCallback(() => {
     setGithubConnected(null);
@@ -88,6 +93,7 @@ function App() {
           const backendSettings = (await response.json()) as AppSettings;
           setSettings({
             honorific: backendSettings.honorific || DEFAULT_SETTINGS.honorific,
+            famigliaName: backendSettings.famigliaName || DEFAULT_SETTINGS.famigliaName,
             notificationsEnabled:
               backendSettings.notificationsEnabled ??
               DEFAULT_SETTINGS.notificationsEnabled,
@@ -185,60 +191,73 @@ function App() {
       <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary/30">
         <TopNav />
         <div className="flex">
-          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Sidebar famigliaName={settings.famigliaName} />
           <main className="flex-1 ml-72 h-screen pt-16 relative overflow-hidden">
             {/* Background Map Overlay */}
             <div className="absolute inset-0 noir-bg-map pointer-events-none opacity-20"></div>
             
             <div className="relative z-10 p-10 max-w-7xl mx-auto space-y-10">
-              {activeTab === 'agenda' && (
-                <Agenda
-                  agents={agents}
-                  actions={actions}
-                  tasks={tasks}
-                  recurringTasks={recurringTasks}
-                  honorific={settings.honorific}
+              <Routes>
+                <Route path="/" element={<Navigate to="/situation_room" replace />} />
+                <Route 
+                  path="/agenda" 
+                  element={
+                    <Agenda
+                      agents={agents}
+                      actions={actions}
+                      tasks={tasks}
+                      recurringTasks={recurringTasks}
+                      honorific={settings.honorific}
+                    />
+                  } 
                 />
-              )}
-              {activeTab === 'situation_room' && (
-                <SituationRoom 
-                  agents={agents} 
-                  actions={actions} 
-                  tasks={tasks} 
-                  honorific={settings.honorific}
+                <Route 
+                  path="/situation_room" 
+                  element={
+                    <SituationRoom 
+                      agents={agents} 
+                      actions={actions} 
+                      tasks={tasks} 
+                      honorific={settings.honorific}
+                    />
+                  } 
                 />
-              )}
-              {activeTab === 'operations' && (
-                <Operations 
-                  graphs={graphs} 
-                  selectedGraph={selectedGraph} 
-                  setSelectedGraph={setSelectedGraph} 
-                  initialTasks={tasks}
+                <Route 
+                  path="/operations" 
+                  element={
+                    <Operations 
+                      graphs={graphs} 
+                      selectedGraph={selectedGraph} 
+                      setSelectedGraph={setSelectedGraph} 
+                      initialTasks={tasks}
+                    />
+                  } 
                 />
-              )}
-              {activeTab === 'famiglia' && (
-                <Famiglia />
-              )}
-              {activeTab === 'terminal' && (
-                <Terminal />
-              )}
-              {activeTab === 'settings' && (
-                <Settings 
-                  settings={settings} 
-                  onSettingsChange={setSettings} 
-                  githubConnected={githubConnected}
-                  githubError={githubError}
-                  onClearOAuthParams={clearOAuthParams}
+                <Route path="/famiglia" element={<Famiglia />} />
+                <Route path="/terminal" element={<Terminal />} />
+                <Route 
+                  path="/settings" 
+                  element={
+                    <Settings 
+                      settings={settings} 
+                      onSettingsChange={setSettings} 
+                      githubConnected={githubConnected}
+                      githubError={githubError}
+                      onClearOAuthParams={clearOAuthParams}
+                    />
+                  } 
                 />
-              )}
-              {/* Fallback for other tabs */}
-              {!['terminal', 'agenda', 'situation_room', 'operations', 'famiglia', 'settings'].includes(activeTab) && (
-                <div className="flex flex-col items-center justify-center py-40 opacity-40">
-                  <span className="material-symbols-outlined text-6xl mb-4">construction</span>
-                  <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>
-                  <p className="font-body text-sm mt-2 uppercase tracking-tighter text-outline">Section Restricted to Consigliere Level</p>
-                </div>
-              )}
+                <Route 
+                  path="*" 
+                  element={
+                    <div className="flex flex-col items-center justify-center py-40 opacity-40">
+                      <span className="material-symbols-outlined text-6xl mb-4">construction</span>
+                      <p className="font-headline text-2xl uppercase tracking-widest text-[#a38b88]">Under Construction</p>
+                      <p className="font-body text-sm mt-2 uppercase tracking-tighter text-outline">Section Restricted to Consigliere Level</p>
+                    </div>
+                  } 
+                />
+              </Routes>
             </div>
           </main>
         </div>

@@ -123,6 +123,7 @@ export interface MissionLogEntry {
 
 export interface AppSettings {
   honorific: string;
+  famigliaName: string;
   notificationsEnabled: boolean;
   backgroundAnimationsEnabled: boolean;
   personalDirective: string;

@@ -6,6 +6,7 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 class AppSettingsPayload(BaseModel):
     honorific: str = Field(default="Don", min_length=1, max_length=64)
+    famigliaName: str = Field(default="The Family", min_length=1, max_length=128)
     notificationsEnabled: bool = True
     backgroundAnimationsEnabled: bool = True
     personalDirective: str = ""

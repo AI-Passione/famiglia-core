@@ -105,6 +105,7 @@ def test_get_recurring_tasks_endpoint(mock_store):
 def test_get_settings_endpoint(mock_user_service):
     mock_user_service.get_don_settings.return_value = {
         "honorific": "Capo",
+        "famigliaName": "The Family",
         "notificationsEnabled": False,
         "backgroundAnimationsEnabled": True,
         "personalDirective": "Be efficient.",
@@ -122,6 +123,7 @@ def test_get_settings_endpoint(mock_user_service):
 def test_update_settings_endpoint(mock_user_service):
     payload = {
         "honorific": "Donna",
+        "famigliaName": "The Family",
         "notificationsEnabled": True,
         "backgroundAnimationsEnabled": False,
     }

@@ -95,7 +95,7 @@ async def execute_directive(request: AdHocDirectiveRequest):
         metadata={
             "graph_id": graph_id,
             "agent_id": agent_id,
-            "task_type": "adhoc_directive" if prompt else "operations_execution",
+            "task_type": graph_id or "adhoc_directive", # CRITICAL: Map to graph_id for TaskOrchestrator lookup
             "triggered_at": datetime.now(timezone.utc).isoformat()
         }
     )
@@ -103,9 +103,9 @@ async def execute_directive(request: AdHocDirectiveRequest):
     if not task:
         raise HTTPException(status_code=500, detail="Failed to initiate directive")
 
-    # 4. Log immediate acknowledgement from agent
-    conversation_key = f"web:command-center:direct:0" # Standard web channel
-    ack_content = f"Directive received, Don Jimmy. I am initiating the {graph_id or 'requested task'} immediately."
+    # 4. Log immediate acknowledgement to the Coordination Channel for terminal history
+    conversation_key = "agents-coordination" 
+    ack_content = f"Directive received, Don Jimmy. I am initiating the {graph_id or 'requested task'} immediately. I'll report back once the intel is gathered."
     if agent_id == "riccardo":
         ack_content = "Understood. Deploying optimized directive now. Don't worry about the results, they will be flawless."
     elif agent_id == "kowalski":
@@ -117,34 +117,8 @@ async def execute_directive(request: AdHocDirectiveRequest):
         role="agent",
         content=ack_content,
         sender=agent_id.capitalize(),
-        metadata={"task_id": task["id"], "status": "typing"}
+        metadata={"task_id": task["id"], "type": "mission_dispatch"}
     )
-    
-    # 5. Start a background task to simulate completion (since we don't have real execution hooks here)
-    async def simulate_completion(tid, aid, gid):
-        await asyncio.sleep(5) # Simulate work
-        try:
-            # Mark task as completed
-            context_store.update_task_status(tid, "completed")
-            
-            # Post completion message
-            comp_content = f"Mission accomplished, Don Jimmy. The {gid or 'directive'} has been executed successfully."
-            if aid == "kowalski":
-                comp_content = "Analysis complete. The metrics confirm our strategic trajectory. I've updated the intelligence hub."
-            
-            context_store.log_message(
-                agent_name=aid,
-                conversation_key=conversation_key,
-                role="agent",
-                content=comp_content,
-                sender=aid.capitalize(),
-                metadata={"task_id": tid, "status": "done"}
-            )
-        except Exception as e:
-            print(f"Error in mock completion: {e}")
-
-    # Launch background task
-    asyncio.create_task(simulate_completion(task["id"], agent_id, graph_id))
 
     return ExecutionResponse(
         task_id=task["id"],
@@ -297,7 +271,7 @@ async def execute_graph(graph_id: str, request: Request):
         created_by_name="Don", # Defaulting to Don for now
         metadata={
             "graph_id": graph_id,
-            "task_type": "operations_execution",
+            "task_type": graph_id, # Align with TaskOrchestrator resolver
             "triggered_at": datetime.now(timezone.utc).isoformat()
         }
     )
@@ -305,9 +279,9 @@ async def execute_graph(graph_id: str, request: Request):
     if not task:
         raise HTTPException(status_code=500, detail="Failed to initiate Operations execution task")
 
-    # Log acknowledgement for consistency
+    # 3. Log acknowledgement to the Coordination Channel
     agent_id = resolve_agent(graph_id, None)
-    conversation_key = f"web:command-center:direct:0"
+    conversation_key = "agents-coordination"
     ack_content = f"Mission {graph_id} dispatched, Don Jimmy. I am overseeing the execution."
     
     context_store.log_message(
@@ -316,7 +290,7 @@ async def execute_graph(graph_id: str, request: Request):
         role="agent",
         content=ack_content,
         sender=agent_id.capitalize(),
-        metadata={"task_id": task["id"], "status": "typing"}
+        metadata={"task_id": task["id"], "type": "mission_dispatch"}
     )
 
     return ExecutionResponse(

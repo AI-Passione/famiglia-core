@@ -102,7 +102,15 @@ class Task:
         if assigned and assigned in available_agents:
             return assigned
 
-        # 3. Fallbacks
+        # 3. Fallback: Resolve via graph_id in metadata (Defensive layer)
+        graph_id = self.safe_metadata.get("graph_id")
+        if graph_id:
+            from famiglia_core.command_center.backend.api.routes.operations import GRAPH_AGENT_MAP
+            resolved = GRAPH_AGENT_MAP.get(graph_id)
+            if resolved and resolved in available_agents:
+                return resolved
+
+        # 4. Global Fallbacks
         if "tommy" in available_agents:
             return "tommy"
         if "alfredo" in available_agents:

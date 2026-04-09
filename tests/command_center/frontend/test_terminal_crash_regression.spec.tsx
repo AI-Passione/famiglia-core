@@ -117,7 +117,6 @@ describe('Terminal Stability & Regression', () => {
       // Create a component that definitely crashes
       const ExplodingComponent = () => {
         throw new Error('KABOOM');
-        return null;
       };
 
       // Silence console error for this test to avoid polluting logs

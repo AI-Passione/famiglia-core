@@ -11,6 +11,27 @@
 ### Stabilization
 * **Settings Persistence**: Integrated the `famigliaName` field into the backend PostgreSQL schema and `UserService` logic, ensuring personalized branding is synchronized across the stack.
 * **Test Suite Alignment**: Resolved regressions in the backend API tests caused by the settings schema expansion, restoring 100% CI pass rate.
+# [1.7.0](https://github.com/AI-Passione/famiglia-core/compare/v1.6.0...v1.7.0) (2026-04-08)
+
+
+### Bug Fixes
+
+* add scrollTo fallback for JSDOM and update motion props filter in test environment ([6ca530a](https://github.com/AI-Passione/famiglia-core/commit/6ca530a2c8b432d09079a37bb9c9c77a9ee643e5))
+
+
+### Features
+
+* add intelligence-hub channel with dynamic agent routing and support for initial chat configuration ([18f9e19](https://github.com/AI-Passione/famiglia-core/commit/18f9e19d2b4e82dfd34132c183f365f9f22f1b65))
+* add metadata and reference_id fields to intelligence model and update serialization logic for nested attributes ([9891cdd](https://github.com/AI-Passione/famiglia-core/commit/9891cddbe3a8830f0ffafd247f65e4a9dbce0276))
+* expand intelligence categorization to include market research, prds, and projects with updated UI grouping and iconography ([f908c3e](https://github.com/AI-Passione/famiglia-core/commit/f908c3e26950ce2c86383e7096f679a1b51f6e36))
+* expand intelligence items schema to support full Notion page metadata and rich UI rendering ([fd489e5](https://github.com/AI-Passione/famiglia-core/commit/fd489e57d6dc95a7c9dd64fd2c426261807d58f8))
+* implement chat message persistence and history retrieval for web dashboard channels ([c1c1547](https://github.com/AI-Passione/famiglia-core/commit/c1c15477913afc78e1dda3bc8a6ed1485a3abddc))
+* implement intelligence dashboard with Notion sync, real-time search, and markdown rendering ([8366f4c](https://github.com/AI-Passione/famiglia-core/commit/8366f4cb8348af15bb37c77288448137503a8abd))
+* implement intelligence module with CRUD API, database schema, and service layer ([a8b9291](https://github.com/AI-Passione/famiglia-core/commit/a8b9291721df9035dce105e8e462dad88724d577))
+* implement message threading support with backend persistence and frontend side panel UI ([72f39ec](https://github.com/AI-Passione/famiglia-core/commit/72f39ec36ef86493210c26026c9d3ddd81030b44))
+* implement threading UI, scroll-to-bottom notifications, and associated component tests ([2013404](https://github.com/AI-Passione/famiglia-core/commit/2013404ec87a92fc2ad60983efe428c52ff083d0))
+* integrate TerminalProvider and DirectivesTerminal into the Intelligence Center layout ([6550c5f](https://github.com/AI-Passione/famiglia-core/commit/6550c5f4c2801e688f2dce973b2a8d3905a03433))
+* migrate Intelligences module to a standalone window and update build configuration ([c0ac005](https://github.com/AI-Passione/famiglia-core/commit/c0ac00527305376ba695a6627b779ef4ba647e4d))
 
 # [1.6.0](https://github.com/AI-Passione/famiglia-core/compare/v1.5.0...v1.6.0) (2026-04-07)
 

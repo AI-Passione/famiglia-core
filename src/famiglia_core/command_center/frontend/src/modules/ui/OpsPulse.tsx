@@ -3,6 +3,7 @@ import type { Task } from '../../types';
 
 // ─── Heartbeat SVG (ECG / hospital-monitor style) ───────────────────────────
 function HeartbeatLine() {
+  const path = "M0,16 L28,16 L34,16 L38,4 L42,28 L46,8 L50,16 L56,16 L120,16";
   return (
     <div className="relative w-16 h-6 flex items-center">
       <svg
@@ -24,24 +25,29 @@ function HeartbeatLine() {
             animation: scan 2s linear infinite;
             filter: drop-shadow(0 0 4px rgba(255, 179, 181, 0.4));
           }
-          .ecg-glow {
-            offset-path: path('M0,16 L28,16 L34,16 L38,4 L42,28 L46,8 L50,16 L56,16 L120,16');
-            animation: move-glow 2s linear infinite;
-          }
-          @keyframes move-glow {
-            0% { offset-distance: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { offset-distance: 100%; opacity: 0; }
-          }
         `}</style>
         <path
           className="ecg-path"
-          d="M0,16 L28,16 L34,16 L38,4 L42,28 L46,8 L50,16 L56,16 L120,16"
+          d={path}
+        />
+        {/* Moving glow head - inside SVG for perfect coordinate alignment */}
+        <motion.circle
+          r="2.5"
+          fill="currentColor"
+          className="shadow-[0_0_8px_#ffb3b5]"
+          style={{ offsetPath: `path('${path}')` }}
+          animate={{ 
+            offsetDistance: ["0%", "100%"],
+            opacity: [0, 1, 1, 0]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "linear",
+            times: [0, 0.1, 0.9, 1]
+          }}
         />
       </svg>
-      {/* Moving glow head */}
-      <div className="ecg-glow absolute w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_#ffb3b5]" />
     </div>
   );
 }

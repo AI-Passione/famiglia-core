@@ -11,6 +11,7 @@ describe('Settings Module', () => {
       <Settings
         settings={{
           honorific: 'Donna',
+          famigliaName: 'The Family',
           notificationsEnabled: false,
           backgroundAnimationsEnabled: true,
           personalDirective: 'Test directive',
@@ -21,7 +22,7 @@ describe('Settings Module', () => {
     );
 
     expect(screen.getByPlaceholderText('Custom honorific')).toHaveValue('Donna');
-    expect(screen.getByLabelText('Honorific')).toBeDefined();
+    expect(screen.getByLabelText('Your Honorific')).toBeDefined();
     expect(screen.getByText('Active Identity')).toBeDefined();
     expect(screen.getByTestId('active-honorific')).toHaveTextContent('Donna');
   });
@@ -33,6 +34,7 @@ describe('Settings Module', () => {
       <Settings
         settings={{
           honorific: 'Don',
+          famigliaName: 'The Family',
           notificationsEnabled: true,
           backgroundAnimationsEnabled: true,
           personalDirective: '',
@@ -47,6 +49,7 @@ describe('Settings Module', () => {
     });
     expect(onSettingsChange).toHaveBeenCalledWith({
       honorific: 'Boss',
+      famigliaName: 'The Family',
       notificationsEnabled: true,
       backgroundAnimationsEnabled: true,
       personalDirective: '',
@@ -57,6 +60,7 @@ describe('Settings Module', () => {
     fireEvent.click(checkboxes[0]);
     expect(onSettingsChange).toHaveBeenCalledWith({
       honorific: 'Don',
+      famigliaName: 'The Family',
       notificationsEnabled: false,
       backgroundAnimationsEnabled: true,
       personalDirective: '',

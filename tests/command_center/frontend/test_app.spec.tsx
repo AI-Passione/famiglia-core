@@ -1,5 +1,6 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import App from '@/App';
 import React from 'react';
 
@@ -63,14 +64,22 @@ describe('App Component', () => {
   });
 
   it('renders The Situation Room by default', async () => {
-    render(<App />);
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByTestId('situation-room')).toBeDefined();
     });
   });
 
   it('switches tabs correctly', async () => {
-    render(<App />);
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    );
 
     const agendaLink = screen.getByText('The Agenda');
     fireEvent.click(agendaLink);
@@ -100,7 +109,11 @@ describe('App Component', () => {
   });
 
   it('fetches initial data on mount', async () => {
-    render(<App />);
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/agents'));
       expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/graphs'));
@@ -119,7 +132,11 @@ describe('App Component', () => {
       })
     );
 
-    render(<App />);
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    );
     fireEvent.click(screen.getByText('Settings'));
 
     await waitFor(() => {
@@ -159,7 +176,11 @@ describe('App Component', () => {
       return Promise.resolve({ ok: true, json: async () => ({}) });
     });
 
-    render(<App />);
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    );
     fireEvent.click(screen.getByText('Settings'));
 
     await waitFor(() => {

@@ -1,3 +1,16 @@
+# [1.7.0](https://github.com/AI-Passione/famiglia-core/compare/v1.6.0...v1.7.0) (2026-04-09)
+
+### Architecture & Routing
+* **Unified URL Routing**: Transitioned the Command Center from state-based tab switching to a robust URL-based routing system using `HashRouter`. This enables deep linking, browser navigation history (Back/Forward), and tab persistence across page refreshes.
+* **Component Refactoring**: Decoupled the sidebar and main navigation from the local state, utilizing `NavLink` for automatic active state management.
+
+### Features
+* **Famiglia Personalization**: Introduced a user-configurable "Famiglia Name" setting. Users can now brand their ecosystem via the Personalization dashboard, with the name persisting across the Sidebar and top navigation.
+* **Extended Multi-Agent UI**: Improved the "Intelligences" and "Terminal" access by standardizing their launch patterns from the unified sidebar.
+
+### Stabilization
+* **Settings Persistence**: Integrated the `famigliaName` field into the backend PostgreSQL schema and `UserService` logic, ensuring personalized branding is synchronized across the stack.
+* **Test Suite Alignment**: Resolved regressions in the backend API tests caused by the settings schema expansion, restoring 100% CI pass rate.
 # [1.7.0](https://github.com/AI-Passione/famiglia-core/compare/v1.6.0...v1.7.0) (2026-04-08)
 
 

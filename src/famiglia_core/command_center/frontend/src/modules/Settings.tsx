@@ -88,13 +88,31 @@ export function Settings({
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 space-y-8 shadow-[0_20px_45px_rgba(0,0,0,0.35)]">
                   <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                     <span className="material-symbols-outlined text-[#ffb3b5]">person</span>
-                    <h2 className="font-headline text-2xl text-white">Identity & Prefix</h2>
+                    <h2 className="font-headline text-2xl text-white">Identity & Branding</h2>
                   </div>
                   
                   <div className="space-y-6">
                     <div className="space-y-3">
+                      <label htmlFor="famigliaName" className="font-label text-[10px] text-[#ffb3b5] uppercase tracking-[0.2em]">
+                        The Famiglia Name
+                      </label>
+                      <input
+                        id="famigliaName"
+                        value={settings.famigliaName}
+                        onChange={(event) =>
+                          onSettingsChange({ ...settings, famigliaName: event.target.value })
+                        }
+                        placeholder="e.g. La Passione Inc."
+                        className="w-full bg-[#171717]/90 border border-[#2e2e2e] rounded-lg px-4 py-3 text-sm font-body text-white placeholder:text-[#666] focus:outline-none focus:ring-2 focus:ring-[#ffb3b5]/40"
+                      />
+                      <p className="font-body text-[10px] text-[#7f7f7f] leading-relaxed">
+                        This name appears in the sidebar as the center of your operations.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
                       <label htmlFor="honorific" className="font-label text-[10px] text-[#ffb3b5] uppercase tracking-[0.2em]">
-                        Honorific
+                        Your Honorific
                       </label>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <select

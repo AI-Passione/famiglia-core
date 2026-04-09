@@ -198,4 +198,31 @@ describe('App Component', () => {
       );
     });
   });
+
+  it('handles backend 404s and malformed data gracefully without corrupting the render tree', async () => {
+    // Override fetch mock perfectly for this exact crash scenario
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      // Simulate 404 Not Found object returns for all data streams
+      return Promise.resolve({ 
+        ok: false, 
+        json: async () => ({ detail: "Not Found" }) 
+      });
+    });
+
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    );
+
+    // If it handled it safely, the Situation Room structure still renders without crashing.
+    // The "Actionable Directives" header comes from OperationsHub.
+    await waitFor(() => {
+      expect(screen.getByText('Actionable Directives')).toBeDefined();
+    });
+    
+    // There should be a "No pending directives" or "Awaiting Intel..." message since it's empty
+    expect(screen.getByText('No pending directives')).toBeDefined();
+    expect(screen.getByText('Awaiting Intel...')).toBeDefined();
+  });
 });

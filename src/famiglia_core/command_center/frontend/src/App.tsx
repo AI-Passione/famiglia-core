@@ -177,7 +177,7 @@ function App() {
 
     const fetchGraphs = async () => {
       try {
-        const response = await fetch(`${API_BASE}/graphs`);
+        const response = await fetch(`${API_BASE}/operations/graphs`);
         if (response.ok) {
           const data = await response.json();
           const validGraphs = Array.isArray(data) ? data : [];

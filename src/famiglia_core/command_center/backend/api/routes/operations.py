@@ -10,7 +10,8 @@ from famiglia_core.command_center.backend.graph_parser import GraphParser, Graph
 
 router = APIRouter()
 
-FEATURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../agents/orchestration/features"))
+FEATURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../agents/orchestration/features"))
+print(f"[Operations] Discovery path for features: {FEATURES_DIR}")
 graph_parser = GraphParser(FEATURES_DIR)
 
 class MissionLog(BaseModel):

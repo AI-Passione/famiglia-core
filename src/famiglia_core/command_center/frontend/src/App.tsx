@@ -227,7 +227,6 @@ function App() {
                   path="/situation_room" 
                   element={
                     <SituationRoom 
-                      agents={agents} 
                       actions={actions} 
                       tasks={tasks} 
                       graphs={graphs}

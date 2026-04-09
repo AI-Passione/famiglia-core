@@ -30,17 +30,18 @@ function OpsUpdate({ location, text, borderColor }: OpsUpdateProps) {
 }
 
 interface OpsPulseProps {
-  agentsCount: number;
-  highPriorityCount: number;
+  completedTasks: number;
+  scheduledTasks: number;
+  failedTasks: number;
 }
 
-export function OpsPulse({ agentsCount, highPriorityCount }: OpsPulseProps) {
+export function OpsPulse({ completedTasks, scheduledTasks, failedTasks }: OpsPulseProps) {
   return (
     <div className="col-span-12 lg:col-span-8 bg-surface-container-low p-8 relative overflow-hidden min-h-[400px]">
       <div className="absolute top-0 right-0 p-8">
         <span className="font-label text-[10px] text-outline tracking-widest uppercase">Live Telemetry</span>
       </div>
-      <h3 className="font-headline text-2xl text-on-surface mb-8">Global Operations Pulse</h3>
+      <h3 className="font-headline text-2xl text-on-surface mb-8">Pulse</h3>
       <div className="relative w-full h-64 mt-4 bg-surface-container-lowest/50 rounded-sm border border-outline-variant/5">
         <img 
           alt="Global Operations" 
@@ -49,9 +50,9 @@ export function OpsPulse({ agentsCount, highPriorityCount }: OpsPulseProps) {
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="grid grid-cols-3 gap-12 text-center">
-            <PulseStat value={agentsCount.toString().padStart(2, '0')} label="Active Agents" color="tertiary" />
-            <PulseStat value={highPriorityCount.toString().padStart(2, '0')} label="High Priority" color="primary" />
-            <PulseStat value="28ms" label="System Latency" color="on-surface" />
+            <PulseStat value={completedTasks.toString().padStart(2, '0')} label="Tasks Carried Out" color="tertiary" />
+            <PulseStat value={scheduledTasks.toString().padStart(2, '0')} label="Tasks Scheduled" color="primary" />
+            <PulseStat value={failedTasks.toString().padStart(2, '0')} label="Tasks Failed" color="on-surface" />
           </div>
         </div>
       </div>

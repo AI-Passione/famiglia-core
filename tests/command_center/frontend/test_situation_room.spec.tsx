@@ -62,7 +62,6 @@ describe('SituationRoom Component & New Widgets', () => {
     render(
       <TerminalProvider>
         <SituationRoom
-          agents={[]}
           actions={mockActions}
           tasks={mockTasks}
           graphs={mockGraphs}
@@ -90,7 +89,7 @@ describe('SituationRoom Component & New Widgets', () => {
   it('InsightsTicker fetches and displays insights', async () => {
     render(
       <TerminalProvider>
-        <SituationRoom agents={[]} actions={[]} tasks={[]} honorific="Don" />
+        <SituationRoom actions={[]} tasks={[]} honorific="Don" />
       </TerminalProvider>
     );
     await waitFor(() => {
@@ -102,7 +101,7 @@ describe('SituationRoom Component & New Widgets', () => {
   it('OperationsHub triggers execute correctly', async () => {
     render(
       <TerminalProvider>
-        <SituationRoom agents={[]} actions={[]} tasks={[]} graphs={mockGraphs} honorific="Don" />
+        <SituationRoom actions={[]} tasks={[]} graphs={mockGraphs} honorific="Don" />
       </TerminalProvider>
     );
     

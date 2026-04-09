@@ -29,6 +29,7 @@ class ExecutionResponse(BaseModel):
 class AdHocDirectiveRequest(BaseModel):
     graph_id: Optional[str] = None
     manual_prompt: Optional[str] = None
+    specification: Optional[str] = None
 
 GRAPH_AGENT_MAP = {
     "market_research": "rossini",
@@ -76,7 +77,11 @@ async def execute_directive(request: AdHocDirectiveRequest):
     
     # 2. Determine title and payload
     title = f"Directive: {graph_id or 'Ad-hoc Task'}"
+    
+    # If it's a graph mission, use specification as payload if provided
     payload = prompt or f"Executing graph {graph_id}"
+    if graph_id and request.specification:
+        payload = f"{payload}\n\nClient Specification: {request.specification}"
     
     # 3. Create task instance
     task = context_store.create_scheduled_task(

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { GraphDefinition } from '../../types';
 import { API_BASE } from '../../config';
@@ -8,40 +8,11 @@ interface OperationsHubProps {
   onExecuteDirective: () => void;
 }
 
-interface PendingApproval {
-  id: number;
-  agent_name: string;
-  action_type: string;
-  action_details: string | null;
-  timestamp: string;
-}
 
 export function OperationsHub({ graphs, onExecuteDirective }: OperationsHubProps) {
   const [executing, setExecuting] = useState<Record<string, boolean>>({});
   const [messages, setMessages] = useState<Record<string, string>>({});
-  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
 
-  useEffect(() => {
-    const fetchPending = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/actions?limit=50`);
-        if (res.ok) {
-          const data = await res.json();
-          const actions = Array.isArray(data?.actions) ? data.actions : [];
-          // Filter actions that have pending approval status
-          const pending = actions.filter(
-            (a: any) => a?.approval_status === 'pending' || a?.approval_status === 'PENDING'
-          );
-          setPendingApprovals(pending.slice(0, 5));
-        }
-      } catch (e) {
-        // silently fail
-      }
-    };
-    fetchPending();
-    const interval = setInterval(fetchPending, 15000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleExecute = async (graphId: string) => {
     setExecuting(prev => ({ ...prev, [graphId]: true }));
@@ -71,59 +42,6 @@ export function OperationsHub({ graphs, onExecuteDirective }: OperationsHubProps
   return (
     <div className="bg-surface-container-highest p-6 flex flex-col border border-primary/10 relative shadow-[inset_0_0_24px_rgba(255,179,181,0.02)] rounded-2xl gap-6">
 
-      {/* ── Pending Human Decisions ── */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-yellow-400 text-sm">notification_important</span>
-            <h3 className="font-headline text-lg text-on-surface">Awaiting Your Decision</h3>
-          </div>
-          {pendingApprovals.length > 0 && (
-            <span className="bg-yellow-400/20 text-yellow-300 font-label text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border border-yellow-400/30">
-              {pendingApprovals.length} pending
-            </span>
-          )}
-        </div>
-
-        {pendingApprovals.length > 0 ? (
-          <div className="space-y-3">
-            {pendingApprovals.map(approval => (
-              <motion.div
-                key={approval.id}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="p-3 bg-yellow-400/5 border border-yellow-400/20 rounded-xl flex items-start gap-3"
-              >
-                <span className="material-symbols-outlined text-yellow-400 text-[18px] mt-0.5 shrink-0">pending_actions</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-headline text-sm text-on-surface line-clamp-1">
-                    {approval.action_type.replace(/_/g, ' ')}
-                  </p>
-                  <p className="font-body text-[11px] text-on-surface-variant italic line-clamp-1 mt-0.5">
-                    {approval.action_details || `Requested by ${approval.agent_name}`}
-                  </p>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <button className="px-3 py-1 rounded-lg bg-primary/20 hover:bg-primary/40 text-primary font-label text-[10px] uppercase tracking-wider transition-all">
-                    Approve
-                  </button>
-                  <button className="px-3 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 font-label text-[10px] uppercase tracking-wider transition-all">
-                    Decline
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-4 opacity-50 flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">check_circle</span>
-            <p className="font-label text-xs uppercase tracking-widest text-outline">No pending decisions</p>
-          </div>
-        )}
-      </div>
-
-      {/* Divider */}
-      <div className="border-t border-outline/10" />
 
       {/* ── Execute Directives ── */}
       <div>

@@ -5,6 +5,7 @@ import { API_BASE } from '../../config';
 
 interface OperationsHubProps {
   graphs: GraphDefinition[];
+  onExecuteDirective: () => void;
 }
 
 interface PendingApproval {
@@ -15,7 +16,7 @@ interface PendingApproval {
   timestamp: string;
 }
 
-export function OperationsHub({ graphs }: OperationsHubProps) {
+export function OperationsHub({ graphs, onExecuteDirective }: OperationsHubProps) {
   const [executing, setExecuting] = useState<Record<string, boolean>>({});
   const [messages, setMessages] = useState<Record<string, string>>({});
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
@@ -129,8 +130,15 @@ export function OperationsHub({ graphs }: OperationsHubProps) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-sm">crisis_alert</span>
-            <h3 className="font-headline text-lg text-on-surface">Execute Directive</h3>
+            <h3 className="font-headline text-lg text-on-surface">Directives</h3>
           </div>
+          <button 
+            onClick={onExecuteDirective}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-all font-label text-[10px] uppercase tracking-widest"
+          >
+            <span className="material-symbols-outlined text-sm">bolt</span>
+            Dispatch
+          </button>
         </div>
 
         {actionGraphs.length > 0 ? (

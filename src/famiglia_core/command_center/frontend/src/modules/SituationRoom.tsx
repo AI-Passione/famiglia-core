@@ -10,16 +10,17 @@ interface SituationRoomProps {
   tasks: Task[];
   graphs?: GraphDefinition[];
   honorific: string;
+  onExecuteDirective: () => void;
 }
 
-export function SituationRoom({ actions, tasks, graphs = [], honorific }: SituationRoomProps) {
+export function SituationRoom({ actions, tasks, graphs = [], honorific, onExecuteDirective }: SituationRoomProps) {
   const completedTasks = (tasks || []).filter(t => t?.status === 'completed' || t?.status === 'success').length;
   const scheduledTasks = (tasks || []).filter(t => t?.status === 'pending').length;
   const failedTasks = (tasks || []).filter(t => t?.status === 'failed').length;
 
   return (
     <div data-testid="situation-room">
-      <HeroSection honorific={honorific} />
+      <HeroSection honorific={honorific} onExecuteDirective={onExecuteDirective} />
       <div className="grid grid-cols-12 gap-6 items-start">
         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
           <OpsPulse
@@ -28,7 +29,7 @@ export function SituationRoom({ actions, tasks, graphs = [], honorific }: Situat
             failedTasks={failedTasks}
             tasks={tasks}
           />
-          <OperationsHub graphs={graphs} />
+          <OperationsHub graphs={graphs} onExecuteDirective={onExecuteDirective} />
           <InsightsTicker />
         </div>
         <IntelligenceFeed actions={actions} />

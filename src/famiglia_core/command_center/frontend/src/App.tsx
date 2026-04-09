@@ -20,6 +20,8 @@ import { Famiglia } from './modules/Famiglia';
 import { Terminal } from './modules/Terminal';
 import { DirectivesTerminal } from './modules/ui/DirectivesTerminal';
 import { TerminalProvider } from './modules/TerminalContext';
+import { ToastProvider } from './modules/ui/ToastProvider';
+import { DirectiveModal } from './modules/ui/DirectiveModal';
 import { API_BASE } from './config';
 
 const SETTINGS_STORAGE_KEY = 'command_center_settings';
@@ -62,6 +64,7 @@ function App() {
   const [graphs, setGraphs] = useState<GraphDefinition[]>([]);
   const [selectedGraph, setSelectedGraph] = useState<GraphDefinition | null>(null);
   const [settings, setSettings] = useState<AppSettings>(() => getInitialSettings());
+  const [isDirectiveModalOpen, setDirectiveModalOpen] = useState(false);
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const hasSyncedSettings = useRef(false);
 
@@ -199,8 +202,9 @@ function App() {
   }, [selectedGraph]);
 
   return (
-    <TerminalProvider>
-      <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary/30">
+    <ToastProvider>
+      <TerminalProvider>
+        <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary/30">
         <TopNav />
         <div className="flex">
           <Sidebar famigliaName={settings.famigliaName} />
@@ -231,6 +235,7 @@ function App() {
                       tasks={tasks} 
                       graphs={graphs}
                       honorific={settings.honorific}
+                      onExecuteDirective={() => setDirectiveModalOpen(true)}
                     />
                   } 
                 />
@@ -273,10 +278,15 @@ function App() {
             </div>
           </main>
         </div>
-        <DirectivesTerminal />
+        <DirectiveModal 
+          isOpen={isDirectiveModalOpen} 
+          onClose={() => setDirectiveModalOpen(false)} 
+          graphs={graphs}
+        />
         <div className="fixed left-72 top-16 w-[1px] h-full bg-[#1c1b1b] z-30"></div>
       </div>
-    </TerminalProvider>
+      </TerminalProvider>
+    </ToastProvider>
   );
 }
 

@@ -4,33 +4,45 @@ import type { Task } from '../../types';
 // ─── Heartbeat SVG (ECG / hospital-monitor style) ───────────────────────────
 function HeartbeatLine() {
   return (
-    <svg
-      viewBox="0 0 120 32"
-      className="w-16 h-4 text-primary overflow-visible"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <style>{`
-        @keyframes ecg-draw {
-          0%   { stroke-dashoffset: 200; opacity: 0.2; }
-          30%  { opacity: 1; }
-          100% { stroke-dashoffset: 0; opacity: 1; }
-        }
-        .ecg-path {
-          stroke-dasharray: 200;
-          stroke-dashoffset: 200;
-          animation: ecg-draw 1.6s ease-in-out infinite;
-        }
-      `}</style>
-      {/* Flat → spike up → spike down → flat — classic ECG PQRST shape */}
-      <path
-        className="ecg-path"
-        d="M0,16 L28,16 L34,16 L38,4 L42,28 L46,8 L50,16 L56,16 L120,16"
-      />
-    </svg>
+    <div className="relative w-16 h-6 flex items-center">
+      <svg
+        viewBox="0 0 120 32"
+        className="w-full h-full text-primary overflow-visible"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <style>{`
+          @keyframes scan {
+            0% { clip-path: inset(0 100% 0 0); }
+            50% { clip-path: inset(0 0 0 0); }
+            100% { clip-path: inset(0 0 0 100%); }
+          }
+          .ecg-path {
+            animation: scan 2s linear infinite;
+            filter: drop-shadow(0 0 4px rgba(255, 179, 181, 0.4));
+          }
+          .ecg-glow {
+            offset-path: path('M0,16 L28,16 L34,16 L38,4 L42,28 L46,8 L50,16 L56,16 L120,16');
+            animation: move-glow 2s linear infinite;
+          }
+          @keyframes move-glow {
+            0% { offset-distance: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { offset-distance: 100%; opacity: 0; }
+          }
+        `}</style>
+        <path
+          className="ecg-path"
+          d="M0,16 L28,16 L34,16 L38,4 L42,28 L46,8 L50,16 L56,16 L120,16"
+        />
+      </svg>
+      {/* Moving glow head */}
+      <div className="ecg-glow absolute w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_#ffb3b5]" />
+    </div>
   );
 }
 
@@ -48,7 +60,19 @@ const FEATURE_GRAPH_IDS = new Set([
 ]);
 
 
-// ─── Stat BAN ────────────────────────────────────────────────────────────────
+// Map graph_id → Intelligence item_type for deep-link filter
+const GRAPH_TO_ITEM_TYPE: Record<string, string> = {
+  market_research:      'market_research',
+  deep_dive_analysis:   'market_research',
+  simple_data_analysis: 'analysis',
+  data_ingestion:       'analysis',
+  prd_drafting:         'prd',
+  prd_review:           'prd',
+  grooming:             'project',
+  code_implementation:  'project',
+  milestone_creation:   'project',
+};
+
 interface PulseStatProps {
   value: string;
   label: string;
@@ -83,26 +107,36 @@ export function OpsPulse({ completedTasks, scheduledTasks, failedTasks, tasks }:
     .filter(t => {
       if (!t) return false;
       if (t.status === 'pending') return false;
+      
+      const title = (t.title || '').toLowerCase();
+      const payload = (t.task_payload || '').toLowerCase();
+      
+      // Explicitly exclude greetings
+      if (title.includes('greeting') || title.includes('welcome') || payload.includes('greeting')) {
+        return false;
+      }
+
       const gid = (t.metadata as any)?.graph_id as string | undefined;
       if (gid && FEATURE_GRAPH_IDS.has(gid)) return true;
-      // Keyword heuristic for tasks without metadata (e.g. seeded data)
-      const kw = (t.title || '').toLowerCase();
+      
+      // Keyword heuristic for tasks without metadata
       return (
-        kw.includes('market research') ||
-        kw.includes('research') ||
-        kw.includes('analysis') ||
-        kw.includes('prd') ||
-        kw.includes('grooming') ||
-        kw.includes('data ingestion') ||
-        kw.includes('milestone') ||
-        kw.includes('implementation')
+        title.includes('market research') ||
+        title.includes('research') ||
+        title.includes('analysis') ||
+        title.includes('prd') ||
+        title.includes('grooming') ||
+        title.includes('data ingestion') ||
+        title.includes('milestone') ||
+        title.includes('implementation')
       );
     })
     .slice(0, 5);
 
-  const handleViewIntel = (_task: Task) => {
-    // Intelligence is a standalone page opened externally, matching the Sidebar behaviour
-    window.open('/intelligence.html', '_blank');
+  const handleViewIntel = (task: Task) => {
+    const gid = (task.metadata as any)?.graph_id as string | undefined;
+    const itemType = (gid && GRAPH_TO_ITEM_TYPE[gid]) || 'market_research';
+    window.open(`/intelligence.html?filter=${itemType}`, '_blank');
   };
 
   return (

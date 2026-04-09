@@ -133,7 +133,7 @@ describe('Terminal Stability & Regression', () => {
 
       // Should show the recovery UI instead of a blank screen
       expect(screen.getByText(/Terminal Critical Failure/i)).toBeDefined();
-      expect(screen.getByText(/KABOOM/i)).toBeDefined();
+      expect(screen.getAllByText(/KABOOM/i).length).toBeGreaterThan(0);
       expect(screen.getByText(/Clear Local Intelligence & Reboot/i)).toBeDefined();
 
       consoleSpy.mockRestore();

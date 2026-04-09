@@ -8,7 +8,7 @@ export function DirectivesTerminal() {
   const [isMaximized, setIsMaximized] = useState(false);
   
   return (
-    <div className="fixed bottom-8 right-8 z-[60] flex flex-col items-end gap-4">
+    <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-4">
       <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div

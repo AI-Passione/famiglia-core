@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Request
@@ -9,7 +10,8 @@ from famiglia_core.command_center.backend.graph_parser import GraphParser, Graph
 
 router = APIRouter()
 
-FEATURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../agents/orchestration/features"))
+FEATURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../agents/orchestration/features"))
+print(f"[Operations] Discovery path for features: {FEATURES_DIR}")
 graph_parser = GraphParser(FEATURES_DIR)
 
 class MissionLog(BaseModel):
@@ -23,6 +25,111 @@ class MissionLog(BaseModel):
 class ExecutionResponse(BaseModel):
     task_id: int
     message: str
+    acknowledgement: Optional[str] = None
+    agent_id: Optional[str] = None
+
+class AdHocDirectiveRequest(BaseModel):
+    graph_id: Optional[str] = None
+    manual_prompt: Optional[str] = None
+    specification: Optional[str] = None
+
+GRAPH_AGENT_MAP = {
+    "market_research": "rossini",
+    "simple_data_analysis": "kowalski",
+    "deep_dive_analysis": "kowalski",
+    "code_implementation": "riccardo",
+    "prd_drafting": "rossini",
+    "milestone_creation": "bella",
+    "prd_review": "rossini",
+    "grooming": "bella"
+}
+
+AGENT_KEYWORD_MAP = {
+    "kowalski": ["data", "analytics", "stats", "bi", "metrics", "chart", "plot"],
+    "riccardo": ["code", "python", "devops", "sql", "db", "database", "performance", "infrastructure", "bug"],
+    "vito": ["finance", "money", "budget", "tax", "investment", "cost"],
+    "rossini": ["research", "market", "strategy", "product", "intel"],
+    "bella": ["schedule", "meeting", "docs", "notes", "project"],
+    "tommy": ["logistics", "ops", "task", "follow-up"]
+}
+
+def resolve_agent(graph_id: Optional[str], prompt: Optional[str]) -> str:
+    if graph_id and graph_id in GRAPH_AGENT_MAP:
+        return GRAPH_AGENT_MAP[graph_id]
+    
+    if prompt:
+        lower_prompt = prompt.lower()
+        for agent, keywords in AGENT_KEYWORD_MAP.items():
+            for k in keywords:
+                # Use word boundaries to avoid matching substrings (e.g., 'data' matching 'database')
+                if re.search(fr"\b{re.escape(k)}\b", lower_prompt):
+                    return agent
+                
+    return "alfredo"
+
+@router.post("/directive/execute", response_model=ExecutionResponse)
+async def execute_directive(request: AdHocDirectiveRequest):
+    """Trigger a directive execution with automated agent routing."""
+    graph_id = request.graph_id
+    prompt = request.manual_prompt
+    
+    if not graph_id and not prompt:
+        raise HTTPException(status_code=400, detail="Missing graph_id or manual_prompt")
+        
+    # 1. Resolve agent
+    agent_id = resolve_agent(graph_id, prompt)
+    
+    # 2. Determine title and payload
+    title = f"Directive: {graph_id or 'Ad-hoc Task'}"
+    
+    # If it's a graph mission, use specification as payload if provided
+    payload = prompt or f"Executing graph {graph_id}"
+    if graph_id and request.specification:
+        payload = f"{payload}\n\nClient Specification: {request.specification}"
+    
+    # 3. Create task instance
+    task = context_store.create_scheduled_task(
+        title=title,
+        task_payload=payload,
+        priority="high",
+        created_by_type="human_user",
+        created_by_name="Don",
+        metadata={
+            "graph_id": graph_id,
+            "agent_id": agent_id,
+            "task_type": graph_id or "adhoc_directive", # CRITICAL: Map to graph_id for TaskOrchestrator lookup
+            "triggered_at": datetime.now(timezone.utc).isoformat()
+        }
+    )
+    
+    if not task:
+        raise HTTPException(status_code=500, detail="Failed to initiate directive")
+
+    # 4. Log immediate acknowledgement to BOTH Command Center and Coordination Channel
+    # This ensures visibility in the main feed and the technical audit log
+    channels = ["web:web-dashboard:command-center:0", "web:web-dashboard:agents-coordination:0"]
+    ack_content = f"Directive received, Don Jimmy. I am initiating the {graph_id or 'requested task'} immediately. I'll report back once the intel is gathered."
+    if agent_id == "riccardo":
+        ack_content = "Understood. Deploying optimized directive now. Don't worry about the results, they will be flawless."
+    elif agent_id == "kowalski":
+        ack_content = "Received. The data vectors are aligning. I'll have the analysis ready shortly."
+
+    for channel_key in channels:
+        context_store.log_message(
+            agent_name=agent_id,
+            conversation_key=channel_key,
+            role="agent",
+            content=ack_content,
+            sender=agent_id.capitalize(),
+            metadata={"task_id": task["id"], "type": "mission_dispatch"}
+        )
+
+    return ExecutionResponse(
+        task_id=task["id"],
+        message=f"Directive assigned to {agent_id.capitalize()}. Tracking ID: ML-{task['id']:03d}",
+        acknowledgement=ack_content,
+        agent_id=agent_id
+    )
 
 @router.get("/graphs", response_model=List[GraphDefinition])
 async def get_graphs():
@@ -168,7 +275,7 @@ async def execute_graph(graph_id: str, request: Request):
         created_by_name="Don", # Defaulting to Don for now
         metadata={
             "graph_id": graph_id,
-            "task_type": "operations_execution",
+            "task_type": graph_id, # Align with TaskOrchestrator resolver
             "triggered_at": datetime.now(timezone.utc).isoformat()
         }
     )
@@ -176,7 +283,24 @@ async def execute_graph(graph_id: str, request: Request):
     if not task:
         raise HTTPException(status_code=500, detail="Failed to initiate Operations execution task")
 
+    # 3. Log acknowledgement to BOTH channels for visibility and audit
+    agent_id = resolve_agent(graph_id, None)
+    channels = ["web:web-dashboard:command-center:0", "web:web-dashboard:agents-coordination:0"]
+    ack_content = f"Mission {graph_id} dispatched, Don Jimmy. I am overseeing the execution."
+    
+    for channel_key in channels:
+        context_store.log_message(
+            agent_name=agent_id,
+            conversation_key=channel_key,
+            role="agent",
+            content=ack_content,
+            sender=agent_id.capitalize(),
+            metadata={"task_id": task["id"], "type": "mission_dispatch"}
+        )
+
     return ExecutionResponse(
         task_id=task["id"],
-        message=f"Mission {graph_id} dispatched. Tracking ID: ML-{task['id']:03d}"
+        message=f"Mission {graph_id} dispatched. Tracking ID: ML-{task['id']:03d}",
+        acknowledgement=ack_content,
+        agent_id=agent_id
     )

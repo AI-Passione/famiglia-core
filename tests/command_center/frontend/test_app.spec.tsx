@@ -218,8 +218,8 @@ describe('App Component', () => {
       expect(screen.getAllByText('Execute Directive').length).toBeGreaterThan(0);
     });
     
-    // There should be a "No pending directives" or "Awaiting Intel..." message since it's empty
-    expect(screen.getByText('No pending directives')).toBeDefined();
+    // There should be empty-state messages since all data returned as 404/empty
     expect(screen.getByText('Awaiting Intel...')).toBeDefined();
+    expect(screen.getByText('No recent intelligence.')).toBeDefined();
   });
 });

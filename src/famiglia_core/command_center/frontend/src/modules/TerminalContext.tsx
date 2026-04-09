@@ -42,6 +42,7 @@ interface TerminalContextType {
   isTyping: boolean;
   isTerminalOpen: boolean;
   setTerminalOpen: (open: boolean) => void;
+  addExternalAgentMessage: (content: string, agentId: string, chatId?: string) => void;
 }
 
 const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
@@ -345,7 +346,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
     }
   }, [agents, activeChatId]);
 
-  // Sync actions channel
+  // Sync actions channel (Operational Pulse)
   useEffect(() => {
     if (activeChatId === 'agents-coordination' && actions.length > 0) {
       const opMessages: Message[] = actions.slice(0, 20).map(action => {
@@ -361,12 +362,31 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
           avatar: AGENT_IMAGE_MAP[agentKey]
         };
       });
+
       setChats(prev => {
         const base = prev['agents-coordination'];
         if (!base) return prev;
+
+        // Merge Strategy:
+        // 1. Keep all non-operational messages (dialogue, external, manual)
+        // 2. Filter out old operational messages to refresh with new ones
+        // 3. Combine and sort by timestamp
+        const dialogueMessages = base.messages.filter(m => !m.id.startsWith('op-'));
+        const combined = [...dialogueMessages, ...opMessages]
+          .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+        // Deduplicate by content and timestamp to avoid flickering
+        const seen = new Set();
+        const dedupedByContent = combined.filter(m => {
+          const key = `${m.speaker}:${m.content}:${m.timestamp.getTime()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
         return {
           ...prev,
-          'agents-coordination': { ...base, messages: opMessages }
+          'agents-coordination': { ...base, messages: dedupedByContent }
         };
       });
     }
@@ -553,6 +573,32 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       }));
     }
   };
+  
+  const addExternalAgentMessage = (content: string, agentId: string, chatId: string = 'command-center') => {
+    const aid = agentId.toLowerCase();
+    const msg: Message = {
+      id: `ext-${Date.now()}`,
+      type: 'agent',
+      speaker: aid.charAt(0).toUpperCase() + aid.slice(1),
+      role: AGENT_ROLE_MAP[aid] || 'Agent',
+      content,
+      timestamp: new Date(),
+      status: 'done',
+      avatar: AGENT_IMAGE_MAP[aid] || AGENT_IMAGE_MAP['alfredo']
+    };
+    
+    setChats(prev => {
+      const chat = prev[chatId];
+      if (!chat) return prev;
+      return {
+        ...prev,
+        [chatId]: {
+          ...chat,
+          messages: [...chat.messages, msg]
+        }
+      };
+    });
+  };
 
   return (
     <TerminalContext.Provider value={{
@@ -568,7 +614,8 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       sendMessage,
       isTyping: activeChat?.isTyping || false,
       isTerminalOpen,
-      setTerminalOpen
+      setTerminalOpen,
+      addExternalAgentMessage
     }}>
       {children}
     </TerminalContext.Provider>

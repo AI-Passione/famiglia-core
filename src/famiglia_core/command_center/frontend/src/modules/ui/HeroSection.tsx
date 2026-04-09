@@ -1,8 +1,9 @@
 interface HeroSectionProps {
   honorific: string;
+  onExecuteDirective: () => void;
 }
 
-export function HeroSection({ honorific }: HeroSectionProps) {
+export function HeroSection({ honorific, onExecuteDirective }: HeroSectionProps) {
   return (
     <section className="flex justify-between items-end border-b border-outline-variant/10 pb-8">
       <div>
@@ -11,7 +12,10 @@ export function HeroSection({ honorific }: HeroSectionProps) {
 
       </div>
       <div className="flex items-center gap-4">
-        <button className="bg-[#4A0404] text-white px-6 py-2.5 font-label text-xs uppercase tracking-widest hover:brightness-110 transition-all rounded-sm flex items-center gap-2">
+        <button 
+          onClick={onExecuteDirective}
+          className="bg-[#4A0404] text-white px-6 py-2.5 font-label text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all rounded-sm flex items-center gap-2"
+        >
           <span className="material-symbols-outlined text-sm">bolt</span>
           Execute Directive
         </button>

@@ -14,6 +14,8 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
   const [selectedGraphId, setSelectedGraphId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [manualPrompt, setManualPrompt] = useState('');
+  const [specification, setSpecification] = useState('');
+  const [isManualExpanded, setIsManualExpanded] = useState(false);
   const [executing, setExecuting] = useState(false);
   const { showToast } = useToast();
 
@@ -28,6 +30,7 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
         body: JSON.stringify({
           graph_id: selectedGraphId,
           manual_prompt: manualPrompt.trim() || undefined,
+          specification: specification.trim() || undefined,
         }),
       });
 
@@ -41,6 +44,8 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
           // Reset state
           setSelectedGraphId(null);
           setManualPrompt('');
+          setSpecification('');
+          setIsManualExpanded(false);
           setExecuting(false);
         }, 800);
       } else {
@@ -140,7 +145,7 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
                             key={graph.id}
                             onClick={() => {
                                 setSelectedGraphId(prev => prev === graph.id ? null : graph.id);
-                                setManualPrompt('');
+                                if (selectedGraphId !== graph.id) setManualPrompt('');
                             }}
                             className={`
                               group relative px-4 py-3 rounded-xl border text-left transition-all duration-300
@@ -166,37 +171,86 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* Specification Field (Appears only when graph is selected) */}
+                <AnimatePresence>
+                  {selectedGraphId && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="mt-4 p-4 bg-[#ffb3b5]/5 border border-[#ffb3b5]/20 rounded-2xl relative"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="material-symbols-outlined text-[#ffb3b5] text-[14px]">psychology_alt</span>
+                        <h4 className="font-headline text-[9px] font-bold uppercase tracking-widest text-[#ffb3b5]/60">Mission Specifications</h4>
+                      </div>
+                      <textarea
+                        value={specification}
+                        onChange={(e) => setSpecification(e.target.value)}
+                        placeholder="Enter mission specific constraints or parameters (e.g., 'Targeting the luxury tech niche')..."
+                        className="w-full bg-white/5 border border-white/5 rounded-xl p-3 font-body text-[11px] text-white placeholder:text-outline/30 focus:outline-none focus:border-[#ffb3b5]/30 transition-all resize-none h-20"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </section>
 
               {/* Divider */}
-              <div className="flex items-center gap-4 py-2">
+              <div className="flex items-center gap-4">
                 <div className="h-px flex-1 bg-white/5" />
-                <span className="font-label text-[10px] uppercase tracking-widest text-outline">OR</span>
+                <span className="font-label text-[8px] uppercase tracking-widest text-outline-variant">Alternatively</span>
                 <div className="h-px flex-1 bg-white/5" />
               </div>
 
-               {/* Manual Directive Section */}
-              <section>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-[#ffb3b5] text-[14px]">edit_note</span>
-                  <h3 className="font-headline text-[9px] font-bold uppercase tracking-widest text-white/40">Manual Directive</h3>
-                </div>
-                
-                <div className="relative group/input">
-                  <textarea
-                    value={manualPrompt}
-                    onChange={(e) => {
-                        setManualPrompt(e.target.value);
-                        setSelectedGraphId(null);
-                    }}
-                    placeholder="Enter custom instructions for the Famiglia..."
-                    className="w-full bg-white/5 border border-white/5 rounded-xl p-3 font-body text-[11px] text-white placeholder:text-outline/40 focus:outline-none focus:border-[#ffb3b5]/40 focus:bg-[#ffb3b5]/5 transition-all resize-none h-20"
-                  />
-                  {/* Decorative corner */}
-                  <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none overflow-hidden rounded-tr-2xl">
-                    <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#ffb3b5]/10 to-transparent rotate-45 transform translate-x-1/2 -translate-y-1/2" />
+               {/* Manual Directive Section (Collapsed by default) */}
+              <section className="border border-white/5 rounded-2xl overflow-hidden bg-white/[0.02]">
+                <button
+                  onClick={() => setIsManualExpanded(!isManualExpanded)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`material-symbols-outlined text-sm transition-colors ${isManualExpanded ? 'text-[#ffb3b5]' : 'text-outline/60 group-hover:text-outline'}`}>
+                      edit_note
+                    </span>
+                    <h3 className={`font-headline text-[10px] font-bold uppercase tracking-widest transition-colors ${isManualExpanded ? 'text-white' : 'text-white/40 group-hover:text-white/60'}`}>
+                      Custom Ad-hoc Directive
+                    </h3>
                   </div>
-                </div>
+                  <span className={`material-symbols-outlined transition-transform duration-500 text-outline/40 ${isManualExpanded ? 'rotate-180 text-[#ffb3b5]' : ''}`}>
+                    expand_more
+                  </span>
+                </button>
+                
+                <AnimatePresence>
+                  {isManualExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-4 pt-0">
+                        <div className="relative group/input mt-2">
+                          <textarea
+                            value={manualPrompt}
+                            onChange={(e) => {
+                                setManualPrompt(e.target.value);
+                                setSelectedGraphId(null);
+                                setSpecification('');
+                                setActiveCategory(null);
+                            }}
+                            placeholder="Enter fully custom, unstructured instructions..."
+                            className="w-full bg-black/40 border border-white/5 rounded-xl p-3 font-body text-[11px] text-white placeholder:text-outline/40 focus:outline-none focus:border-[#ffb3b5]/40 transition-all resize-none h-24"
+                          />
+                        </div>
+                        <p className="mt-2 font-body text-[9px] text-outline/40 italic">
+                          * Best for one-off tasks not covered by standard operational graphs.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </section>
             </div>
 

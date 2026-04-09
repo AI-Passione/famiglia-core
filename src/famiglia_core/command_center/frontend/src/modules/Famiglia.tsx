@@ -60,7 +60,7 @@ export function Famiglia() {
   }, []);
 
   const activeCount = useMemo(
-    () => agents.filter(agent => normalizeStatus(agent.status) === 'active').length,
+    () => agents.filter(agent => agent && normalizeStatus(agent.status) === 'active').length,
     [agents]
   );
   const totalCount = agents.length;

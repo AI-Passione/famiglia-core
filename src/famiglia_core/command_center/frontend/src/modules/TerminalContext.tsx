@@ -105,11 +105,11 @@ function buildInitialChats(): Record<string, ChatState> {
         id: `init-${ch.id}`,
         type: 'agent',
         speaker: ch.agentSpeaker || 'Agent',
-        role: AGENT_ROLE_MAP[ch.agent_id?.toLowerCase() || ''] || 'Agent',
+        role: AGENT_ROLE_MAP[String(ch.agent_id || '').toLowerCase()] || 'Agent',
         content: ch.welcome,
         timestamp: new Date(),
         status: 'done',
-        avatar: AGENT_IMAGE_MAP[ch.agent_id?.toLowerCase() || '']
+        avatar: AGENT_IMAGE_MAP[String(ch.agent_id || '').toLowerCase()]
       }],
       isTyping: false,
       agent_id: ch.agent_id,
@@ -138,12 +138,12 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       const res = await fetch(`${API_BASE}/chat/thread?parent_id=${dbId}`);
       if (res.ok) {
         const history = await res.json();
-        const threadMessages = history.map((msg: any, idx: number) => {
+        const threadMessages = history.filter(Boolean).map((msg: any, idx: number) => {
           const senderLower = (msg.sender || "").toLowerCase();
           const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
           const targetSpeaker = isUser ? 'Don Jimmy' : (msg.sender || 'Agent');
           const targetRole = isUser ? 'Head of Family' : (msg.role || 'Agent');
-          const mappingKey = targetSpeaker.split('(')[0].trim().toLowerCase();
+          const mappingKey = String(targetSpeaker || 'Agent').split('(')[0].trim().toLowerCase();
           const targetAvatar = isUser ? undefined : AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP['alfredo'];
 
           return {
@@ -205,11 +205,11 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
         ]);
         if (agentsRes.ok) {
            const agentsData = await agentsRes.json();
-           setAgents(agentsData);
+           setAgents(Array.isArray(agentsData) ? agentsData.filter(Boolean) : []);
         }
         if (actionsRes.ok) {
            const data = await actionsRes.json();
-           setActions(data.actions || []);
+           setActions(Array.isArray(data.actions) ? data.actions.filter(Boolean) : []);
         }
       } catch (error) {
         console.error('[TerminalContext] Sync failure:', error);
@@ -235,28 +235,33 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
               const history = await res.json();
               if (history && history.length > 0) {
                 // Map backend messages to frontend format
-                const loadedMessages: Message[] = history.map((msg: any, idx: number) => {
-                   const senderLower = (msg.sender || "").toLowerCase();
-                   const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
-                   
-                   const targetSpeaker = isUser ? 'Don Jimmy' : (msg.sender || channel.agentSpeaker || 'Agent');
-                   const targetRole = isUser ? 'Head of Family' : (msg.role || 'Agent');
-                   // Use targetSpeaker without " (web_user)" for mapping
-                   const mappingKey = targetSpeaker.split('(')[0].trim().toLowerCase();
-                   const targetAvatar = isUser ? undefined : AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP[channel.agent_id?.toLowerCase() || 'alfredo'];
+                const loadedMessages: Message[] = history.filter(Boolean).map((msg: any, idx: number) => {
+                   try {
+                     const senderLower = String(msg.sender || "").toLowerCase();
+                     const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
+                     
+                     const targetSpeaker = isUser ? 'Don Jimmy' : (msg.sender || channel.agentSpeaker || 'Agent');
+                     const targetRole = isUser ? 'Head of Family' : (msg.role || 'Agent');
+                     const mappingKey = String(targetSpeaker || "").split('(')[0].trim().toLowerCase();
+                     const chAgentId = String(channel.agent_id || 'alfredo').toLowerCase();
+                     const targetAvatar = isUser ? undefined : AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP[chAgentId];
 
-                    return {
-                      id: `hist-${channel.id}-${idx}-${Date.now()}`,
-                      db_id: msg.id,
-                      type: isUser ? 'user' : 'agent',
-                      speaker: targetSpeaker,
-                      role: targetRole,
-                      content: msg.content,
-                      timestamp: new Date(msg.created_at || Date.now()),
-                      status: 'done',
-                      avatar: targetAvatar,
-                      parent_id: msg.parent_id
-                    };
+                      return {
+                        id: `hist-${channel.id}-${idx}-${Date.now()}`,
+                        db_id: msg.id,
+                        type: isUser ? 'user' : 'agent',
+                        speaker: targetSpeaker,
+                        role: targetRole,
+                        content: msg.content,
+                        timestamp: new Date(msg.created_at || Date.now()),
+                        status: 'done',
+                        avatar: targetAvatar,
+                        parent_id: msg.parent_id
+                      };
+                   } catch (e) {
+                     console.error("[TC_TRACK] Error in history rehydration map:", e, msg);
+                     throw e;
+                   }
                 });
                 historyUpdates[channel.id] = loadedMessages;
               }
@@ -290,50 +295,80 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
 
   // Sync ambient lounge messages
   useEffect(() => {
-    if (activeChatId === 'lounge' && agents.length > 0) {
-      const AMBIENT_LINES: Record<string, string> = {
-        alfredo: 'The Famiglia is coordinated. Everything is moving with understated elegance.',
-        riccardo: 'Codebase is stable. Everything is performance-tuned.',
-        bella: 'Schedules are pristine, Don Jimmy.',
-        rossini: 'Intelligence briefs are ready for review.',
-      };
+    try {
+      if (activeChatId === 'lounge' && agents.length > 0) {
+        const AMBIENT_LINES: Record<string, string> = {
+          alfredo: 'The Famiglia is coordinated. Everything is moving with understated elegance.',
+          riccardo: 'Codebase is stable. Everything is performance-tuned.',
+          bella: 'Schedules are pristine, Don Jimmy.',
+          rossini: 'Intelligence briefs are ready for review.',
+        };
 
-      const ambientMessages: Message[] = agents
-        .filter(a => AMBIENT_LINES[a.agent_id.toLowerCase()])
-        .map(agent => ({
-          id: `ambient-${agent.agent_id}`,
-          type: 'agent',
-          speaker: agent.name,
-          role: agent.role,
-          content: AMBIENT_LINES[agent.agent_id.toLowerCase()],
-          timestamp: new Date(),
-          status: 'done',
-          avatar: AGENT_IMAGE_MAP[agent.agent_id.toLowerCase()]
-        }));
-      setChats(prev => ({
-        ...prev,
-        'lounge': { ...prev['lounge'], messages: ambientMessages }
-      }));
+        const ambientMessages: Message[] = agents
+          .filter(a => {
+            console.log("[TC_TRACE] filter agents", a);
+            try {
+              return a && typeof a.agent_id === 'string' && AMBIENT_LINES[a.agent_id.toLowerCase()];
+            } catch (e) {
+              console.error("[TC_TRACK] Error in ambient filter:", e, a);
+              return false;
+            }
+          })
+          .map(agent => {
+            try {
+              return {
+                id: `ambient-${agent.agent_id}-${Date.now()}`,
+                type: 'agent',
+                speaker: agent.name || 'Agent',
+                role: agent.role || 'Agent',
+                content: AMBIENT_LINES[agent.agent_id.toLowerCase()] || 'Silence in the lounge.',
+                timestamp: new Date(),
+                status: 'done',
+                avatar: AGENT_IMAGE_MAP[agent.agent_id.toLowerCase()]
+              };
+            } catch (e) {
+              console.error("[TC_TRACK] Error in ambient map:", e, agent);
+              throw e;
+            }
+          });
+        setChats(prev => {
+          const base = prev['lounge'];
+          if (!base) return prev;
+          return {
+            ...prev,
+            'lounge': { ...base, messages: ambientMessages }
+          };
+        });
+      }
+    } catch (e) {
+      console.error("[TerminalContext] Lounge sync crash:", e);
     }
   }, [agents, activeChatId]);
 
   // Sync actions channel
   useEffect(() => {
     if (activeChatId === 'agents-coordination' && actions.length > 0) {
-      const opMessages: Message[] = actions.slice(0, 20).map(action => ({
-        id: `op-${action.id}`,
-        type: 'agent',
-        speaker: action.agent_name,
-        role: AGENT_ROLE_MAP[action.agent_name.toLowerCase()] || 'Agent',
-        content: `Ack: ${action.action_type}. Status: ${action.approval_status || 'Executing'}`,
-        timestamp: new Date(action.timestamp),
-        status: 'done',
-        avatar: AGENT_IMAGE_MAP[action.agent_name.toLowerCase()]
-      }));
-      setChats(prev => ({
-        ...prev,
-        'agents-coordination': { ...prev['agents-coordination'], messages: opMessages }
-      }));
+      const opMessages: Message[] = actions.slice(0, 20).map(action => {
+        const agentKey = String(action.agent_name || 'agent').toLowerCase();
+        return {
+          id: `op-${action.id}`,
+          type: 'agent',
+          speaker: action.agent_name || 'Agent',
+          role: AGENT_ROLE_MAP[agentKey] || 'Agent',
+          content: `Ack: ${action.action_type || 'Action'}. Status: ${action.approval_status || 'Executing'}`,
+          timestamp: new Date(action.timestamp),
+          status: 'done',
+          avatar: AGENT_IMAGE_MAP[agentKey]
+        };
+      });
+      setChats(prev => {
+        const base = prev['agents-coordination'];
+        if (!base) return prev;
+        return {
+          ...prev,
+          'agents-coordination': { ...base, messages: opMessages }
+        };
+      });
     }
   }, [actions, activeChatId]);
 
@@ -399,7 +434,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       }
     }
 
-    const targetAgentId = targetAgentIdCandidate.toLowerCase();
+    const targetAgentId = String(targetAgentIdCandidate || 'alfredo').toLowerCase();
 
     // 3. Add typing indicator (agent message placeholder)
     const agentMessageId = `agent-${Date.now()}`;

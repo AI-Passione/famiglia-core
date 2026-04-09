@@ -54,7 +54,7 @@ export function Intelligences() {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => 
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.content || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       Object.entries(item.properties || {}).some(([_, val]) => String(val).toLowerCase().includes(searchQuery.toLowerCase()))
     );
@@ -292,7 +292,7 @@ export function Intelligences() {
                       <div>
                         <span className="text-[10px] font-black font-label text-tertiary uppercase tracking-widest mb-1 block">AI-Generated Intelligence Summary</span>
                         <p className="text-sm text-on-surface-variant font-body leading-relaxed italic">
-                          {selectedItem.summary || `This ${selectedItem.item_type?.replace('_', ' ')} focuses on ${selectedItem.title.toLowerCase()}. Key patterns indicate significant market movement. Recommended action: Deep-dive into technical layer.`}
+                          {selectedItem.summary || `This ${selectedItem.item_type?.replace('_', ' ')} focuses on ${(selectedItem.title || "this item").toLowerCase()}. Key patterns indicate significant market movement. Recommended action: Deep-dive into technical layer.`}
                         </p>
                       </div>
                     </div>

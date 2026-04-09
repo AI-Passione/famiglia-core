@@ -23,7 +23,8 @@ function FeedItem({ action, priority }: FeedItemProps) {
   const time = new Date(action.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   
   const handleRespond = () => {
-    const channelId = AGENT_TO_CHANNEL[action.agent_name.toLowerCase()] || 'command-center';
+    const agentName = action.agent_name || 'agent';
+    const channelId = AGENT_TO_CHANNEL[agentName.toLowerCase()] || 'command-center';
     setActiveChatId(channelId);
     setTerminalOpen(true);
   };

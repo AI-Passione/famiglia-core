@@ -831,9 +831,9 @@ export function Agenda({
             </div>
             <div className="mt-4 space-y-3">
               {agents.map((agent) => {
-                const load = upcomingTasks.filter((entry) => entry.agent?.toLowerCase() === agent.name.toLowerCase()).length;
+                const load = upcomingTasks.filter((entry) => entry.agent?.toLowerCase() === (agent.name || "").toLowerCase()).length;
                 const recurringLoad = recurringThisWeek.filter(
-                  (entry) => entry.agent?.toLowerCase() === agent.name.toLowerCase(),
+                  (entry) => entry.agent?.toLowerCase() === (agent.name || "").toLowerCase(),
                 ).length;
 
                 return (

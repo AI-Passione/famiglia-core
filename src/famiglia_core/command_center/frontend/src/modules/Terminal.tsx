@@ -100,7 +100,10 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
     );
   };
 
-  if (!activeChat) return <div className="p-10 text-center text-outline">Initializing secure connection...</div>;
+  if (!activeChat || !activeChat.messages) return <div className="p-10 text-center text-outline">Initializing secure connection...</div>;
+
+  const chatName = activeChat.name || 'Unknown Channel';
+  const chatIcon = activeChat.icon || '❔';
 
   return (
     <div className={`flex bg-surface-container-lowest/10 backdrop-blur-md overflow-hidden ${variant === 'full' ? 'h-full' : 'h-[600px] w-full'}`}>
@@ -183,10 +186,10 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
         <header className="px-6 py-4 border-b border-outline/5 flex items-center justify-between bg-surface-container-lowest/40 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/30 shadow-[0_0_15px_rgba(255,179,181,0.1)]">
-              <span className="text-xl">{activeChat.icon}</span>
+              <span className="text-xl">{chatIcon}</span>
             </div>
             <div>
-              <h1 className="font-headline text-lg italic tracking-tight text-on-surface">#{activeChat.name}</h1>
+              <h1 className="font-headline text-lg italic tracking-tight text-on-surface">#{chatName}</h1>
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
                 <span className="text-[10px] uppercase font-label tracking-widest text-outline">Channel Synchronized</span>
@@ -219,7 +222,7 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
           data-testid="terminal-scroll-container"
           className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative"
         >
-          {activeChat.messages.filter(m => !m.parent_id).map((msg, i) => {
+          {(activeChat.messages || []).filter(Boolean).filter(m => !m.parent_id).map((msg, i) => {
             const isUser = msg.type === 'user';
             return (
               <motion.div 
@@ -296,7 +299,7 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder={`Compose directive for #${activeChat.name}...`}
+              placeholder={`Compose directive for #${chatName}...`}
               className="w-full bg-surface-container/30 border border-outline/10 rounded-2xl p-4 pr-32 focus:ring-0 focus:border-primary/30 transition-all text-[13px] leading-relaxed resize-none custom-scrollbar min-h-[64px] max-h-[200px] placeholder:text-outline-variant"
               rows={1}
             />

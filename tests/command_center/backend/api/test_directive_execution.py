@@ -80,3 +80,18 @@ def test_execute_directive_message_logging(mock_store):
     _, kwargs = mock_store.log_message.call_args
     assert kwargs["agent_name"] == "riccardo"
     assert "Understood" in kwargs["content"]
+
+@patch("famiglia_core.command_center.backend.api.routes.operations.graph_parser")
+def test_get_graphs_discovery(mock_parser):
+    """Test that the discovery endpoint returns graphs from the parser."""
+    mock_parser.parse_all_graphs.return_value = [
+        {"id": "test_graph", "name": "Test Graph", "category": "Testing"}
+    ]
+    
+    response = client.get("/api/v1/operations/graphs")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == "test_graph"
+    assert data[0]["category"] == "Testing"

@@ -70,16 +70,15 @@ describe('SituationRoom Component & New Widgets', () => {
       </TerminalProvider>
     );
 
-    // InsightsTicker should be present
-    expect(screen.getByText('Market & Intel Pulse')).toBeDefined();
-    
-    // LatestMissions should be present
+    // Pulse BANs should be present
+    expect(screen.getByText('Pulse')).toBeDefined();
+
+    // Mission Outcomes (now inside OpsPulse) should be present
     expect(screen.getByText('Mission Outcomes')).toBeDefined();
     expect(screen.getByText('Clean DB')).toBeDefined();
     
-    // OperationsHub should be present
-    expect(screen.getByText('Actionable Directives')).toBeDefined();
-    expect(screen.getByText('Cleanup Operations')).toBeDefined();
+    // OperationsHub (Awaiting Your Decision + Execute Directive sections)
+    expect(screen.getByText('Execute Directive')).toBeDefined();
     
     // IntelligenceFeed should be present
     expect(screen.getByText(/Intelligence Feed/i)).toBeDefined();

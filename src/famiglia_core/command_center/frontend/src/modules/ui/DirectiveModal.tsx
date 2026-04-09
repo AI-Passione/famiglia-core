@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GraphDefinition } from '../../types';
+import type { GraphDefinition } from '../../types';
 import { API_BASE } from '../../config';
 import { useToast } from './ToastProvider';
 

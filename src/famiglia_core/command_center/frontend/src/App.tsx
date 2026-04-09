@@ -18,7 +18,6 @@ import { Operations } from './modules/Operations';
 import { Settings } from './modules/Settings';
 import { Famiglia } from './modules/Famiglia';
 import { Terminal } from './modules/Terminal';
-import { DirectivesTerminal } from './modules/ui/DirectivesTerminal';
 import { TerminalProvider } from './modules/TerminalContext';
 import { ToastProvider } from './modules/ui/ToastProvider';
 import { DirectiveModal } from './modules/ui/DirectiveModal';

@@ -346,7 +346,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
     }
   }, [agents, activeChatId]);
 
-  // Sync actions channel
+  // Sync actions channel (Operational Pulse)
   useEffect(() => {
     if (activeChatId === 'agents-coordination' && actions.length > 0) {
       const opMessages: Message[] = actions.slice(0, 20).map(action => {
@@ -362,12 +362,31 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
           avatar: AGENT_IMAGE_MAP[agentKey]
         };
       });
+
       setChats(prev => {
         const base = prev['agents-coordination'];
         if (!base) return prev;
+
+        // Merge Strategy:
+        // 1. Keep all non-operational messages (dialogue, external, manual)
+        // 2. Filter out old operational messages to refresh with new ones
+        // 3. Combine and sort by timestamp
+        const dialogueMessages = base.messages.filter(m => !m.id.startsWith('op-'));
+        const combined = [...dialogueMessages, ...opMessages]
+          .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+        // Deduplicate by content and timestamp to avoid flickering
+        const seen = new Set();
+        const dedupedByContent = combined.filter(m => {
+          const key = `${m.speaker}:${m.content}:${m.timestamp.getTime()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
         return {
           ...prev,
-          'agents-coordination': { ...base, messages: opMessages }
+          'agents-coordination': { ...base, messages: dedupedByContent }
         };
       });
     }

@@ -103,22 +103,24 @@ async def execute_directive(request: AdHocDirectiveRequest):
     if not task:
         raise HTTPException(status_code=500, detail="Failed to initiate directive")
 
-    # 4. Log immediate acknowledgement to the Coordination Channel for terminal history
-    conversation_key = "agents-coordination" 
+    # 4. Log immediate acknowledgement to BOTH Command Center and Coordination Channel
+    # This ensures visibility in the main feed and the technical audit log
+    channels = ["web:web-dashboard:command-center:0", "web:web-dashboard:agents-coordination:0"]
     ack_content = f"Directive received, Don Jimmy. I am initiating the {graph_id or 'requested task'} immediately. I'll report back once the intel is gathered."
     if agent_id == "riccardo":
         ack_content = "Understood. Deploying optimized directive now. Don't worry about the results, they will be flawless."
     elif agent_id == "kowalski":
         ack_content = "Received. The data vectors are aligning. I'll have the analysis ready shortly."
 
-    context_store.log_message(
-        agent_name=agent_id,
-        conversation_key=conversation_key,
-        role="agent",
-        content=ack_content,
-        sender=agent_id.capitalize(),
-        metadata={"task_id": task["id"], "type": "mission_dispatch"}
-    )
+    for channel_key in channels:
+        context_store.log_message(
+            agent_name=agent_id,
+            conversation_key=channel_key,
+            role="agent",
+            content=ack_content,
+            sender=agent_id.capitalize(),
+            metadata={"task_id": task["id"], "type": "mission_dispatch"}
+        )
 
     return ExecutionResponse(
         task_id=task["id"],
@@ -279,19 +281,20 @@ async def execute_graph(graph_id: str, request: Request):
     if not task:
         raise HTTPException(status_code=500, detail="Failed to initiate Operations execution task")
 
-    # 3. Log acknowledgement to the Coordination Channel
+    # 3. Log acknowledgement to BOTH channels for visibility and audit
     agent_id = resolve_agent(graph_id, None)
-    conversation_key = "agents-coordination"
+    channels = ["web:web-dashboard:command-center:0", "web:web-dashboard:agents-coordination:0"]
     ack_content = f"Mission {graph_id} dispatched, Don Jimmy. I am overseeing the execution."
     
-    context_store.log_message(
-        agent_name=agent_id,
-        conversation_key=conversation_key,
-        role="agent",
-        content=ack_content,
-        sender=agent_id.capitalize(),
-        metadata={"task_id": task["id"], "type": "mission_dispatch"}
-    )
+    for channel_key in channels:
+        context_store.log_message(
+            agent_name=agent_id,
+            conversation_key=channel_key,
+            role="agent",
+            content=ack_content,
+            sender=agent_id.capitalize(),
+            metadata={"task_id": task["id"], "type": "mission_dispatch"}
+        )
 
     return ExecutionResponse(
         task_id=task["id"],

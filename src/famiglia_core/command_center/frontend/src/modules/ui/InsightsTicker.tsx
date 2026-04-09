@@ -13,7 +13,9 @@ export function InsightsTicker() {
         const res = await fetch(`${API_BASE}/insights?limit=10`);
         if (res.ok) {
           const data = await res.json();
-          setInsights(data);
+          setInsights(Array.isArray(data) ? data : []);
+        } else {
+          setInsights([]);
         }
       } catch (err) {
         console.error('Failed to fetch insights', err);

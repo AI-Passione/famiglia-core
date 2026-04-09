@@ -218,6 +218,7 @@ function App() {
                       agents={agents} 
                       actions={actions} 
                       tasks={tasks} 
+                      graphs={graphs}
                       honorific={settings.honorific}
                     />
                   } 

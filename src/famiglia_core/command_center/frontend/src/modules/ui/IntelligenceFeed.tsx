@@ -63,22 +63,27 @@ interface IntelligenceFeedProps {
 }
 
 export function IntelligenceFeed({ actions }: IntelligenceFeedProps) {
+  const displayActions = actions.slice(0, 5);
+  
   return (
-    <div className="col-span-12 lg:col-span-4 space-y-6">
-      <div className="bg-surface-container-low p-6 h-full flex flex-col">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-headline text-xl text-on-surface">Intelligence Feed</h3>
+    <div className="col-span-12 lg:col-span-4 h-[calc(100vh-200px)] sticky top-6">
+      <div className="bg-surface-container-low p-6 h-full flex flex-col border border-white/5 rounded-2xl shadow-xl">
+        <div className="flex justify-between items-center mb-6 shrink-0">
+          <h3 className="font-headline text-xl text-on-surface flex items-center gap-2">
+            Intelligence Feed
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+          </h3>
           <span className="material-symbols-outlined text-outline">sensors</span>
         </div>
         <div className="flex-1 space-y-6 overflow-y-auto pr-2 custom-scrollbar">
           <AnimatePresence>
-            {actions.map((action, idx) => (
+            {displayActions.map((action, idx) => (
               <FeedItem key={action.id} action={action} priority={idx === 0 || idx === 3} />
             ))}
           </AnimatePresence>
-          {actions.length === 0 && <p className="font-label text-xs text-outline text-center py-10">No recent intelligence.</p>}
+          {displayActions.length === 0 && <p className="font-label text-xs text-outline text-center py-10">No recent intelligence.</p>}
         </div>
-        <button className="mt-6 w-full py-2 border border-outline/20 font-label text-[10px] uppercase tracking-widest text-outline hover:text-primary hover:border-primary/50 transition-all">
+        <button className="mt-6 w-full py-3 border border-outline/20 rounded-xl font-label text-[10px] uppercase tracking-widest text-outline hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all shrink-0">
           View Archives
         </button>
       </div>

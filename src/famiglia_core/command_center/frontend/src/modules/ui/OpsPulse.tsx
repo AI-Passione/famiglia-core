@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import type { Task } from '../../types';
 
 // ─── Heartbeat SVG (ECG / hospital-monitor style) ───────────────────────────
@@ -48,18 +47,6 @@ const FEATURE_GRAPH_IDS = new Set([
   'milestone_creation',
 ]);
 
-// Map graph → which Intelligence page tab it belongs to
-const GRAPH_TO_INTEL_TAB: Record<string, string> = {
-  market_research:      'research',
-  deep_dive_analysis:   'research',
-  simple_data_analysis: 'analytics',
-  data_ingestion:       'analytics',
-  prd_drafting:         'projects',
-  prd_review:           'projects',
-  grooming:             'projects',
-  code_implementation:  'projects',
-  milestone_creation:   'projects',
-};
 
 // ─── Stat BAN ────────────────────────────────────────────────────────────────
 interface PulseStatProps {
@@ -90,8 +77,6 @@ interface OpsPulseProps {
 }
 
 export function OpsPulse({ completedTasks, scheduledTasks, failedTasks, tasks }: OpsPulseProps) {
-  const navigate = useNavigate();
-
   // Filter to feature-graph tasks only — greetings & generic tasks are excluded
   // Tasks triggered by graphs carry metadata.graph_id; fall back to title keyword match
   const featureTasks = (tasks || [])
@@ -115,10 +100,9 @@ export function OpsPulse({ completedTasks, scheduledTasks, failedTasks, tasks }:
     })
     .slice(0, 5);
 
-  const handleViewIntel = (task: Task) => {
-    const gid = (task.metadata as any)?.graph_id as string | undefined;
-    const tab = (gid && GRAPH_TO_INTEL_TAB[gid]) || 'research';
-    navigate(`/intelligences?tab=${tab}`);
+  const handleViewIntel = (_task: Task) => {
+    // Intelligence is a standalone page opened externally, matching the Sidebar behaviour
+    window.open('/intelligence.html', '_blank');
   };
 
   return (

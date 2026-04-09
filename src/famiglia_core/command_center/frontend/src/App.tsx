@@ -21,6 +21,7 @@ import { Terminal } from './modules/Terminal';
 import { DirectivesTerminal } from './modules/ui/DirectivesTerminal';
 import { TerminalProvider } from './modules/TerminalContext';
 import { ToastProvider } from './modules/ui/ToastProvider';
+import { NotificationProvider } from './modules/NotificationContext';
 import { DirectiveModal } from './modules/ui/DirectiveModal';
 import { API_BASE } from './config';
 
@@ -203,7 +204,8 @@ function App() {
 
   return (
     <ToastProvider>
-      <TerminalProvider>
+      <NotificationProvider>
+        <TerminalProvider>
         <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary/30">
         <TopNav />
         <div className="flex">
@@ -286,6 +288,7 @@ function App() {
         <div className="fixed left-72 top-16 w-[1px] h-full bg-[#1c1b1b] z-30"></div>
       </div>
       </TerminalProvider>
+      </NotificationProvider>
     </ToastProvider>
   );
 }

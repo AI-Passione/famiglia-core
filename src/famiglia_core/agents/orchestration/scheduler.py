@@ -210,6 +210,25 @@ class TaskOrchestrator:
                 result_summary=(result or "")[:8000] if not is_failed else None,
                 error_details=(error_details or (result or "")[:2000]) if is_failed else None,
             )
+
+            # 5. Log final confirmation to Command Center terminal for visibility
+            channels = ["web:web-dashboard:command-center:0", "web:web-dashboard:agents-coordination:0"]
+            conf_msg = f"Mission Accomplished, Don Jimmy. Task #{task.id} ({task.title}) is now {status.upper()}."
+            if not is_failed:
+                conf_msg += f"\n\nIntel: {safe_result[:300]}..."
+            else:
+                conf_msg += f"\n\nIssue detected: {error_details[:300] if error_details else 'Execution failed.'}"
+
+            for channel_key in channels:
+                context_store.log_message(
+                    agent_name=assignee_id,
+                    conversation_key=channel_key,
+                    role="agent",
+                    content=conf_msg,
+                    sender=assignee_id.capitalize(),
+                    metadata={"task_id": task.id, "type": "mission_completion", "status": status}
+                )
+
             print(f"[TaskOrchestrator::Worker] Finished task #{task.id} (status={status})")
 
         except Exception as e:

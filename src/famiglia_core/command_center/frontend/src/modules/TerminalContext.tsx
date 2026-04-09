@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react';
 import type { FamigliaAgent, ActionLog } from '../types';
 import { API_BASE, BACKEND_BASE } from '../config';
+import { useNotifications } from './NotificationContext';
 
 // --- Shared Constants & Types ---
 
@@ -195,6 +196,9 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
 
   const activeChat = chats[activeChatId];
 
+  const { addNotification } = useNotifications();
+  const processedRef = useRef<Set<number>>(new Set());
+
   // Fetch initial data (Agents & Actions)
   useEffect(() => {
     const fetchData = async () => {
@@ -220,6 +224,92 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Live polling for new messages (Real-time sync for background completion)
+  useEffect(() => {
+    const pollMessages = async () => {
+      const currentChatId = activeChatIdRef.current;
+      if (!currentChatId || currentChatId === 'lounge' || currentChatId === 'agents-coordination') return;
+
+      try {
+        const res = await fetch(`${API_BASE}/chat/history?thread_id=${currentChatId}&limit=10`);
+        if (res.ok) {
+          const history = await res.json();
+          if (!history || history.length === 0) return;
+
+          const newMessagesFromBackend: any[] = [];
+          
+          history.forEach((msg: any) => {
+            if (msg.id && !processedRef.current.has(msg.id)) {
+              processedRef.current.add(msg.id);
+              
+              const senderLower = String(msg.sender || "").toLowerCase();
+              const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
+              if (isUser) return; // Ignore user messages for notifications, they're handled locally
+
+              // Map to frontend message
+              const targetSpeaker = msg.sender || 'Agent';
+              const mappingKey = String(targetSpeaker).split('(')[0].trim().toLowerCase();
+              const targetAvatar = AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP['alfredo'];
+
+              const mapped: Message = {
+                id: `poll-${currentChatId}-${msg.id}-${Date.now()}`,
+                db_id: msg.id,
+                type: 'agent',
+                speaker: targetSpeaker,
+                role: msg.role || 'Agent',
+                content: msg.content,
+                timestamp: new Date(msg.created_at || Date.now()),
+                status: 'done',
+                avatar: targetAvatar,
+                parent_id: msg.parent_id
+              };
+              
+              newMessagesFromBackend.push(mapped);
+
+              // CHECK FOR COMPLETION NOTIFICATION
+              if (msg.metadata && msg.metadata.type === 'mission_completion') {
+                 addNotification(
+                   "Mission Accomplished",
+                   mapped.content.split('\n')[0], // Use first line for title/summary
+                   msg.metadata.status === 'failed' ? 'error' : 'success',
+                   msg.metadata.task_id
+                 );
+              }
+            } else if (msg.id) {
+              processedRef.current.add(msg.id);
+            }
+          });
+
+          if (newMessagesFromBackend.length > 0) {
+            setChats(prev => {
+              const chat = prev[currentChatId];
+              if (!chat) return prev;
+              
+              // Only add messages that aren't already in the local state (by db_id)
+              const existingDbIds = new Set(chat.messages.map(m => m.db_id).filter(Boolean));
+              const uniqueNew = newMessagesFromBackend.filter(m => !existingDbIds.has(m.db_id));
+              
+              if (uniqueNew.length === 0) return prev;
+              
+              return {
+                ...prev,
+                [currentChatId]: {
+                  ...chat,
+                  messages: [...chat.messages, ...uniqueNew].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+                }
+              };
+            });
+          }
+        }
+      } catch (e) {
+        console.error("[TerminalContext] Polling failed:", e);
+      }
+    };
+
+    const pollInterval = setInterval(pollMessages, 5000);
+    return () => clearInterval(pollInterval);
+  }, [addNotification]);
 
   // Fetch history (Rehydration)
   useEffect(() => {

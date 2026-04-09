@@ -8,9 +8,6 @@ import React from 'react';
 vi.mock('@/modules/Agenda', () => ({
   Agenda: () => <div data-testid="agenda-page">Agenda Page</div>
 }));
-vi.mock('@/modules/SituationRoom', () => ({
-  SituationRoom: () => <div data-testid="situation-room">Situation Room</div>
-}));
 vi.mock('@/modules/EngineRoom', () => ({
   EngineRoom: () => <div data-testid="engine-room-page">Engine Room</div>
 }));
@@ -216,9 +213,9 @@ describe('App Component', () => {
     );
 
     // If it handled it safely, the Situation Room structure still renders without crashing.
-    // The "Actionable Directives" header comes from OperationsHub.
+    // The "Execute Directive" header comes from OperationsHub.
     await waitFor(() => {
-      expect(screen.getByText('Actionable Directives')).toBeDefined();
+      expect(screen.getAllByText('Execute Directive').length).toBeGreaterThan(0);
     });
     
     // There should be a "No pending directives" or "Awaiting Intel..." message since it's empty

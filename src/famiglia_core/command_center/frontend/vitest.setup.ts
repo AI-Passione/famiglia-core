@@ -100,6 +100,9 @@ vi.mock('framer-motion', async () => {
       main: mockComponent('main'),
       svg: mockComponent('svg'),
       path: mockComponent('path'),
+      circle: mockComponent('circle'),
+      rect: mockComponent('rect'),
+      line: mockComponent('line'),
     },
     AnimatePresence: ({ children }: any) => React.createElement(React.Fragment, null, children),
   };

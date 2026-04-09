@@ -18,7 +18,7 @@ export function SituationRoom({ actions, tasks, graphs = [], honorific }: Situat
   const failedTasks = (tasks || []).filter(t => t?.status === 'failed').length;
 
   return (
-    <>
+    <div data-testid="situation-room">
       <HeroSection honorific={honorific} />
       <div className="grid grid-cols-12 gap-6 items-start">
         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
@@ -33,6 +33,6 @@ export function SituationRoom({ actions, tasks, graphs = [], honorific }: Situat
         </div>
         <IntelligenceFeed actions={actions} />
       </div>
-    </>
+    </div>
   );
 }

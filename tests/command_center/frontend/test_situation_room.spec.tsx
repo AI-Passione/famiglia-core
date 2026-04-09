@@ -5,29 +5,12 @@ import { TerminalProvider } from '@/modules/TerminalContext';
 import React from 'react';
 import type { Task, ActionLog, GraphDefinition } from '@/types';
 
-// Mock charts if any complex libs are used, but we are using pure tailwind/framer-motion
-vi.mock('framer-motion', async () => {
-  const actual = await vi.importActual('framer-motion');
-  return {
-    ...actual,
-    AnimatePresence: ({ children }: any) => <>{children}</>,
-    motion: {
-      div: require('react').forwardRef(({ children, ...props }: any, ref: any) => {
-        const { initial, animate, exit, transition, ...rest } = props;
-        return <div ref={ref} {...rest}>{children}</div>;
-      }),
-      button: require('react').forwardRef(({ children, ...props }: any, ref: any) => {
-        const { initial, animate, exit, transition, ...rest } = props;
-        return <button ref={ref} {...rest}>{children}</button>;
-      }),
-    },
-  };
-});
+// Mocking of framer-motion is handled globally in vitest.setup.ts
 
 describe('SituationRoom Component & New Widgets', () => {
   const mockTasks: Task[] = [
-    { id: 1, title: 'Clean DB', task_payload: 'Remove orphans', status: 'completed', priority: 'high', created_at: new Date().toISOString(), result_summary: 'DB is clean' },
-    { id: 2, title: 'Scrape Web', task_payload: 'Gather intel', status: 'failed', priority: 'low', created_at: new Date().toISOString() },
+    { id: 1, title: 'Database Analysis', task_payload: 'Remove orphans', status: 'completed', priority: 'high', created_at: new Date().toISOString(), result_summary: 'DB is clean' },
+    { id: 2, title: 'Market Research', task_payload: 'Gather intel', status: 'failed', priority: 'low', created_at: new Date().toISOString() },
   ];
   const mockActions: ActionLog[] = [
     { id: 1, timestamp: new Date().toISOString(), agent_name: 'alfredo', action_type: 'System optimized', action_details: null, approval_status: null, completed_at: null, cost_usd: 0, duration_seconds: 0 },
@@ -75,10 +58,10 @@ describe('SituationRoom Component & New Widgets', () => {
 
     // Mission Outcomes (now inside OpsPulse) should be present
     expect(screen.getByText('Mission Outcomes')).toBeDefined();
-    expect(screen.getByText('Clean DB')).toBeDefined();
+    expect(screen.getByText('Database Analysis')).toBeDefined();
     
     // OperationsHub (Awaiting Your Decision + Execute Directive sections)
-    expect(screen.getByText('Execute Directive')).toBeDefined();
+    expect(screen.getAllByText('Execute Directive').length).toBeGreaterThan(0);
     
     // IntelligenceFeed should be present
     expect(screen.getByText(/Intelligence Feed/i)).toBeDefined();

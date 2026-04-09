@@ -329,3 +329,11 @@ export interface IntelligenceItem {
   created_at: string;
   updated_at: string;
 }
+
+export interface InsightSummary {
+  id: number;
+  title: string;
+  rossini_tldr?: string | null;
+  relevance: string;
+  processed_at?: string | null;
+}

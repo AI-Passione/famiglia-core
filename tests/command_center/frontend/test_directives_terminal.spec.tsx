@@ -96,6 +96,37 @@ describe('DirectivesTerminal Component', () => {
     expect((textarea as HTMLTextAreaElement).value).toBe('Hello Alfredo');
   });
 
+  it('can switch channels in compact mode using the dropdown', async () => {
+    await renderWithProvider(<DirectivesTerminal />);
+    await act(async () => {
+      // Open terminal
+      fireEvent.click(screen.getByText('Directives Terminal').closest('button')!);
+    });
+
+    // It should load into #command-center by default
+    const channelHeader = await screen.findByRole('heading', { name: /#command-center/i });
+    expect(channelHeader).toBeDefined();
+
+    // Click the channel header to open dropdown
+    await act(async () => {
+      fireEvent.click(channelHeader);
+    });
+
+    // The dropdown should appear and contain "tech" channel
+    const techChannelOption = await screen.findByText('tech');
+    expect(techChannelOption).toBeDefined();
+
+    // Click on the tech channel to switch
+    await act(async () => {
+      fireEvent.click(techChannelOption.closest('button')!);
+    });
+
+    // The channel header should now update to #tech
+    await waitFor(() => {
+      expect(screen.getByText(/#tech/i)).toBeDefined();
+    });
+  });
+
   describe('Threading', () => {
     it('opens the thread panel when reply is clicked on a message with db_id', async () => {
       // Mock fetch to provide a message with a db_id during rehydration

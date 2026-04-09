@@ -231,10 +231,9 @@ function App() {
                   path="/situation_room" 
                   element={
                     <SituationRoom 
-                      actions={actions} 
-                      tasks={tasks} 
-                      graphs={graphs}
-                      honorific={settings.honorific}
+                      actions={actions}
+                      tasks={tasks}
+                      honorific={settings?.famigliaName || "Don Jimmy"}
                       onExecuteDirective={() => setDirectiveModalOpen(true)}
                     />
                   } 

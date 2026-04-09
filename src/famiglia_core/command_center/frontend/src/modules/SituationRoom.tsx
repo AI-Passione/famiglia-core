@@ -1,19 +1,17 @@
-import type { Action, Task, GraphDefinition } from '../types';
+import type { Action, Task } from '../types';
 import { HeroSection } from './ui/HeroSection';
 import { OpsPulse } from './ui/OpsPulse';
 import { IntelligenceFeed } from './ui/IntelligenceFeed';
 import { InsightsTicker } from './ui/InsightsTicker';
-import { OperationsHub } from './ui/OperationsHub';
 
 interface SituationRoomProps {
   actions: Action[];
   tasks: Task[];
-  graphs?: GraphDefinition[];
   honorific: string;
   onExecuteDirective: () => void;
 }
 
-export function SituationRoom({ actions, tasks, graphs = [], honorific, onExecuteDirective }: SituationRoomProps) {
+export function SituationRoom({ actions, tasks, honorific, onExecuteDirective }: SituationRoomProps) {
   const completedTasks = (tasks || []).filter(t => t?.status === 'completed' || t?.status === 'success').length;
   const scheduledTasks = (tasks || []).filter(t => t?.status === 'pending').length;
   const failedTasks = (tasks || []).filter(t => t?.status === 'failed').length;
@@ -29,7 +27,6 @@ export function SituationRoom({ actions, tasks, graphs = [], honorific, onExecut
             failedTasks={failedTasks}
             tasks={tasks}
           />
-          <OperationsHub graphs={graphs} onExecuteDirective={onExecuteDirective} />
           <InsightsTicker />
         </div>
         <IntelligenceFeed actions={actions} />

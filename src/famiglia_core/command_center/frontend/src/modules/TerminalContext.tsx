@@ -42,6 +42,7 @@ interface TerminalContextType {
   isTyping: boolean;
   isTerminalOpen: boolean;
   setTerminalOpen: (open: boolean) => void;
+  addExternalAgentMessage: (content: string, agentId: string, chatId?: string) => void;
 }
 
 const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
@@ -553,6 +554,32 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       }));
     }
   };
+  
+  const addExternalAgentMessage = (content: string, agentId: string, chatId: string = 'command-center') => {
+    const aid = agentId.toLowerCase();
+    const msg: Message = {
+      id: `ext-${Date.now()}`,
+      type: 'agent',
+      speaker: aid.charAt(0).toUpperCase() + aid.slice(1),
+      role: AGENT_ROLE_MAP[aid] || 'Agent',
+      content,
+      timestamp: new Date(),
+      status: 'done',
+      avatar: AGENT_IMAGE_MAP[aid] || AGENT_IMAGE_MAP['alfredo']
+    };
+    
+    setChats(prev => {
+      const chat = prev[chatId];
+      if (!chat) return prev;
+      return {
+        ...prev,
+        [chatId]: {
+          ...chat,
+          messages: [...chat.messages, msg]
+        }
+      };
+    });
+  };
 
   return (
     <TerminalContext.Provider value={{
@@ -568,7 +595,8 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       sendMessage,
       isTyping: activeChat?.isTyping || false,
       isTerminalOpen,
-      setTerminalOpen
+      setTerminalOpen,
+      addExternalAgentMessage
     }}>
       {children}
     </TerminalContext.Provider>

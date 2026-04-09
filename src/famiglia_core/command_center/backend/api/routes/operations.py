@@ -25,6 +25,8 @@ class MissionLog(BaseModel):
 class ExecutionResponse(BaseModel):
     task_id: int
     message: str
+    acknowledgement: Optional[str] = None
+    agent_id: Optional[str] = None
 
 class AdHocDirectiveRequest(BaseModel):
     graph_id: Optional[str] = None
@@ -146,7 +148,9 @@ async def execute_directive(request: AdHocDirectiveRequest):
 
     return ExecutionResponse(
         task_id=task["id"],
-        message=f"Directive assigned to {agent_id.capitalize()}. Tracking ID: ML-{task['id']:03d}"
+        message=f"Directive assigned to {agent_id.capitalize()}. Tracking ID: ML-{task['id']:03d}",
+        acknowledgement=ack_content,
+        agent_id=agent_id
     )
 
 @router.get("/graphs", response_model=List[GraphDefinition])
@@ -301,7 +305,23 @@ async def execute_graph(graph_id: str, request: Request):
     if not task:
         raise HTTPException(status_code=500, detail="Failed to initiate Operations execution task")
 
+    # Log acknowledgement for consistency
+    agent_id = resolve_agent(graph_id, None)
+    conversation_key = f"web:command-center:direct:0"
+    ack_content = f"Mission {graph_id} dispatched, Don Jimmy. I am overseeing the execution."
+    
+    context_store.log_message(
+        agent_name=agent_id,
+        conversation_key=conversation_key,
+        role="agent",
+        content=ack_content,
+        sender=agent_id.capitalize(),
+        metadata={"task_id": task["id"], "status": "typing"}
+    )
+
     return ExecutionResponse(
         task_id=task["id"],
-        message=f"Mission {graph_id} dispatched. Tracking ID: ML-{task['id']:03d}"
+        message=f"Mission {graph_id} dispatched. Tracking ID: ML-{task['id']:03d}",
+        acknowledgement=ack_content,
+        agent_id=agent_id
     )

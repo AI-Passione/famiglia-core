@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { GraphDefinition } from '../../types';
 import { API_BASE } from '../../config';
 import { useToast } from './ToastProvider';
+import { useTerminal } from '../TerminalContext';
 
 interface DirectiveModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
   const [isManualExpanded, setIsManualExpanded] = useState(false);
   const [executing, setExecuting] = useState(false);
   const { showToast } = useToast();
+  const { setTerminalOpen, addExternalAgentMessage } = useTerminal();
 
   const handleExecute = async () => {
     if (!selectedGraphId && !manualPrompt.trim()) return;
@@ -34,9 +36,17 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
         }),
       });
 
-      if (response.ok) {
+        if (response.ok) {
         const data = await response.json();
         showToast(data.message, 'success');
+        
+        // Instant Feedback: Add agent acknowledgement to terminal immediately
+        if (data.acknowledgement && data.agent_id) {
+          addExternalAgentMessage(data.acknowledgement, data.agent_id);
+        }
+        
+        // Immediate visual feedback: Pop up the terminal to show agent acknowledgement
+        setTerminalOpen(true);
         
         // Close modal after a short delay
         setTimeout(() => {

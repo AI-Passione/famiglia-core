@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
 
-export interface Notification {
+export interface AppNotification {
   id: string;
   title: string;
   message: string;
@@ -11,9 +11,9 @@ export interface Notification {
 }
 
 interface NotificationContextType {
-  notifications: Notification[];
+  notifications: AppNotification[];
   unreadCount: number;
-  addNotification: (title: string, message: string, type: Notification['type'], taskId?: number) => void;
+  addNotification: (title: string, message: string, type: AppNotification['type'], taskId?: number) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearNotifications: () => void;
@@ -22,10 +22,10 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
-  const addNotification = (title: string, message: string, type: Notification['type'], taskId?: number) => {
-    const fresh: Notification = {
+  const addNotification = (title: string, message: string, type: AppNotification['type'], taskId?: number) => {
+    const fresh: AppNotification = {
       id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       title,
       message,

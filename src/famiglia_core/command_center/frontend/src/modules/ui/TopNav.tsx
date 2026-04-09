@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNotifications, type Notification } from '../NotificationContext';
+import { useNotifications, type AppNotification } from '../NotificationContext';
 
 interface NavIconButtonProps {
   icon: string;
@@ -104,7 +104,7 @@ export function TopNav() {
                           <p className="font-body text-[10px] text-outline/40 italic">No recent intel reports.</p>
                         </div>
                       ) : (
-                        notifications.map((n: Notification) => (
+                        notifications.map((n: AppNotification) => (
                           <div 
                             key={n.id} 
                             className={`p-4 border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-default ${!n.read ? 'bg-[#ffb3b5]/[0.02]' : ''}`}

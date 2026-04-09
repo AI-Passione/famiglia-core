@@ -240,8 +240,9 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
           const newMessagesFromBackend: any[] = [];
           
           history.forEach((msg: any) => {
-            if (msg.id && !processedRef.current.has(msg.id)) {
-              processedRef.current.add(msg.id);
+            const backendId = Number(msg.id);
+            if (backendId && !processedRef.current.has(backendId)) {
+              processedRef.current.add(backendId);
               
               const senderLower = String(msg.sender || "").toLowerCase();
               const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
@@ -253,8 +254,8 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
               const targetAvatar = AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP['alfredo'];
 
               const mapped: Message = {
-                id: `poll-${currentChatId}-${msg.id}-${Date.now()}`,
-                db_id: msg.id,
+                id: `poll-${currentChatId}-${backendId}-${Date.now()}`,
+                db_id: backendId,
                 type: 'agent',
                 speaker: targetSpeaker,
                 role: msg.role || 'Agent',
@@ -276,8 +277,8 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
                    msg.metadata.task_id
                  );
               }
-            } else if (msg.id) {
-              processedRef.current.add(msg.id);
+            } else if (backendId) {
+              processedRef.current.add(backendId);
             }
           });
 

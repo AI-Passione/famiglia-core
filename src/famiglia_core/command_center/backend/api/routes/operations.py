@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Request
@@ -45,7 +46,7 @@ GRAPH_AGENT_MAP = {
 
 AGENT_KEYWORD_MAP = {
     "kowalski": ["data", "analytics", "stats", "bi", "metrics", "chart", "plot"],
-    "riccardo": ["code", "python", "devops", "sql", "db", "performance", "infrastructure", "bug"],
+    "riccardo": ["code", "python", "devops", "sql", "db", "database", "performance", "infrastructure", "bug"],
     "vito": ["finance", "money", "budget", "tax", "investment", "cost"],
     "rossini": ["research", "market", "strategy", "product", "intel"],
     "bella": ["schedule", "meeting", "docs", "notes", "project"],
@@ -59,8 +60,10 @@ def resolve_agent(graph_id: Optional[str], prompt: Optional[str]) -> str:
     if prompt:
         lower_prompt = prompt.lower()
         for agent, keywords in AGENT_KEYWORD_MAP.items():
-            if any(k in lower_prompt for k in keywords):
-                return agent
+            for k in keywords:
+                # Use word boundaries to avoid matching substrings (e.g., 'data' matching 'database')
+                if re.search(fr"\b{re.escape(k)}\b", lower_prompt):
+                    return agent
                 
     return "alfredo"
 

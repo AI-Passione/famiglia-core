@@ -83,7 +83,13 @@ def test_execute_directive_message_logging(mock_store):
 def test_get_graphs_discovery(mock_parser):
     """Test that the discovery endpoint returns graphs from the parser."""
     mock_parser.parse_all_graphs.return_value = [
-        {"id": "test_graph", "name": "Test Graph", "category": "Testing"}
+        {
+            "id": "test_graph", 
+            "name": "Test Graph", 
+            "category": "Testing",
+            "nodes": [],
+            "edges": []
+        }
     ]
     
     response = client.get("/api/v1/operations/graphs")

@@ -14,3 +14,4 @@ class AgentState(TypedDict, total=False):
     final_response: Optional[str]
     thread_ts: Optional[str]
     tool_trigger: Optional[Dict[str, Any]]  # Current tool being executed
+    metadata: Dict[str, Any]

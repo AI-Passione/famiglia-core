@@ -30,12 +30,22 @@ class SchedulingMasterSupervisor:
         """Node: Determine worker routing based on task_type."""
         task_data = state.get("metadata", {}).get("task_record")
         
-        if task_data and hasattr(task_data, 'task_type'):
-            tt = task_data.task_type
+        if task_data:
+            print(f"[{self.name}] SchedulingMasterSupervisor: Found task_record in metadata")
+            # Handle both object and dict (for JSON serialization compatibility)
+            if hasattr(task_data, 'task_type'):
+                tt = task_data.task_type
+            elif isinstance(task_data, dict):
+                # Use serialized metadata field from dict
+                task_meta = task_data.get("metadata") or {}
+                tt = task_meta.get("task_type") or "general"
+            else:
+                tt = "general"
         else:
+            print(f"[{self.name}] WARNING: SchedulingMasterSupervisor NO task_record found in metadata")
             tt = "general"
             
-        print(f"[{self.name}] SchedulingMasterSupervisor: TaskType is {tt}")
+        print(f"[{self.name}] SchedulingMasterSupervisor: Mapping routing for TaskType={tt}")
         
         # Explicit routing to workers
         if tt == "prd_drafting":

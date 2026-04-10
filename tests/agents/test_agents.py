@@ -102,3 +102,77 @@ def test_list_famiglia_agents_handles_query_failure():
         store = AgentContextStore()
 
         assert store.list_famiglia_agents() == []
+
+def test_agent_capability_registration(mock_agent_deps):
+    agent = BaseAgent(name="TestAgent", role="Tester", model_config={})
+    
+    # Test tool registration
+    def my_tool():
+        """My Tool Doc"""
+        pass
+    agent.register_tool("my_tool", my_tool)
+    assert "my_tool" in agent.tools
+    
+    # Test skill registration
+    def my_skill():
+        """My Skill Doc"""
+        pass
+    agent.register_skill("my_skill", my_skill)
+    assert "my_skill" in agent.skills
+    
+    # Test feature registration
+    def my_feature():
+        """My Feature Doc"""
+        pass
+    agent.register_feature("my_feature", my_feature)
+    assert "my_feature" in agent.features
+    
+    # Test aggregation
+    all_caps = agent.get_all_capabilities()
+    assert "my_tool" in all_caps
+    assert "my_skill" in all_caps
+    assert "my_feature" in all_caps
+
+def test_agent_check_capabilities_output(mock_agent_deps):
+    agent = BaseAgent(name="TestAgent", role="Tester", model_config={})
+    agent.register_tool("test_tool", lambda: None)
+    
+    output = agent.check_capabilities()
+    assert "Tools (Low-level Utilities):" in output
+    assert "test_tool" in output
+
+def test_agent_propose_action(mock_agent_deps):
+    agent = BaseAgent(name="TestAgent", role="Tester", model_config={})
+    agent.is_cautious_mode = True
+    
+    mock_agent_deps["audit"].log_action.return_value = "ACT-123"
+    
+    res = agent.propose_action("Run a dangerous command")
+    assert res is True
+    assert mock_agent_deps["audit"].log_action.called
+    assert mock_agent_deps["audit"].update_approval.called
+
+def test_agent_execute_scheduled_task_logic(mock_agent_deps):
+    from famiglia_core.agents.orchestration.utils.task_helpers import Task
+    agent = BaseAgent(name="TestAgent", role="Tester", model_config={})
+    
+    task = Task(
+        id=789,
+        title="Scheduled Test",
+        task_payload="echo 'hello'",
+        created_by_name="Jimmy",
+        metadata={"task_type": "market_research"}
+    )
+    
+    with patch("famiglia_core.agents.base_agent.setup_scheduling_supervisor_graph") as mock_setup_graph:
+        mock_graph = mock_setup_graph.return_value
+        # Ensure the final state includes conversation_key to satisfy _finalize_response
+        mock_graph.invoke.return_value = {
+            "final_response": "Scheduled task success",
+            "conversation_key": "test_conv",
+            "metadata": {}
+        }
+        
+        response = agent.execute_scheduled_task(task)
+        assert "Scheduled task success" in response
+        assert mock_setup_graph.called

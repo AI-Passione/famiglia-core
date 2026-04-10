@@ -148,3 +148,71 @@ def test_full_market_research_graph(mock_agent, mock_llm, mock_services):
         assert result["research_topic"] == "AI"
         assert result["search_success"] is True
         assert mock_services["intel_research"].create_item.called
+
+def test_market_research_extract_research_goal(mock_agent):
+    workflow = MarketResearchWorkflow(mock_agent)
+    
+    # 1. Situation Room format
+    assert workflow._extract_research_goal("Task... Client Specification: AI Agents") == "AI Agents"
+    
+    # 2. Boilerplate format
+    assert workflow._extract_research_goal("Executing graph market_research Quantum Computing") == "Quantum Computing"
+    
+    # 3. Fallback
+    assert workflow._extract_research_goal("Just a topic") == "Just a topic"
+    assert workflow._extract_research_goal("") == "General Market Research"
+
+def test_market_research_refine_search_query(mock_agent, mock_llm):
+    workflow = MarketResearchWorkflow(mock_agent)
+    mock_llm.return_value = ("refined query", "model")
+    
+    state = MarketResearchState(
+        research_topic="AI", 
+        last_error="No results",
+        search_query="AI",
+        search_retry_count=0,
+        task="Research AI",
+        search_results="", curated_markdown="", notion_page_id="", notion_url="", business_ideas="", slack_channel=""
+    )
+    
+    new_state = workflow.refine_search_query(state)
+    
+    assert new_state["search_query"] == "refined query"
+    assert new_state["search_retry_count"] == 1
+
+def test_market_research_perform_search_failure(mock_agent, mock_services):
+    workflow = MarketResearchWorkflow(mock_agent)
+    mock_services["search"].search.side_effect = Exception("Search API Down")
+    
+    state = MarketResearchState(
+        task="Test", 
+        research_topic="AI",
+        search_results="", curated_markdown="", notion_page_id="", notion_url="", business_ideas="", slack_channel=""
+    )
+    
+    new_state = workflow.perform_search(state)
+    
+    assert new_state["search_success"] is False
+    assert "Search API Down" in new_state["last_error"]
+
+def test_market_research_notify_slack(mock_agent, mock_llm, mock_services):
+    workflow = MarketResearchWorkflow(mock_agent)
+    mock_llm.return_value = ("### Ideas\n- **Idea 1**: [Link](http://test.com)", "model")
+    
+    state = MarketResearchState(
+        research_topic="AI",
+        business_ideas="Some ideas",
+        db_success=True,
+        slack_channel="C123",
+        task="Research AI",
+        search_results="", curated_markdown="", notion_page_id="", notion_url="", search_retry_count=0
+    )
+    
+    workflow.notify_slack(state)
+    
+    assert mock_services["slack_research"].post_message.called
+    msg = mock_services["slack_research"].post_message.call_args[1]["message"]
+    # Check simple formatting conversions
+    assert "*Ideas*" in msg
+    assert "*Idea 1*" in msg
+    assert "<http://test.com|Link>" in msg

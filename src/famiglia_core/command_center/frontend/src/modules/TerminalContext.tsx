@@ -197,7 +197,8 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
   const activeChat = chats[activeChatId];
 
   const { addNotification } = useNotifications();
-  const processedRef = useRef<Set<number>>(new Set());
+  const processedIdsRef = useRef<Set<number>>(new Set());
+  const notifiedIdsRef = useRef<Set<number>>(new Set());
 
   // Fetch initial data (Agents & Actions)
   useEffect(() => {
@@ -244,44 +245,55 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
           
           history.forEach((msg: any) => {
             const backendId = Number(msg.id);
-            if (backendId && !processedRef.current.has(backendId)) {
-              processedRef.current.add(backendId);
+            if (!backendId) return;
+
+            // 1. CHAT MESSAGE SYNC
+            if (!processedIdsRef.current.has(backendId)) {
+              processedIdsRef.current.add(backendId);
               
               const senderLower = String(msg.sender || "").toLowerCase();
               const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
-              if (isUser) return; // Ignore user messages for notifications, they're handled locally
-
-              // Map to frontend message
-              const targetSpeaker = msg.sender || 'Agent';
-              const mappingKey = String(targetSpeaker).split('(')[0].trim().toLowerCase();
-              const targetAvatar = AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP['alfredo'];
-
-              const mapped: Message = {
-                id: `poll-${currentChatId}-${backendId}-${Date.now()}`,
-                db_id: backendId,
-                type: 'agent',
-                speaker: targetSpeaker,
-                role: msg.role || 'Agent',
-                content: msg.content,
-                timestamp: new Date(msg.created_at || Date.now()),
-                status: 'done',
-                avatar: targetAvatar,
-                parent_id: msg.parent_id
-              };
               
-              newMessagesFromBackend.push(mapped);
+              if (!isUser) {
+                const targetSpeaker = msg.sender || 'Agent';
+                const mappingKey = String(targetSpeaker).split('(')[0].trim().toLowerCase();
+                const targetAvatar = AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP['alfredo'];
 
-              // CHECK FOR COMPLETION NOTIFICATION
-              if (msg.metadata && msg.metadata.type === 'mission_completion') {
+                const mapped: Message = {
+                  id: `poll-${currentChatId}-${backendId}-${Date.now()}`,
+                  db_id: backendId,
+                  type: 'agent',
+                  speaker: targetSpeaker,
+                  role: msg.role || 'Agent',
+                  content: msg.content,
+                  timestamp: new Date(msg.created_at || Date.now()),
+                  status: 'done',
+                  avatar: targetAvatar,
+                  parent_id: msg.parent_id
+                };
+                newMessagesFromBackend.push(mapped);
+              }
+            }
+
+            // 2. MISSION ALERT TRIGGER (Isolated from Chat Sync)
+            if (msg.metadata && !notifiedIdsRef.current.has(backendId)) {
+               if (msg.metadata.type === 'mission_completion') {
+                 notifiedIdsRef.current.add(backendId);
                  addNotification(
                    "Mission Accomplished",
-                   mapped.content.split('\n')[0], // Use first line for title/summary
+                   msg.content.split('\n')[0],
                    msg.metadata.status === 'failed' ? 'error' : 'success',
                    msg.metadata.task_id
                  );
-              }
-            } else if (backendId) {
-              processedRef.current.add(backendId);
+               } else if (msg.metadata.type === 'mission_dispatch') {
+                 notifiedIdsRef.current.add(backendId);
+                 addNotification(
+                   "Mission Dispatched",
+                   msg.content.split('\n')[0],
+                   'info',
+                   msg.metadata.task_id
+                 );
+               }
             }
           });
 
@@ -324,8 +336,8 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
           const notifications = await res.json();
           notifications.forEach((msg: any) => {
             const backendId = Number(msg.id);
-            if (backendId && !processedRef.current.has(backendId)) {
-              processedRef.current.add(backendId);
+            if (backendId && !notifiedIdsRef.current.has(backendId)) {
+              notifiedIdsRef.current.add(backendId);
 
               // CHECK FOR COMPLETION NOTIFICATION
               if (msg.metadata && msg.metadata.type === 'mission_completion') {
@@ -372,6 +384,9 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
                 // Map backend messages to frontend format
                 const loadedMessages: Message[] = history.filter(Boolean).map((msg: any, idx: number) => {
                    try {
+                     const backendId = Number(msg.id);
+                     if (backendId) processedIdsRef.current.add(backendId);
+
                      const senderLower = String(msg.sender || "").toLowerCase();
                      const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
                      
@@ -383,7 +398,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
 
                       return {
                         id: `hist-${channel.id}-${idx}-${Date.now()}`,
-                        db_id: msg.id,
+                        db_id: backendId,
                         type: isUser ? 'user' : 'agent',
                         speaker: targetSpeaker,
                         role: targetRole,

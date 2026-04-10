@@ -219,7 +219,7 @@ describe('App Component', () => {
     });
     
     // There should be empty-state messages since all data returned as 404/empty
-    expect(screen.getByText('Awaiting Intel...')).toBeDefined();
+    expect(screen.getByText('No feature graph outcomes yet')).toBeDefined();
     expect(screen.getByText('No recent intelligence.')).toBeDefined();
   });
 });

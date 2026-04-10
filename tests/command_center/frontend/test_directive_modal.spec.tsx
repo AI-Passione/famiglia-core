@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DirectiveModal } from '@/modules/ui/DirectiveModal';
 import { useToast } from '@/modules/ui/ToastProvider';
 import { TerminalProvider } from '@/modules/TerminalContext';
+import { NotificationProvider } from '@/modules/NotificationContext';
 import React from 'react';
 import type { GraphDefinition } from '@/types';
 
@@ -18,9 +19,11 @@ vi.mock('@/modules/ui/ToastProvider', async (importOriginal) => {
 // Helper to wrap modal with required providers
 const renderModal = (props: Parameters<typeof DirectiveModal>[0]) =>
   render(
-    <TerminalProvider>
-      <DirectiveModal {...props} />
-    </TerminalProvider>
+    <NotificationProvider>
+      <TerminalProvider>
+        <DirectiveModal {...props} />
+      </TerminalProvider>
+    </NotificationProvider>
   );
 
 describe('DirectiveModal Component', () => {
@@ -104,7 +107,9 @@ describe('DirectiveModal Component', () => {
           method: 'POST',
         })
       );
-      expect(mockShowToast).toHaveBeenCalledWith('Directive dispatched to Kowalski', 'success');
+      // Success screen should be visible instead of calling toast
+      expect(screen.getByText('Mission Dispatched')).toBeDefined();
+      expect(screen.getByText(/Directive received and queued for execution/i)).toBeDefined();
     });
   });
 
@@ -126,6 +131,8 @@ describe('DirectiveModal Component', () => {
           method: 'POST',
         })
       );
+      // Success screen should be visible
+      expect(screen.getByText('Mission Dispatched')).toBeDefined();
     });
   });
 

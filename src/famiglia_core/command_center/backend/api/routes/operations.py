@@ -124,6 +124,17 @@ async def execute_directive(request: AdHocDirectiveRequest):
             metadata={"task_id": task["id"], "type": "mission_dispatch"}
         )
 
+    # 5. Log to the unified app_notifications table (Bell)
+    context_store.log_app_notification(
+        source="workflow",
+        agent_name=agent_id,
+        title="Mission Dispatched",
+        message=ack_content[:200],
+        type="info",
+        task_id=task["id"],
+        metadata={"type": "mission_dispatch"}
+    )
+
     return ExecutionResponse(
         task_id=task["id"],
         message=f"Directive assigned to {agent_id.capitalize()}. Tracking ID: ML-{task['id']:03d}",

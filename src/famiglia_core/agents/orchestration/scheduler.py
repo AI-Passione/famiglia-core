@@ -229,6 +229,17 @@ class TaskOrchestrator:
                     metadata={"task_id": task.id, "type": "mission_completion", "status": status}
                 )
 
+            # 6. Log to the unified app_notifications table (Bell)
+            context_store.log_app_notification(
+                source="workflow",
+                agent_name=assignee_id,
+                title="Mission Accomplished" if status == "completed" else "Mission Failed",
+                message=conf_msg.split('\n')[0],
+                type="success" if status == "completed" else "error",
+                task_id=task.id,
+                metadata={"type": "mission_completion", "status": status}
+            )
+
             print(f"[TaskOrchestrator::Worker] Finished task #{task.id} (status={status})")
 
         except Exception as e:

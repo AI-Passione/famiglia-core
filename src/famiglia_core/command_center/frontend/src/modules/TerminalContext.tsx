@@ -198,7 +198,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
 
   const { addNotification } = useNotifications();
   const processedIdsRef = useRef<Set<number>>(new Set());
-  const notifiedIdsRef = useRef<Set<number>>(new Set());
+  const notifiedIdsRef = useRef<Set<string>>(new Set());
 
   // Fetch initial data (Agents & Actions)
   useEffect(() => {
@@ -276,9 +276,10 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
             }
 
             // 2. MISSION ALERT TRIGGER (Isolated from Chat Sync)
-            if (msg.metadata && !notifiedIdsRef.current.has(backendId)) {
+            const notifKey = `msg-${backendId}`;
+            if (msg.metadata && !notifiedIdsRef.current.has(notifKey)) {
                if (msg.metadata.type === 'mission_completion') {
-                 notifiedIdsRef.current.add(backendId);
+                 notifiedIdsRef.current.add(notifKey);
                  addNotification(
                    "Mission Accomplished",
                    msg.content.split('\n')[0],
@@ -286,7 +287,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
                    msg.metadata.task_id
                  );
                } else if (msg.metadata.type === 'mission_dispatch') {
-                 notifiedIdsRef.current.add(backendId);
+                 notifiedIdsRef.current.add(notifKey);
                  addNotification(
                    "Mission Dispatched",
                    msg.content.split('\n')[0],
@@ -335,26 +336,16 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
         if (res.ok) {
           const notifications = await res.json();
           notifications.forEach((msg: any) => {
-            const backendId = Number(msg.id);
-            if (backendId && !notifiedIdsRef.current.has(backendId)) {
-              notifiedIdsRef.current.add(backendId);
-
-              // CHECK FOR COMPLETION NOTIFICATION
-              if (msg.metadata && msg.metadata.type === 'mission_completion') {
-                 addNotification(
-                   "Mission Accomplished",
-                   msg.content.split('\n')[0],
-                   msg.metadata.status === 'failed' ? 'error' : 'success',
-                   msg.metadata.task_id
-                 );
-              } else if (msg.metadata && msg.metadata.type === 'mission_dispatch') {
+            const notifId = String(msg.id);
+            if (notifId && !notifiedIdsRef.current.has(notifId)) {
+                notifiedIdsRef.current.add(notifId);
+                
                 addNotification(
-                  "Mission Dispatched",
-                  msg.content.split('\n')[0],
-                  'info',
-                  msg.metadata.task_id
+                  msg.title || "Operational Alert",
+                  msg.content || "",
+                  msg.type || "info",
+                  msg.task_id
                 );
-              }
             }
           });
         }

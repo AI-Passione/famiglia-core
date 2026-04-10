@@ -292,3 +292,22 @@ CREATE INDEX IF NOT EXISTS idx_intelligence_items_notion_id
 
 CREATE INDEX IF NOT EXISTS idx_intelligence_items_type_status
   ON intelligence_items(item_type, status);
+
+-- 13. Unified Application Notifications (The "Bell" Audit Log)
+-- Categorized by 'source' to handle mission updates, system alerts, and connection events.
+CREATE TABLE IF NOT EXISTS app_notifications (
+  id SERIAL PRIMARY KEY,
+  source VARCHAR(50) NOT NULL, -- 'agent', 'system', 'workflow', 'connection'
+  agent_name VARCHAR(50),      -- Optional: name of the agent if applicable
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type VARCHAR(20) NOT NULL,    -- 'success', 'info', 'error', 'warning'
+  task_id INT,
+  metadata JSONB DEFAULT '{}',
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_notifications_lookup
+  ON app_notifications(created_at DESC, source);

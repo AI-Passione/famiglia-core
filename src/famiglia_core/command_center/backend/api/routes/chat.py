@@ -242,7 +242,7 @@ async def get_global_notifications(limit: int = Query(20)):
         meta = msg.get("metadata")
         if isinstance(meta, str):
             try: meta = json.loads(meta)
-            except: meta = {}
+            except (json.JSONDecodeError, TypeError): meta = {}
         
         if meta and meta.get("type") in ("mission_dispatch", "mission_completion"):
             created = msg.get("created_at")

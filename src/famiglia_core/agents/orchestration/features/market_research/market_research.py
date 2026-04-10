@@ -39,13 +39,32 @@ class MarketResearchWorkflow:
         self.personality = self._load_rossini_personality()
         self.template_path = os.path.join(
             os.getcwd(), 
-            "src/agents/orchestration/features/templates/research_template.md"
+            "src/famiglia_core/agents/orchestration/features/templates/research_template.md"
         )
+
+    def _extract_research_goal(self, task: str) -> str:
+        """Isolate the actual research topic from meta-prompts or directive wrappers."""
+        if not task: return "General Market Research"
+        
+        # 1. Handle Situation Room "Client Specification:" format
+        if "Client Specification:" in task:
+            parts = task.split("Client Specification:")
+            if len(parts) > 1:
+                spec = parts[1].strip()
+                if spec: return spec
+
+        # 2. Handle "Executing graph market_research" boilerplate
+        # Remove the boilerplate to find pure topic if it exists
+        clean_task = task.replace("Executing graph market_research", "").strip()
+        if clean_task and len(clean_task) > 5:
+            return clean_task
+            
+        return task
 
     def _load_rossini_personality(self) -> str:
         """Loads and summarizes Dr. Rossini's soul file for context."""
         try:
-            soul_path = os.path.join(os.getcwd(), "src/agents/souls/rossini.md")
+            soul_path = os.path.join(os.getcwd(), "src/famiglia_core/agents/souls/rossini.md")
             if os.path.exists(soul_path):
                 with open(soul_path, "r") as f:
                     content = f.read()
@@ -61,7 +80,11 @@ class MarketResearchWorkflow:
 
     def perform_search(self, state: MarketResearchState) -> MarketResearchState:
         """Node 1: Perform Web Search on the research topic."""
-        topic = state.get("research_topic") or state.get("task")
+        # Extract topic, isolating it from directive boilerplate if necessary
+        raw_topic = state.get("research_topic") or state.get("task")
+        topic = self._extract_research_goal(raw_topic)
+        state["research_topic"] = topic # Persist the cleaned topic
+        
         query = state.get("search_query") or topic
         
         print(f"[{self.name}] Research Node: perform_search(query={query!r}, attempt={state.get('search_retry_count', 0) + 1})")
@@ -143,28 +166,42 @@ class MarketResearchWorkflow:
         """Node 3: Save curated results in Intelligence DB."""
         print(f"[{self.name}] Research Node: save_to_intelligence")
         
-        title = f"Market Research: {state.get('research_topic') or state.get('task')}"
+        topic = state.get("research_topic") or state.get("task") or "Unknown Topic"
+        title = f"Market Research: {topic}"
         content = state.get("curated_markdown", "")
         summary = content[:300] + "..." if len(content) > 300 else content
         
+        if not content:
+            print(f"[{self.name}] Warning: Attempting to save research with empty content for '{topic}'")
+        
         try:
+            # Use raw dictionary for metadata to ensure Psycopg2/Postgres JSONB compatibility
+            metadata = {"topic": topic}
+            
             item = IntelligenceItemCreate(
                 title=title,
                 content=content,
                 summary=summary,
                 status="Completed",
                 item_type="market_research",
-                metadata={"topic": state.get("research_topic") or state.get("task")}
+                metadata=metadata
             )
-            intelligence_service.create_item(item)
+            created_row = intelligence_service.create_item(item)
+            
+            if created_row:
+                print(f"[{self.name}] Success: Research item #{created_row['id']} persisted to Intelligence DB.")
+                state["db_success"] = True
+                state["final_response"] = f"Research saved to Intelligence Center."
+            else:
+                raise Exception("DB Service failed: No row returned after insert.")
                 
-            state["notion_success"] = True
-            state["final_response"] = f"Research saved to Intelligence Center."
         except Exception as e:
             error_msg = str(e)
-            print(f"[{self.name}] DB Save Failed: {error_msg}")
+            print(f"[{self.name}] DB Save Failed for '{topic}': {error_msg}")
             state["last_error"] = error_msg
-            state["notion_success"] = False
+            state["db_success"] = False
+            # Append error to final response for visibility in the terminal
+            state["final_response"] = f"Research completed but persistence FAILED: {error_msg}"
             
         return state
 
@@ -266,10 +303,10 @@ class MarketResearchWorkflow:
         channel = state.get("slack_channel") or "C0AGQPGNP09" # #Research-Insights
         topic = state.get("research_topic") or state.get("task")
         notion_url = state.get("notion_url", "")
-        notion_success = state.get("notion_success", False)
+        db_success = state.get("db_success", False)
         ideas = state.get("business_ideas", "")
         
-        notion_status = f"Report saved in Intelligence Center." if notion_success else "⚠️ Note: Full report saving failed."
+        db_status = f"Report saved in Intelligence Center." if db_success else "⚠️ Note: Full report saving failed."
         
         summary_prompt = f"""
         {self.personality}
@@ -277,7 +314,7 @@ class MarketResearchWorkflow:
         Task: Summarize the following business ideas into a single catchy Slack message (max 250 words) for the #Research-Insights channel. 
         Remember to speak ENTIRELY in English as per your constraints.
         
-        Include this status: {notion_status}
+        Include this status: {db_status}
         
         Topic: {topic}
         Ideas: {ideas}
@@ -299,7 +336,7 @@ class MarketResearchWorkflow:
         
         try:
             channel_msg = f"🔬 *Market Research Update: {topic}*\n\n{formatted_slack_msg}"
-            if notion_success:
+            if db_success:
                 channel_msg += f"\n\n🔗 *Full Report is available in the Intelligence Center.*"
                 
             slack_queue.post_message(
@@ -311,7 +348,7 @@ class MarketResearchWorkflow:
             print(f"[{self.name}] Slack Notification Failed: {e}")
             
         # Final response for the orchestrator
-        final_report_msg = f"Full Report saved to Intelligence Center." if notion_success else "⚠️ Full Report saving failed."
+        final_report_msg = f"Full Report saved to Intelligence Center." if db_success else "⚠️ Full Report saving failed."
         state["final_response"] = f"I have completed the market research on '{topic}'.\n\n{final_report_msg}\n\nInsights & Ideas have been posted to Slack."
         return state
 

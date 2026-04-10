@@ -16,6 +16,9 @@ The orchestration layer is responsible for routing tasks to the appropriate feat
 - **`state.py`**: Shared `AgentState` definitions for LangGraph.
 - **`tasks.yml`**: Definition of recurring task schedules and agent assignments.
 
+### 4. Quality Assurance
+- **Tests**: Core orchestration logic is validated in `tests/agents/test_orchestration.py`, `tests/agents/test_scheduling_supervisor.py`, and `tests/agents/test_state.py`.
+
 ## Architecture
 
 ```mermaid
@@ -60,16 +63,14 @@ graph TD
     RW -- "prd_drafting" --> W1["call_prd_drafting"]
     RW -- "prd_review" --> W2["call_prd_review"]
     RW -- "market_research" --> W3["call_market_research"]
-    RW -- "grooming" --> W4["call_grooming"]
-    RW -- "support" --> W5["handle_support"]
-    RW -- "operations" --> W6["handle_operations"]
+    RW -- "coding_*" --> W4["handle_operations"]
+    RW -- "else" --> W5["handle_support"]
     
     W1 --> END((End))
     W2 --> END
     W3 --> END
     W4 --> END
     W5 --> END
-    W6 --> END
 ```
 
 ## Directory Structure

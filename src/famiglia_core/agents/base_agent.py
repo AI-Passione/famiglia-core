@@ -267,9 +267,11 @@ class BaseAgent(CommonSkills, TaskTools, OnDemandMasterSupervisor):
             conversation_key=f"scheduled-task:{task_record.id}"
         )
         # Inject task record for the SchedulingMasterSupervisor's routing
+        # Use asdict to ensure JSON serialization for LangGraph checkpointers
+        from dataclasses import asdict
         if "metadata" not in state:
             state["metadata"] = {}
-        state["metadata"]["task_record"] = task_record
+        state["metadata"]["task_record"] = asdict(task_record)
 
         # 2. Setup and Execute the Scheduling Graph
         scheduling_graph = setup_scheduling_supervisor_graph(self)

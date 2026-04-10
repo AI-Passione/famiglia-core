@@ -7,6 +7,7 @@ from famiglia_core.agents.orchestration.features.product_development.prd_draftin
 from famiglia_core.agents.orchestration.features.product_development.prd_review import setup_prd_review_graph
 from famiglia_core.agents.orchestration.features.product_development.milestone_creation import setup_milestone_creation_graph
 from famiglia_core.agents.orchestration.features.market_research.market_research import setup_market_research_graph
+from famiglia_core.db.observability.checkpointer import PostgresCheckpointer
 
 class SchedulingMasterSupervisor:
     """
@@ -29,12 +30,22 @@ class SchedulingMasterSupervisor:
         """Node: Determine worker routing based on task_type."""
         task_data = state.get("metadata", {}).get("task_record")
         
-        if task_data and hasattr(task_data, 'task_type'):
-            tt = task_data.task_type
+        if task_data:
+            print(f"[{self.name}] SchedulingMasterSupervisor: Found task_record in metadata")
+            # Handle both object and dict (for JSON serialization compatibility)
+            if hasattr(task_data, 'task_type'):
+                tt = task_data.task_type
+            elif isinstance(task_data, dict):
+                # Use serialized metadata field from dict
+                task_meta = task_data.get("metadata") or {}
+                tt = task_meta.get("task_type") or "general"
+            else:
+                tt = "general"
         else:
+            print(f"[{self.name}] WARNING: SchedulingMasterSupervisor NO task_record found in metadata")
             tt = "general"
             
-        print(f"[{self.name}] SchedulingMasterSupervisor: TaskType is {tt}")
+        print(f"[{self.name}] SchedulingMasterSupervisor: Mapping routing for TaskType={tt}")
         
         # Explicit routing to workers
         if tt == "prd_drafting":
@@ -54,19 +65,22 @@ class SchedulingMasterSupervisor:
     
     def call_prd_drafting(self, state: AgentState) -> AgentState:
         print(f"[{self.name}] SchedulingMasterSupervisor: Delegating to PRD Drafting")
-        res = self.prd_drafting_graph.invoke(state)
+        config = {"configurable": {"thread_id": state.get("conversation_key", "default")}}
+        res = self.prd_drafting_graph.invoke(state, config=config)
         state.update(res)
         return state
 
     def call_prd_review(self, state: AgentState) -> AgentState:
         print(f"[{self.name}] SchedulingMasterSupervisor: Delegating to PRD Review")
-        res = self.prd_review_graph.invoke(state)
+        config = {"configurable": {"thread_id": state.get("conversation_key", "default")}}
+        res = self.prd_review_graph.invoke(state, config=config)
         state.update(res)
         return state
 
     def call_market_research(self, state: AgentState) -> AgentState:
         print(f"[{self.name}] SchedulingMasterSupervisor: Delegating to Market Research")
-        res = self.market_research_graph.invoke(state)
+        config = {"configurable": {"thread_id": state.get("conversation_key", "default")}}
+        res = self.market_research_graph.invoke(state, config=config)
         state.update(res)
         return state
 
@@ -119,7 +133,8 @@ class SchedulingMasterSupervisor:
         workflow.add_edge("support", END)
         workflow.add_edge("operations", END)
         
-        return workflow.compile()
+        checkpointer = PostgresCheckpointer()
+        return workflow.compile(checkpointer=checkpointer)
 
 def setup_scheduling_supervisor_graph(agent):
     return SchedulingMasterSupervisor(agent).setup_graph()

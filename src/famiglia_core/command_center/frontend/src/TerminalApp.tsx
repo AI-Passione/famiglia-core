@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Terminal } from './modules/Terminal';
 import { TerminalProvider } from './modules/TerminalContext';
+import { NotificationProvider } from './modules/NotificationContext';
 import { ErrorBoundary } from './modules/ui/ErrorBoundary';
 
 export function TerminalApp() {
@@ -26,7 +27,8 @@ export function TerminalApp() {
 
   return (
     <ErrorBoundary>
-      <TerminalProvider>
+      <NotificationProvider>
+        <TerminalProvider>
         <div className="h-screen bg-background p-6 font-body flex flex-col overflow-hidden">
           <header className="mb-6 flex items-center justify-between px-2">
              <div className="flex items-center gap-3">
@@ -52,6 +54,7 @@ export function TerminalApp() {
           </footer>
         </div>
       </TerminalProvider>
+      </NotificationProvider>
     </ErrorBoundary>
   );
 }

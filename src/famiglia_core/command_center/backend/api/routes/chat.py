@@ -211,6 +211,21 @@ async def list_conversations(limit: int = Query(20), offset: int = Query(0)):
             conv["updated_at"] = conv["updated_at"].isoformat()
     return conversations
 
+@router.get("/notifications")
+async def get_global_notifications(limit: int = Query(20)):
+    """Fetch recent global agent messages for notifications."""
+    messages = context_store.get_global_recent_agent_messages(limit=limit)
+    for msg in messages:
+        if msg.get("created_at"):
+            msg["created_at"] = msg["created_at"].isoformat()
+        # Ensure metadata is parsed if it's a string
+        if isinstance(msg.get("metadata"), str):
+            try:
+                msg["metadata"] = json.loads(msg["metadata"])
+            except:
+                pass
+    return messages
+
 @router.get("/history")
 async def get_chat_history(
     platform: str = Query("web"),

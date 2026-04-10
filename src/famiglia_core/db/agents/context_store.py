@@ -207,6 +207,27 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to log message: {e}")
             return -1
 
+    def get_global_recent_agent_messages(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """Fetch the most recent agent messages across all conversations for global notifications."""
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    """
+                    SELECT m.id, m.parent_id, m.role, m.content, m.sender, m.created_at, c.conversation_key, m.metadata
+                    FROM agent_messages m
+                    INNER JOIN agent_conversations c ON c.id = m.conversation_id
+                    WHERE m.role = 'agent'
+                    ORDER BY m.created_at DESC
+                    LIMIT %s
+                    """,
+                    (max(1, limit),),
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch global recent agent messages: {e}")
+            return []
+
     def get_recent_messages(
         self,
         conversation_key: str,

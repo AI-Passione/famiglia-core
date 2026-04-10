@@ -229,7 +229,10 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
   useEffect(() => {
     const pollMessages = async () => {
       const currentChatId = activeChatIdRef.current;
-      if (!currentChatId || currentChatId === 'lounge' || currentChatId === 'agents-coordination') return;
+      if (!currentChatId) return;
+
+      // Special handling for lounge/coordination? 
+      // Actually, we WANT to poll them for dialogue updates too.
 
       try {
         const res = await fetch(`${API_BASE}/chat/history?thread_id=${currentChatId}&limit=10`);
@@ -310,6 +313,46 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
 
     const pollInterval = setInterval(pollMessages, 5000);
     return () => clearInterval(pollInterval);
+  }, [addNotification]);
+
+  // Global Notification Polling (Cross-channel signals)
+  useEffect(() => {
+    const pollGlobalNotifications = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/chat/notifications?limit=20`);
+        if (res.ok) {
+          const notifications = await res.json();
+          notifications.forEach((msg: any) => {
+            const backendId = Number(msg.id);
+            if (backendId && !processedRef.current.has(backendId)) {
+              processedRef.current.add(backendId);
+
+              // CHECK FOR COMPLETION NOTIFICATION
+              if (msg.metadata && msg.metadata.type === 'mission_completion') {
+                 addNotification(
+                   "Mission Accomplished",
+                   msg.content.split('\n')[0],
+                   msg.metadata.status === 'failed' ? 'error' : 'success',
+                   msg.metadata.task_id
+                 );
+              } else if (msg.metadata && msg.metadata.type === 'mission_dispatch') {
+                addNotification(
+                  "Mission Dispatched",
+                  msg.content.split('\n')[0],
+                  'info',
+                  msg.metadata.task_id
+                );
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.error("[TerminalContext] Global notification polling failed:", e);
+      }
+    };
+
+    const interval = setInterval(pollGlobalNotifications, 10000); // Pulse every 10s
+    return () => clearInterval(interval);
   }, [addNotification]);
 
   // Fetch history (Rehydration)

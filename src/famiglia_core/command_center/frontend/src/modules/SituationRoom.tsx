@@ -2,7 +2,7 @@ import type { Task, ActionLog } from '../types';
 import { HeroSection } from './ui/HeroSection';
 import { OpsPulse } from './ui/OpsPulse';
 import { IntelligenceFeed } from './ui/IntelligenceFeed';
-import { InsightsTicker } from './ui/InsightsTicker';
+
 
 interface SituationRoomProps {
   actions: ActionLog[];
@@ -27,7 +27,7 @@ export function SituationRoom({ actions, tasks, honorific, onExecuteDirective }:
             failedTasks={failedTasks}
             tasks={tasks}
           />
-          <InsightsTicker />
+
         </div>
         <IntelligenceFeed actions={actions} />
       </div>

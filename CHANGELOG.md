@@ -1,3 +1,8 @@
+# [1.7.1](https://github.com/AI-Passione/famiglia-core/compare/v1.7.0...v1.7.1) (2026-04-10)
+
+### Operational
+* **Sponsorship Enabled**: Officially launched the GitHub Sponsors integration specifically for Don Jimmy (@davnnis2003). Added `FUNDING.yml` to the `.github` directory to enable the "Sponsor" button on the repository.
+
 # [1.7.0](https://github.com/AI-Passione/famiglia-core/compare/v1.6.0...v1.7.0) (2026-04-09)
 
 ### Architecture & Routing

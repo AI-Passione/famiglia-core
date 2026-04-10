@@ -37,7 +37,9 @@ class IntelligenceService:
         logger.info(f"[IntelligenceService] Creating item: {item.title}")
         try:
             with context_store.db_session() as cursor:
-                if cursor is None: return None
+                if cursor is None: 
+                    logger.error("[IntelligenceService] Failed to create item: DB session is None")
+                    return None
                 cursor.execute(
                     """
                     INSERT INTO intelligence_items (title, content, summary, status, item_type, reference_id, metadata, updated_at)
@@ -57,9 +59,11 @@ class IntelligenceService:
                 row = cursor.fetchone()
                 if row:
                     logger.info(f"[IntelligenceService] Item created successfully: ID {row['id']}")
+                else:
+                    logger.warning(f"[IntelligenceService] No row returned after INSERT for '{item.title}'")
                 return row
         except Exception as e:
-            logger.error(f"[IntelligenceService] Failed to create item '{item.title}': {e}")
+            logger.error(f"[IntelligenceService] Failed to create item '{item.title}': {e}", exc_info=True)
             return None
 
     def update_item(self, item_id: int, update: IntelligenceItemUpdate) -> Optional[Dict[str, Any]]:
@@ -111,94 +115,24 @@ class IntelligenceService:
             return False
 
     def sync_with_notion(self) -> Dict[str, Any]:
-        """Truncate local DB and import all accessible Notion pages."""
-        from famiglia_core.agents.tools.notion import notion_client
+        """Disabled for now to prevent local data loss. Truncate was previous logic."""
+        logger.warning("[IntelligenceSync] Sync requested, but currently disabled to protect local data.")
+        return {
+            "success": True, 
+            "message": "Notion integration is currently dormant to protect local records. All local researches are preserved.",
+            "synced_count": 0
+        }
         
-        try:
-            # 1. Truncate
-            with context_store.db_session() as cursor:
-                if cursor is None: return {"success": False, "error": "DB connection failed"}
-                cursor.execute("TRUNCATE TABLE intelligence_items RESTART IDENTITY CASCADE")
-                logger.warning("[IntelligenceSync] Local table truncated for full resync.")
-
-            # 2. Search Notion
-            notion_items = notion_client.search()
-            logger.info(f"[IntelligenceSync] Found {len(notion_items)} items in Notion.")
-            
-            synced_count = 0
-            for item in notion_items:
-                if item.get("type") != "page": continue
-                
-                try:
-                    # Fetch full page details and blocks
-                    page_id = item["id"]
-                    page_data = notion_client.read_page(page_id, agent_name="SystemSync")
-                    
-                    # Convert blocks to markdown
-                    content_md = notion_client.blocks_to_markdown(page_data.get("blocks", []))
-                    
-                    # Map properties
-                    props = page_data.get("page_properties", {})
-                    title = props.get("title") or props.get("Name") or item.get("title") or "Unnamed Intelligence"
-                    
-                    item_type = 'analysis'
-                    if 'Type' in props:
-                        val = str(props['Type']).lower()
-                        if 'market' in val or 'research' in val:
-                            item_type = 'market_research'
-                        elif 'prd' in val or 'product requirement' in val:
-                            item_type = 'prd'
-                        elif 'project' in val:
-                            item_type = 'project'
-                        elif 'analysis' in val:
-                            item_type = 'analysis'
-                    
-                    status = props.get("Status") or "Active"
-                    summary = content_md[:300] + "..." if len(content_md) > 300 else content_md
-                    
-                    # Insert into DB
-                    with context_store.db_session() as cursor:
-                        if cursor is None: continue
-                        cursor.execute(
-                            """
-                            INSERT INTO intelligence_items (
-                                notion_id, title, content, summary, status, item_type, 
-                                icon, cover, properties, parent, url, public_url, 
-                                in_trash, created_time, last_edited_time, created_by, last_edited_by,
-                                updated_at
-                            )
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                            """,
-                            (
-                                page_id,
-                                title,
-                                content_md,
-                                summary,
-                                str(status),
-                                item_type,
-                                context_store._safe_json(page_data.get("icon")),
-                                context_store._safe_json(page_data.get("cover")),
-                                context_store._safe_json(props),
-                                context_store._safe_json(page_data.get("parent")),
-                                page_data.get("url"),
-                                page_data.get("public_url"),
-                                page_data.get("in_trash", False),
-                                page_data.get("created_time"),
-                                page_data.get("last_edited_time"),
-                                context_store._safe_json(page_data.get("created_by")),
-                                context_store._safe_json(page_data.get("last_edited_by"))
-                            )
-                        )
-                        synced_count += 1
-                        logger.info(f"[IntelligenceSync] Synced: {title}")
-                except Exception as ex:
-                    logger.warning(f"[IntelligenceSync] Skipping page {item.get('id')}: {ex}")
-
-            logger.info(f"[IntelligenceSync] Sync complete. Total synced: {synced_count}")
-            return {"success": True, "synced_count": synced_count}
-            
-        except Exception as e:
-            logger.error(f"[IntelligenceSync] Global sync failed: {e}")
-            return {"success": False, "error": str(e)}
+        # from famiglia_core.agents.tools.notion import notion_client
+        # 
+        # try:
+        #     # 1. Truncate (REMOVED: This was causing data loss)
+        #     # with context_store.db_session() as cursor:
+        #     #     if cursor is None: return {"success": False, "error": "DB connection failed"}
+        #     #     cursor.execute("TRUNCATE TABLE intelligence_items RESTART IDENTITY CASCADE")
+        #     #     logger.warning("[IntelligenceSync] Local table truncated for full resync.")
+        # 
+        #     # 2. Search Notion
+        #     # ... (rest of the logic commented out)
 
 intelligence_service = IntelligenceService()

@@ -39,7 +39,7 @@ class MarketResearchWorkflow:
         self.personality = self._load_rossini_personality()
         self.template_path = os.path.join(
             os.getcwd(), 
-            "src/agents/orchestration/features/templates/research_template.md"
+            "src/famiglia_core/agents/orchestration/features/templates/research_template.md"
         )
 
     def _load_rossini_personality(self) -> str:
@@ -143,9 +143,13 @@ class MarketResearchWorkflow:
         """Node 3: Save curated results in Intelligence DB."""
         print(f"[{self.name}] Research Node: save_to_intelligence")
         
-        title = f"Market Research: {state.get('research_topic') or state.get('task')}"
+        topic = state.get("research_topic") or state.get("task") or "Unknown Topic"
+        title = f"Market Research: {topic}"
         content = state.get("curated_markdown", "")
         summary = content[:300] + "..." if len(content) > 300 else content
+        
+        if not content:
+            print(f"[{self.name}] Warning: Attempting to save research with empty content for '{topic}'")
         
         try:
             item = IntelligenceItemCreate(
@@ -154,17 +158,22 @@ class MarketResearchWorkflow:
                 summary=summary,
                 status="Completed",
                 item_type="market_research",
-                metadata={"topic": state.get("research_topic") or state.get("task")}
+                metadata={"topic": topic}
             )
-            intelligence_service.create_item(item)
+            created_row = intelligence_service.create_item(item)
+            
+            if created_row:
+                print(f"[{self.name}] Success: Research item #{created_row['id']} persisted to Intelligence DB.")
+                state["db_success"] = True
+                state["final_response"] = f"Research saved to Intelligence Center."
+            else:
+                raise Exception("Intelligence service returned no result row.")
                 
-            state["notion_success"] = True
-            state["final_response"] = f"Research saved to Intelligence Center."
         except Exception as e:
             error_msg = str(e)
-            print(f"[{self.name}] DB Save Failed: {error_msg}")
+            print(f"[{self.name}] DB Save Failed for '{topic}': {error_msg}")
             state["last_error"] = error_msg
-            state["notion_success"] = False
+            state["db_success"] = False
             
         return state
 
@@ -266,10 +275,10 @@ class MarketResearchWorkflow:
         channel = state.get("slack_channel") or "C0AGQPGNP09" # #Research-Insights
         topic = state.get("research_topic") or state.get("task")
         notion_url = state.get("notion_url", "")
-        notion_success = state.get("notion_success", False)
+        db_success = state.get("db_success", False)
         ideas = state.get("business_ideas", "")
         
-        notion_status = f"Report saved in Intelligence Center." if notion_success else "⚠️ Note: Full report saving failed."
+        db_status = f"Report saved in Intelligence Center." if db_success else "⚠️ Note: Full report saving failed."
         
         summary_prompt = f"""
         {self.personality}
@@ -277,7 +286,7 @@ class MarketResearchWorkflow:
         Task: Summarize the following business ideas into a single catchy Slack message (max 250 words) for the #Research-Insights channel. 
         Remember to speak ENTIRELY in English as per your constraints.
         
-        Include this status: {notion_status}
+        Include this status: {db_status}
         
         Topic: {topic}
         Ideas: {ideas}
@@ -299,7 +308,7 @@ class MarketResearchWorkflow:
         
         try:
             channel_msg = f"🔬 *Market Research Update: {topic}*\n\n{formatted_slack_msg}"
-            if notion_success:
+            if db_success:
                 channel_msg += f"\n\n🔗 *Full Report is available in the Intelligence Center.*"
                 
             slack_queue.post_message(
@@ -311,7 +320,7 @@ class MarketResearchWorkflow:
             print(f"[{self.name}] Slack Notification Failed: {e}")
             
         # Final response for the orchestrator
-        final_report_msg = f"Full Report saved to Intelligence Center." if notion_success else "⚠️ Full Report saving failed."
+        final_report_msg = f"Full Report saved to Intelligence Center." if db_success else "⚠️ Full Report saving failed."
         state["final_response"] = f"I have completed the market research on '{topic}'.\n\n{final_report_msg}\n\nInsights & Ideas have been posted to Slack."
         return state
 

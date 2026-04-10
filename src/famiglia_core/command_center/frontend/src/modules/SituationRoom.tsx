@@ -1,11 +1,11 @@
-import type { Action, Task } from '../types';
+import type { Task, ActionLog } from '../types';
 import { HeroSection } from './ui/HeroSection';
 import { OpsPulse } from './ui/OpsPulse';
 import { IntelligenceFeed } from './ui/IntelligenceFeed';
 import { InsightsTicker } from './ui/InsightsTicker';
 
 interface SituationRoomProps {
-  actions: Action[];
+  actions: ActionLog[];
   tasks: Task[];
   honorific: string;
   onExecuteDirective: () => void;

@@ -3,15 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SOPManager } from './SOPManager';
 import { SOPBuilder } from './SOPBuilder';
 import { CategoryCreator } from './CategoryCreator';
-import type { ActionLog, SOPWorkflow, GraphDefinition, Task } from '../types';
+import type { ActionLog, SOPWorkflow } from '../types';
 import { API_BASE } from '../config';
 
-interface OperationsProps {
-  graphs: GraphDefinition[];
-  selectedGraph: GraphDefinition | null;
-  setSelectedGraph: (graph: GraphDefinition | null) => void;
-  initialTasks: Task[];
-}
 
 interface MissionLog {
   id: string;
@@ -30,8 +24,9 @@ interface Conversation {
   latest_agent: string;
 }
 
-export function Operations({ graphs: _graphs, selectedGraph: _selectedGraph, setSelectedGraph: _setSelectedGraph, initialTasks: _initialTasks }: OperationsProps) {
+export function Operations() {
   const [opsMode, setOpsMode] = useState<'pipelines' | 'sop'>('pipelines');
+
   const [isCreatingSOP, setIsCreatingSOP] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [editingSOP, setEditingSOP] = useState<SOPWorkflow | null>(null);

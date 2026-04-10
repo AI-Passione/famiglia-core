@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import type { Agent, Action, RecurringTask, ScheduleConfig, Task } from '../types';
+import type { FamigliaAgent, ActionLog, RecurringTask, ScheduleConfig, Task } from '../types';
 
 type AgendaView = 'schedule' | 'week' | 'month';
 type AgendaEntryKind = 'task' | 'recurring';
 
 interface AgendaProps {
-  agents: Agent[];
-  actions: Action[];
+  agents: FamigliaAgent[];
+  actions: ActionLog[];
   tasks: Task[];
   recurringTasks: RecurringTask[];
   honorific: string;
@@ -778,7 +778,7 @@ export function Agenda({
         />
         <QueueCard
           title="Agents Engaged"
-          value={`${activeAgents.size || agents.filter((agent) => agent.msg_count > 0).length}`}
+          value={`${activeAgents.size || agents.filter((agent) => agent.is_active).length}`}
           description="Family members with assigned work or recent signal across the current agenda."
         />
       </div>

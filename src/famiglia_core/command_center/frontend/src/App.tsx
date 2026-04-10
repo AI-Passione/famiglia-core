@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import type {
-  Agent,
+  FamigliaAgent,
   Task,
   RecurringTask,
   GraphDefinition,
@@ -58,7 +58,7 @@ function getInitialSettings(): AppSettings {
 
 function App() {
   const navigate = useNavigate();
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<FamigliaAgent[]>([]);
   const [actions, setActions] = useState<ActionLog[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>([]);
@@ -243,12 +243,8 @@ function App() {
                 <Route 
                   path="/operations" 
                   element={
-                    <Operations 
-                      graphs={graphs} 
-                      selectedGraph={selectedGraph} 
-                      setSelectedGraph={setSelectedGraph} 
-                      initialTasks={tasks}
-                    />
+                    <Operations />
+
                   } 
                 />
                 <Route path="/famiglia" element={<Famiglia />} />

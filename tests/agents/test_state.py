@@ -1,4 +1,3 @@
-import pytest
 from famiglia_core.agents.orchestration.utils.state import AgentState
 
 def test_agent_state_instantiation():

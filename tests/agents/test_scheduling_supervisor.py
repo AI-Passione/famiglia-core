@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from famiglia_core.agents.orchestration.scheduling_supervisor import SchedulingMasterSupervisor, setup_scheduling_supervisor_graph
+from famiglia_core.agents.orchestration.scheduling_supervisor import SchedulingMasterSupervisor
 from famiglia_core.agents.orchestration.utils.state import AgentState
 
 @pytest.fixture

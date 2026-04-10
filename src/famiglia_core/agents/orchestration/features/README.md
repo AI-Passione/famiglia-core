@@ -27,8 +27,9 @@ The orchestration layer enforces a **Proactive Model Resolution** strategy. Befo
 Located in `market_research/`, focused on external intelligence and strategic ideation.
 
 ### 1. Market Research Workflow
-Performs iterative web searches, curates insights into Notion, and generates innovative business proposals.
+Performs iterative web searches, curates insights into the **Intelligence Center**, and generates innovative business proposals.
 - **File:** `market_research/market_research.py`
+- **Tests:** `tests/agents/test_orchestration_features.py` (100% Logic Coverage)
 - **Workflow Architecture:**
 ```mermaid
 graph TD;
@@ -36,21 +37,17 @@ graph TD;
     perform_search(perform_search)
     refine_search_query(refine_search_query)
     curate_results(curate_results)
-    save_to_notion(save_to_notion)
-    fix_notion_error(fix_notion_error)
+    save_to_intelligence(save_to_intelligence)
     generate_ideas(generate_ideas)
     notify_slack(notify_slack)
     __end__([__end__]):::last
 
     __start__ --> perform_search;
-    perform_search -- "Error (retry < 3)" --> refine_search_query;
+    perform_search -- "Error (retry < 2)" --> refine_search_query;
     refine_search_query --> perform_search;
     perform_search -- "Success / Final Attempt" --> curate_results;
-    curate_results --> save_to_notion;
-    save_to_notion -- "Error (retry < 3)" --> fix_notion_error;
-    fix_notion_error --> save_to_notion;
-    save_to_notion -- "Success" --> generate_ideas;
-    save_to_notion -- "Failed (3 attempts)" --> generate_ideas;
+    curate_results --> save_to_intelligence;
+    save_to_intelligence --> generate_ideas;
     generate_ideas --> notify_slack;
     notify_slack --> __end__;
 

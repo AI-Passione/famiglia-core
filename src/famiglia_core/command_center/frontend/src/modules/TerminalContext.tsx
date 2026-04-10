@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react';
 import type { FamigliaAgent, ActionLog } from '../types';
 import { API_BASE, BACKEND_BASE } from '../config';
+import { useNotifications } from './NotificationContext';
 
 // --- Shared Constants & Types ---
 
@@ -195,6 +196,10 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
 
   const activeChat = chats[activeChatId];
 
+  const { addNotification } = useNotifications();
+  const processedIdsRef = useRef<Set<number>>(new Set());
+  const notifiedIdsRef = useRef<Set<string>>(new Set());
+
   // Fetch initial data (Agents & Actions)
   useEffect(() => {
     const fetchData = async () => {
@@ -221,6 +226,138 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
     return () => clearInterval(interval);
   }, []);
 
+  // Live polling for new messages (Real-time sync for background completion)
+  useEffect(() => {
+    const pollMessages = async () => {
+      const currentChatId = activeChatIdRef.current;
+      if (!currentChatId) return;
+
+      // Special handling for lounge/coordination? 
+      // Actually, we WANT to poll them for dialogue updates too.
+
+      try {
+        const res = await fetch(`${API_BASE}/chat/history?thread_id=${currentChatId}&limit=10`);
+        if (res.ok) {
+          const history = await res.json();
+          if (!history || history.length === 0) return;
+
+          const newMessagesFromBackend: any[] = [];
+          
+          history.forEach((msg: any) => {
+            const backendId = Number(msg.id);
+            if (!backendId) return;
+
+            // 1. CHAT MESSAGE SYNC
+            if (!processedIdsRef.current.has(backendId)) {
+              processedIdsRef.current.add(backendId);
+              
+              const senderLower = String(msg.sender || "").toLowerCase();
+              const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
+              
+              if (!isUser) {
+                const targetSpeaker = msg.sender || 'Agent';
+                const mappingKey = String(targetSpeaker).split('(')[0].trim().toLowerCase();
+                const targetAvatar = AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP['alfredo'];
+
+                const mapped: Message = {
+                  id: `poll-${currentChatId}-${backendId}-${Date.now()}`,
+                  db_id: backendId,
+                  type: 'agent',
+                  speaker: targetSpeaker,
+                  role: msg.role || 'Agent',
+                  content: msg.content,
+                  timestamp: new Date(msg.created_at || Date.now()),
+                  status: 'done',
+                  avatar: targetAvatar,
+                  parent_id: msg.parent_id
+                };
+                newMessagesFromBackend.push(mapped);
+              }
+            }
+
+            // 2. MISSION ALERT TRIGGER (Isolated from Chat Sync)
+            const notifKey = `msg-${backendId}`;
+            if (msg.metadata && !notifiedIdsRef.current.has(notifKey)) {
+               if (msg.metadata.type === 'mission_completion') {
+                 notifiedIdsRef.current.add(notifKey);
+                 addNotification(
+                   "Mission Accomplished",
+                   msg.content.split('\n')[0],
+                   msg.metadata.status === 'failed' ? 'error' : 'success',
+                   msg.metadata.task_id
+                 );
+               } else if (msg.metadata.type === 'mission_dispatch') {
+                 notifiedIdsRef.current.add(notifKey);
+                 addNotification(
+                   "Mission Dispatched",
+                   msg.content.split('\n')[0],
+                   'info',
+                   msg.metadata.task_id
+                 );
+               }
+            }
+          });
+
+          if (newMessagesFromBackend.length > 0) {
+            setChats(prev => {
+              const chat = prev[currentChatId];
+              if (!chat) return prev;
+              
+              // Only add messages that aren't already in the local state (by db_id)
+              const existingDbIds = new Set(chat.messages.map(m => m.db_id).filter(Boolean));
+              const uniqueNew = newMessagesFromBackend.filter(m => !existingDbIds.has(m.db_id));
+              
+              if (uniqueNew.length === 0) return prev;
+              
+              return {
+                ...prev,
+                [currentChatId]: {
+                  ...chat,
+                  messages: [...chat.messages, ...uniqueNew].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+                }
+              };
+            });
+          }
+        }
+      } catch (e) {
+        console.error("[TerminalContext] Polling failed:", e);
+      }
+    };
+
+    const pollInterval = setInterval(pollMessages, 5000);
+    return () => clearInterval(pollInterval);
+  }, [addNotification]);
+
+  // Global Notification Polling (Cross-channel signals)
+  useEffect(() => {
+    const pollGlobalNotifications = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/chat/notifications?limit=20`);
+        if (res.ok) {
+          const notifications = await res.json();
+          notifications.forEach((msg: any) => {
+            const notifId = String(msg.id);
+            if (notifId && !notifiedIdsRef.current.has(notifId)) {
+                notifiedIdsRef.current.add(notifId);
+                
+                addNotification(
+                  msg.title || "Operational Alert",
+                  msg.content || "",
+                  msg.type || "info",
+                  msg.task_id
+                );
+            }
+          });
+        }
+      } catch (e) {
+        console.error("[TerminalContext] Global notification polling failed:", e);
+      }
+    };
+
+    const interval = setInterval(pollGlobalNotifications, 10000); // Pulse every 10s
+    return () => clearInterval(interval);
+  }, [addNotification]);
+
   // Fetch history (Rehydration)
   useEffect(() => {
     const fetchHistory = async () => {
@@ -238,6 +375,9 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
                 // Map backend messages to frontend format
                 const loadedMessages: Message[] = history.filter(Boolean).map((msg: any, idx: number) => {
                    try {
+                     const backendId = Number(msg.id);
+                     if (backendId) processedIdsRef.current.add(backendId);
+
                      const senderLower = String(msg.sender || "").toLowerCase();
                      const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
                      
@@ -249,7 +389,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
 
                       return {
                         id: `hist-${channel.id}-${idx}-${Date.now()}`,
-                        db_id: msg.id,
+                        db_id: backendId,
                         type: isUser ? 'user' : 'agent',
                         speaker: targetSpeaker,
                         role: targetRole,

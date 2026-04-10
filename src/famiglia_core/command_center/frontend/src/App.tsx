@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import type {
-  Agent,
+  FamigliaAgent,
   Task,
   RecurringTask,
   GraphDefinition,
@@ -21,6 +21,7 @@ import { Terminal } from './modules/Terminal';
 import { DirectivesTerminal } from './modules/ui/DirectivesTerminal';
 import { TerminalProvider } from './modules/TerminalContext';
 import { ToastProvider } from './modules/ui/ToastProvider';
+import { NotificationProvider } from './modules/NotificationContext';
 import { DirectiveModal } from './modules/ui/DirectiveModal';
 import { API_BASE } from './config';
 
@@ -57,7 +58,7 @@ function getInitialSettings(): AppSettings {
 
 function App() {
   const navigate = useNavigate();
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<FamigliaAgent[]>([]);
   const [actions, setActions] = useState<ActionLog[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>([]);
@@ -203,7 +204,8 @@ function App() {
 
   return (
     <ToastProvider>
-      <TerminalProvider>
+      <NotificationProvider>
+        <TerminalProvider>
         <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary/30">
         <TopNav />
         <div className="flex">
@@ -241,12 +243,8 @@ function App() {
                 <Route 
                   path="/operations" 
                   element={
-                    <Operations 
-                      graphs={graphs} 
-                      selectedGraph={selectedGraph} 
-                      setSelectedGraph={setSelectedGraph} 
-                      initialTasks={tasks}
-                    />
+                    <Operations />
+
                   } 
                 />
                 <Route path="/famiglia" element={<Famiglia />} />
@@ -286,6 +284,7 @@ function App() {
         <div className="fixed left-72 top-16 w-[1px] h-full bg-[#1c1b1b] z-30"></div>
       </div>
       </TerminalProvider>
+      </NotificationProvider>
     </ToastProvider>
   );
 }

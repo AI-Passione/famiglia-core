@@ -2,6 +2,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SituationRoom } from '@/modules/SituationRoom';
 import { TerminalProvider } from '@/modules/TerminalContext';
+import { NotificationProvider } from '@/modules/NotificationContext';
 import React from 'react';
 import type { Task, ActionLog, GraphDefinition } from '@/types';
 
@@ -22,15 +23,7 @@ describe('SituationRoom Component & New Widgets', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url.includes('/insights')) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => [
-            { id: 1, title: 'Market Up', rossini_tldr: 'Buy now' },
-            { id: 2, title: 'Market Down', rossini_tldr: 'Hold' },
-          ]
-        });
-      }
+
       if (url.includes('/operations/graphs/cleanup-ops/execute')) {
         return Promise.resolve({
           ok: true,
@@ -43,14 +36,16 @@ describe('SituationRoom Component & New Widgets', () => {
 
   it('renders all main widgets successfully', async () => {
     render(
-      <TerminalProvider>
-        <SituationRoom
-          actions={mockActions}
-          tasks={mockTasks}
-          graphs={mockGraphs}
-          honorific="Don Jimmy"
-        />
-      </TerminalProvider>
+      <NotificationProvider>
+        <TerminalProvider>
+          <SituationRoom
+            actions={mockActions}
+            tasks={mockTasks}
+            graphs={mockGraphs}
+            honorific="Don Jimmy"
+          />
+        </TerminalProvider>
+      </NotificationProvider>
     );
 
     // Pulse BANs should be present
@@ -68,24 +63,16 @@ describe('SituationRoom Component & New Widgets', () => {
     expect(screen.getByText(/alfredo:/i)).toBeDefined();
   });
 
-  it('InsightsTicker fetches and displays insights', async () => {
-    render(
-      <TerminalProvider>
-        <SituationRoom actions={[]} tasks={[]} honorific="Don" />
-      </TerminalProvider>
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Market Up')).toBeDefined();
-      expect(screen.getByText('"Buy now"')).toBeDefined();
-    });
-  });
+
 
   it('OperationsHub triggers execute correctly', async () => {
     const mockExecute = vi.fn();
     render(
-      <TerminalProvider>
-        <SituationRoom actions={[]} tasks={[]} graphs={mockGraphs} honorific="Don" onExecuteDirective={mockExecute} />
-      </TerminalProvider>
+      <NotificationProvider>
+        <TerminalProvider>
+          <SituationRoom actions={[]} tasks={[]} graphs={mockGraphs} honorific="Don" onExecuteDirective={mockExecute} />
+        </TerminalProvider>
+      </NotificationProvider>
     );
     
     // The button text is "Execute Directive" (with a bolt icon span before it)

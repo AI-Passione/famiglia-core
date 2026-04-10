@@ -2,6 +2,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Terminal } from '@/modules/Terminal';
 import { TerminalProvider } from '@/modules/TerminalContext';
+import { NotificationProvider } from '@/modules/NotificationContext';
 import { ErrorBoundary } from '@/modules/ui/ErrorBoundary';
 import React from 'react';
 
@@ -33,9 +34,11 @@ describe('Terminal Stability & Regression', () => {
     await act(async () => {
       render(
         <ErrorBoundary>
-          <TerminalProvider>
-            {ui}
-          </TerminalProvider>
+          <NotificationProvider>
+            <TerminalProvider>
+              {ui}
+            </TerminalProvider>
+          </NotificationProvider>
         </ErrorBoundary>
       );
     });

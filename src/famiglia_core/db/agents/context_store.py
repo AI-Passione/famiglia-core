@@ -207,6 +207,84 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to log message: {e}")
             return -1
 
+    def get_global_recent_agent_messages(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """Fetch the most recent agent messages across all conversations for global notifications."""
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    """
+                    SELECT m.id, m.parent_id, m.role, m.content, m.sender, m.created_at, c.conversation_key, m.metadata
+                    FROM agent_messages m
+                    INNER JOIN agent_conversations c ON c.id = m.conversation_id
+                    WHERE m.role = 'agent'
+                    ORDER BY m.created_at DESC
+                    LIMIT %s
+                    """,
+                    (max(1, limit),),
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch global recent agent messages: {e}")
+            return []
+
+    def log_app_notification(
+        self,
+        source: str,
+        title: str,
+        message: str,
+        type: str = "info",
+        agent_name: Optional[str] = None,
+        task_id: Optional[int] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        """Unified logging for all application-level alerts (Bell notification center)."""
+        try:
+            with self.db_session() as cursor:
+                if cursor is None: return -1
+                cursor.execute(
+                    """
+                    INSERT INTO app_notifications (
+                        source, agent_name, title, message, type, task_id, metadata
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (source, agent_name, title, message, type, task_id, self._safe_json(metadata)),
+                )
+                row = cursor.fetchone()
+                return row["id"] if row else -1
+        except Exception as e:
+            print(f"[ContextStore] Failed to log app notification: {e}")
+            return -1
+
+    def get_app_notifications(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """Fetch recent unified application notifications."""
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    "SELECT * FROM app_notifications ORDER BY created_at DESC LIMIT %s",
+                    (max(1, limit),),
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch app notifications: {e}")
+            return []
+
+    def mark_app_notification_as_read(self, notification_id: int) -> bool:
+        """Mark a specific notification as read."""
+        try:
+            with self.db_session() as cursor:
+                if cursor is None: return False
+                cursor.execute(
+                    "UPDATE app_notifications SET is_read = TRUE, updated_at = NOW() WHERE id = %s",
+                    (notification_id,),
+                )
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"[ContextStore] Failed to mark notification as read: {e}")
+            return False
+
     def get_recent_messages(
         self,
         conversation_key: str,
@@ -217,7 +295,7 @@ class AgentContextStore:
                 if cursor is None: return []
                 cursor.execute(
                     """
-                    SELECT m.id, m.parent_id, m.role, m.content, m.sender, m.created_at
+                    SELECT m.id, m.parent_id, m.role, m.content, m.sender, m.created_at, m.metadata
                     FROM agent_messages m
                     INNER JOIN agent_conversations c ON c.id = m.conversation_id
                     WHERE c.conversation_key = %s AND m.parent_id IS NULL
@@ -239,7 +317,7 @@ class AgentContextStore:
                 if cursor is None: return []
                 cursor.execute(
                     """
-                    SELECT m.id, m.parent_id, m.role, m.content, m.sender, m.created_at
+                    SELECT m.id, m.parent_id, m.role, m.content, m.sender, m.created_at, m.metadata
                     FROM agent_messages m
                     WHERE m.parent_id = %s
                     ORDER BY m.created_at ASC

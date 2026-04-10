@@ -211,6 +211,67 @@ async def list_conversations(limit: int = Query(20), offset: int = Query(0)):
             conv["updated_at"] = conv["updated_at"].isoformat()
     return conversations
 
+@router.get("/notifications")
+async def get_global_notifications(limit: int = Query(20)):
+    """Fetch recent alerts from both the app_notifications table and mission chat messages."""
+    # 1. Fetch from the new dedicated table
+    app_notifs = context_store.get_app_notifications(limit=limit)
+    formatted_notifs = []
+    for n in app_notifs:
+        n_id = n.get("id")
+        n_type = n.get("type") or "info"
+        formatted_notifs.append({
+            "id": f"app-{n_id}",
+            "db_id": n_id,
+            "source": n.get("source"),
+            "agent_name": n.get("agent_name"),
+            "title": n.get("title"),
+            "content": n.get("message"),
+            "type": n_type,
+            "created_at": n.get("created_at").isoformat() if n.get("created_at") else None,
+            "metadata": n.get("metadata") or {},
+            "task_id": n.get("task_id"),
+            "is_app_notif": True
+        })
+
+    # 2. Fetch from agent messages (Dual-Stream support for mission metadata)
+    messages = context_store.get_global_recent_agent_messages(limit=limit)
+    legacy_notifs = []
+    for msg in messages:
+        # We only care about messages that have mission metadata for the "Bell"
+        meta = msg.get("metadata")
+        if isinstance(meta, str):
+            try: meta = json.loads(meta)
+            except (json.JSONDecodeError, TypeError): meta = {}
+        
+        if meta and meta.get("type") in ("mission_dispatch", "mission_completion"):
+            created = msg.get("created_at")
+            legacy_notifs.append({
+                "id": f"msg-{msg['id']}",
+                "db_id": msg["id"],
+                "source": "agent",
+                "agent_name": msg.get("sender"),
+                "title": "Mission Accomplished" if meta.get("type") == "mission_completion" else "Mission Dispatched",
+                "content": msg.get("content"),
+                "type": "success" if meta.get("status") == "completed" else "info",
+                "created_at": created.isoformat() if created else None,
+                "metadata": meta,
+                "task_id": meta.get("task_id"),
+                "is_app_notif": False
+            })
+    
+    # Merge and sort by time
+    combined = sorted(formatted_notifs + legacy_notifs, key=lambda x: x["created_at"] or "", reverse=True)
+    return combined[:limit]
+
+@router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: int):
+    """Mark a notification as read in the app_notifications table."""
+    success = context_store.mark_app_notification_as_read(notification_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"success": True}
+
 @router.get("/history")
 async def get_chat_history(
     platform: str = Query("web"),

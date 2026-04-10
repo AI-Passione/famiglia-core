@@ -370,12 +370,6 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
               </button>
             </div>
           </div>
-          <div className="mt-3 flex items-center justify-between px-2">
-            <span className="text-[9px] uppercase tracking-widest text-outline-variant">Command Line Protocol Active</span>
-            <div className="flex items-center gap-3">
-              <span className="text-[9px] uppercase tracking-widest text-outline-variant">Don Jimmy Authorized Access</span>
-            </div>
-          </div>
         </footer>
       </main>
 

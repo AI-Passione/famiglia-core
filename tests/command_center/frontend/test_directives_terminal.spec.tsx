@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DirectivesTerminal } from '@/modules/ui/DirectivesTerminal';
 import { Terminal } from '@/modules/Terminal';
 import { TerminalProvider } from '@/modules/TerminalContext';
+import { NotificationProvider } from '@/modules/NotificationContext';
 import React from 'react';
 
 // Mock EventSource
@@ -38,9 +39,11 @@ describe('DirectivesTerminal Component', () => {
   const renderWithProvider = async (ui: React.ReactElement) => {
     await act(async () => {
       render(
-        <TerminalProvider>
-          {ui}
-        </TerminalProvider>
+        <NotificationProvider>
+          <TerminalProvider>
+            {ui}
+          </TerminalProvider>
+        </NotificationProvider>
       );
     });
   };

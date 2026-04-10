@@ -2,12 +2,14 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Intelligences } from './modules/Intelligences.tsx'
 import { TerminalProvider } from './modules/TerminalContext'
+import { NotificationProvider } from './modules/NotificationContext'
 import { DirectivesTerminal } from './modules/ui/DirectivesTerminal'
 import './index.css'
 
 function IntelligenceApp() {
   return (
-    <TerminalProvider initialChatId="intelligence-hub">
+    <NotificationProvider>
+      <TerminalProvider initialChatId="intelligence-hub">
       <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary/30 relative">
         {/* Background Map Overlay to maintain "La Passione" vibe */}
         <div className="fixed inset-0 noir-bg-map pointer-events-none opacity-20 z-0"></div>
@@ -31,7 +33,8 @@ function IntelligenceApp() {
 
         <DirectivesTerminal />
       </div>
-    </TerminalProvider>
+      </TerminalProvider>
+    </NotificationProvider>
   )
 }
 

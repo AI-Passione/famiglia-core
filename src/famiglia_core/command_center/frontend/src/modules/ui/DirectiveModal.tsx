@@ -20,7 +20,7 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
   const [executing, setExecuting] = useState(false);
   const [successData, setSuccessData] = useState<{ id: string, message: string, agent: string } | null>(null);
   const { showToast } = useToast();
-  const { setTerminalOpen, addExternalAgentMessage } = useTerminal();
+  const { setTerminalOpen, addExternalAgentMessage, setActiveChatId } = useTerminal();
 
   const handleExecute = async () => {
     if (!selectedGraphId && !manualPrompt.trim()) return;
@@ -64,6 +64,7 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
   };
 
   const handleFinish = () => {
+    setActiveChatId('command-center');
     setTerminalOpen(true);
     onClose();
     // Reset state after closure animation
@@ -337,7 +338,7 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
                   className="w-full py-3.5 rounded-xl font-label text-[9px] uppercase tracking-[0.3em] font-black flex items-center justify-center gap-3 transition-all duration-500 bg-white/5 text-white hover:bg-white/10 active:scale-[0.98]"
                 >
                   <span className="material-symbols-outlined">terminal</span>
-                  Monitore in Terminal
+                  Monitor in Terminal
                 </button>
               ) : (
                 <button

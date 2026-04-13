@@ -633,42 +633,47 @@ class LLMClient:
             return
 
         available = {m.get("name") for m in body.get("models", [])}
+        print(f"[LLM] Checking canonical model tag: {model} at {effective_host}")
         if self._model_exists_in_tags(model, available):
+            print(f"[LLM] Model {model} is already present at {effective_host}. Skipping pull.")
             return
 
-        print(f"[LLM] Pulling model {model} from {effective_host}...")
+        print(f"[LLM] Model {model} MISSING at {effective_host}. Initializing pull request...")
         pull_url = f"{effective_host}/api/pull"
         payload = {"model": model, "stream": True}
-        req = urllib.request.Request(
-            pull_url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
+        
         try:
-            with urllib.request.urlopen(req, timeout=1200) as response:
-                last_status = ""
-                for line in response:
-                    if not line:
-                        continue
-                    try:
-                        data = json.loads(line.decode("utf-8"))
-                        status = data.get("status", "")
-                        if status and status != last_status:
-                            if "pulling" in status.lower() or "verifying" in status.lower():
-                                # Only print major state changes to avoid spam
-                                if ":" not in status: 
-                                    print(f"  [Ollama] {model}: {status}")
-                            last_status = status
-                        if data.get("digest"):
-                            # Logic for progress bars could go here
-                            pass
-                    except Exception:
-                        pass
-                print(f"[LLM] Completed pull of {model} from {effective_host}")
-                return
+            resp = self.session.post(
+                pull_url,
+                json=payload,
+                stream=True,
+                timeout=1800  # 30 minute timeout for large model pulls
+            )
+            resp.raise_for_status()
+            
+            last_status = ""
+            for line in resp.iter_lines():
+                if line:
+                    data = json.loads(line.decode("utf-8"))
+                    
+                    if data.get("error"):
+                        error_msg = data.get("error")
+                        print(f"[LLM] CRITICAL: Ollama pull error for {model}: {error_msg}")
+                        raise RuntimeError(f"Ollama pull failed: {error_msg}")
+
+                    status = data.get("status", "")
+                    if status and status != last_status:
+                        if "pulling" in status.lower() or "verifying" in status.lower():
+                            if ":" not in status: 
+                                print(f"  [Ollama] {model}: {status}")
+                        last_status = status
+            
+            print(f"[LLM] Completed pull of {model} from {effective_host}")
+            return
         except Exception as exc:
-            print(f"[LLM] Failed to pull Ollama model {model} from {effective_host}: {exc}")
+            print(f"[LLM] CRITICAL: Failed to pull Ollama model {model} from {effective_host}: {exc}")
+            # We don't raise here to allow potential Tier 3 fallback attempts
+
 
     # ------------------------------------------------------------------
     # Internal: model name resolution
@@ -681,6 +686,9 @@ class LLMClient:
             "gemma3": "gemma3:4b",
             "gemma3-4b": "gemma3:4b",
             "gemma3-1b": "gemma3:1b",
+            "gemma4": "gemma4:e2b",
+            "gemma4-e2b": "gemma4:e2b",
+            "gemma4_e2b": "gemma4:e2b",
             "llama3": "llama3",
             "qwen2.5": "qwen2.5:3b-instruct-q4_0",
             "qwen2.5-3b": "qwen2.5:3b-instruct-q4_0",
@@ -707,6 +715,8 @@ class LLMClient:
             return 5.0
         if "3b" in lower_name:
             return 3.0
+        elif "gemma4" in lower_name or "e2b" in lower_name:
+            return 2.5
         elif "4b" in lower_name or "qwen3.5" in lower_name or "3.5" in lower_name or "2b" in lower_name:
             return 4.0
         return 4.0

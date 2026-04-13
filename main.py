@@ -138,17 +138,32 @@ def main():
     client.allocate_resources(list(agents.values()))
 
     # 3.5b Pull ALL models declared in models.json (registry-driven)
-    # This ensures newly-added models (e.g. deepseek-r1:7b) are installed on
+    # This ensures newly-added models (e.g. gemma4:e2b) are installed on
     # first boot without any manual ollama pull.
     print("\n[Registry] Ensuring all registered models are installed...")
-    for model_entry in get_all_models():
-        tag = model_entry["tag"]
-        desc = model_entry.get("description", "")
-        print(f"[Registry]   Checking {tag} ({desc})")
+    
+    # Sequential wait for Ollama service to be truly ready for pulls
+    max_wait = 30
+    ready = False
+    for i in range(max_wait):
         if client._is_ollama_service_available():
+            ready = True
+            break
+        print(f"[Registry] Waiting for Ollama service to stabilize... ({i+1}/{max_wait})")
+        time.sleep(1)
+    
+    if ready:
+        for model_entry in get_all_models():
+            tag = model_entry["tag"]
+            desc = model_entry.get("description", "")
+            print(f"[Registry]   Checking {tag} ({desc})")
             client._ensure_model_pulled(tag, host=client.ollama_host)
-        if client._is_remote_ollama_available():
-            client._ensure_model_pulled(tag, host=client.ollama_remote_host)
+            
+            if client._is_remote_ollama_available():
+                client._ensure_model_pulled(tag, host=client.ollama_remote_host)
+    else:
+        print("[Registry] WARNING: Ollama service not reachable. Startup pulls deferred.")
+
 
     
     # 3.6 Display Famiglia Model Readiness Report

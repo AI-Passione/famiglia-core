@@ -112,9 +112,19 @@ class LLMClient:
 
             try:
                 print(f"[LLM Client] Trying provider {model}...")
-                res = self._dispatch(prompt, model, model_config.get("options"))
+                
+                # Conditional Thinking Override (v10):
+                # If we are in COMPLEX or WORKFLOW mode, we force 'thinking': True in the options.
+                # This ensures that Gemma 4 (or other reasoning-capable models) uses its logic chain.
+                options = model_config.get("options", {}).copy()
+                if routing_mode in ["COMPLEX", "WORKFLOW"]:
+                    options["thinking"] = True
+                    print(f"[LLM] Forcing Thinking Mode override for routing_mode={routing_mode}")
+                
+                res = self._dispatch(prompt, model, options)
                 print(f"[LLM Client] Success with {model}!")
                 return res, model
+
             except Exception as exc:
                 print(f"[LLM Client] Error with {model}: {exc}")
                 errors.append(f"{model}: {exc}")
@@ -218,9 +228,28 @@ class LLMClient:
                 return True
         elif m_lower.endswith(":latest"):
             if m_lower.replace(":latest", "") in t_lower:
-                return True
+                if m_lower.replace(":latest", "") in t_lower:
+                    return True
                 
         return False
+
+    def _clean_ollama_response(self, text: str) -> str:
+        """
+        Gemma 4 Best Practice #3: Remove thinking content from history/output.
+        Strips anything between <|channel>thought and <channel|>.
+        """
+        if not text:
+            return text
+            
+        import re
+        # Pattern matches <|channel>thought followed by anything (non-greedy) until <channel|>
+        # DOTALL is used so that . matches newlines
+        pattern = r"<\|channel\>thought.*?\<channel\|\>"
+        cleaned = re.sub(pattern, "", text, flags=re.DOTALL)
+        
+        # Also handle potential variations or leftovers (extra newlines)
+        return cleaned.strip()
+
 
     def _get_available_models(self, host: str) -> set[str]:
         if not host:
@@ -428,6 +457,11 @@ class LLMClient:
         model_name = model or self.default_ollama_model
         effective_host = host or self.ollama_host
         url = f"{effective_host}/api/generate"
+        
+        # 1. Fetch registry defaults for this specific model
+        from famiglia_core.agents.llm.models_registry import get_model_config_by_tag
+        registry_cfg = get_model_config_by_tag(model_name)
+        registry_options = registry_cfg.get("options", {})
 
         with self._generation_lock:
             # JIT pull — download model binary if not already local
@@ -436,13 +470,25 @@ class LLMClient:
             # Evict any OTHER model currently loaded in RAM (on that host)
             self._ensure_offloaded(target_model=model_name, host=effective_host)
 
+            # 2. Merge Options: Baseline < Registry Defaults < Agent Overrides
             final_options = {
                 "use_mmap": True,
                 "num_keep": 256,
                 "num_thread": 4,
             }
+            final_options.update(registry_options)
             if options:
                 final_options.update(options)
+
+            # 3. Handle Gemma 4 "Thinking Mode" trigger (Best Practice #1)
+            # If 'thinking' is set to True in options, we prepend <|think|> to the prompt
+            if final_options.get("thinking") is True and "gemma4:e2b" in model_name:
+                # Per Ollama guide: <|think|> should be at the start of the system prompt.
+                # Since /api/generate uses a raw prompt, we prepend it to the whole thing.
+                if not prompt.startswith("<|think|>"):
+                    print(f"[LLM] Activating Gemma 4 Thinking Mode for {model_name}")
+                    prompt = "<|think|>" + prompt
+
 
             # default model vs per-agent custom model.
             is_default_model = (model_name == self.default_ollama_model) or \
@@ -479,13 +525,20 @@ class LLMClient:
                             raise RuntimeError(
                                 f"Ollama error from {effective_host}: {body.get('error')}"
                             )
-                        full_text += body.get("response", "")
+                        if body.get("response"):
+                            full_text += body.get("response")
                         if body.get("done", False):
                             break
 
-                final_text = full_text.strip()
-                if final_text:
-                    return final_text
+                # Post-processing: Strip thoughts from history/output as per Best Practice #3
+                cleaned_text = self._clean_ollama_response(full_text)
+                
+                # Debug logging for transparency on the "Thought Strip"
+                if cleaned_text != full_text:
+                    diff_len = len(full_text) - len(cleaned_text)
+                    print(f"[LLM] Post-processed response: stripped {diff_len} chars of internal thinking.")
+
+                return cleaned_text
 
             except requests.exceptions.RequestException as exc:
                 raise RuntimeError(f"Cannot reach Ollama at {effective_host}: {exc}") from exc

@@ -98,7 +98,8 @@ class Rossini(BaseAgent, CommonSkills, GitHubSkills, NotionSkills, Workflows):
             - Relevance (High/Medium/Low)
             
             Content: {content}"""
-            return self.complete_task(prompt)
+            return self.complete_task(prompt, routing_mode="COMPLEX")
+
 
     def daily_brief(self, data_points: List[str]):
         if self.propose_action("Generate daily research brief"):

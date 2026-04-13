@@ -46,3 +46,11 @@ DEFAULT_OLLAMA_FALLBACK_MODEL: str = _cfg["defaults"]["ollama_fallback_key"] # "
 def get_all_models() -> List[Dict]:
     """Return every registered model entry (key + metadata)."""
     return [{"key": k, **v} for k, v in _cfg["models"].items()]
+
+def get_model_config_by_tag(tag: str) -> Dict:
+    """Find model configuration by its Ollama tag (e.g. 'gemma4:e2b')."""
+    for entry in _cfg["models"].values():
+        if entry.get("tag") == tag:
+            return entry
+    return {}
+

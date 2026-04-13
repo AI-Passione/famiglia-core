@@ -14,9 +14,16 @@ echo "🎩 Starting Agent Engine..."
 python main.py &
 ENGINE_PID=$!
 
-echo "🛰️ Starting Command Center API..."
+echo "🛰️ Waiting for Engine to verify brain-models..."
+until [ -f /tmp/famiglia_engine_ready ]
+do
+     sleep 1
+done
+
+echo "🛰️ Engine ready. Starting Command Center API..."
 python src/famiglia_core/command_center/backend/main.py &
 API_PID=$!
+
 
 # Wait for any process to exit
 wait -n

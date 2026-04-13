@@ -170,6 +170,15 @@ def main():
     else:
         print("[Registry] WARNING: Ollama service not reachable. Startup pulls deferred.")
 
+    # Create readiness sentinel for entrypoint.sh / Command Center API
+    try:
+        with open("/tmp/famiglia_engine_ready", "w") as f:
+            f.write("ready")
+        print("[Startup] Engine readiness signal emitted.")
+    except Exception as e:
+        print(f"[Startup] Warning: Could not write readiness signal: {e}")
+
+
 
 
     

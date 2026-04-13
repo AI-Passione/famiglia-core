@@ -8,20 +8,20 @@ def test_llm_client_fallback_logic(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test")
     
     # Mock provider availability
-    monkeypatch.setattr(client, "_is_provider_available", lambda m: m == "ollama-gemma3")
-    monkeypatch.setattr(client, "_dispatch", lambda p, m, o: "[Ollama Gemma3]" if m == "ollama-gemma3" else "fail")
+    monkeypatch.setattr(client, "_is_provider_available", lambda m: m == "ollama-gemma4")
+    monkeypatch.setattr(client, "_dispatch", lambda p, m, o: "[Ollama Gemma4]" if m == "ollama-gemma4" else "fail")
 
-    config = {"primary": "nonexistent", "global_fallback": "ollama-gemma3"}
+    config = {"primary": "nonexistent", "global_fallback": "ollama-gemma4"}
     response, model = client.complete("Hello", config)
-    assert "[Ollama Gemma3]" in response
-    assert model == "ollama-gemma3"
+    assert "[Ollama Gemma4]" in response
+    assert model == "ollama-gemma4"
 
 def test_llm_client_3_tier_ordering():
     client = LLMClient()
     attempts = client._build_attempts(
         primary="gemini-2.0-flash",
-        secondary="ollama-gemma3",
-        global_fallback="remote-ollama-gemma3",
+        secondary="ollama-gemma4",
+        global_fallback="remote-ollama-gemma4",
     )
     
     # Cloud < Local < Remote
@@ -56,7 +56,7 @@ def test_llm_smoke_check():
     # Try a very simple prompt
     try:
         # Note: This will actually attempt a network call if keys are present
-        response, model = client.complete("Say 'Famiglia Connected'", {"primary": "gemini-2.0-flash", "global_fallback": "ollama-gemma3"})
+        response, model = client.complete("Say 'Famiglia Connected'", {"primary": "gemini-2.0-flash", "global_fallback": "ollama-gemma4"})
         assert response is not None
         assert "Connected" in response
         print(f"\n[SMOKE TEST] Success using model: {model}")

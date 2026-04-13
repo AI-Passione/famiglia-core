@@ -1,12 +1,12 @@
 {
   "defaults": {
-    "ollama_fallback": "gemma3:4b",
-    "ollama_fallback_key": "ollama-gemma3"
+    "ollama_fallback": "gemma4:e2b",
+    "ollama_fallback_key": "ollama-gemma4"
   },
   "models": {
-    "gemma3_4b": {
-      "tag": "gemma3:4b",
-      "description": "Default Gemma 3 (4B) — always-warm fallback model",
+    "gemma4_e2b": {
+      "tag": "gemma4:e2b",
+      "description": "Default Gemma 4 (E2B) — always-warm fallback model",
       "ram_gb": 4.0
     },
     "deepseek_r1_7b": {
@@ -41,8 +41,8 @@
     }
   },
   "tasks": {
-    "CHAT": "gemma3:4b",
-    "SEARCH": "gemma3:4b",
+    "CHAT": "gemma4:e2b",
+    "SEARCH": "gemma4:e2b",
     "COMPLEX": "deepseek-r1:7b",
     "CODING": "qwen2.5-coder:7b",
     "TOOL": "qwen2.5:3b-instruct-q4_0",

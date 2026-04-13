@@ -3,7 +3,7 @@ from famiglia_core.agents.utils.skills import GitHubSkills, NotionSkills, Common
 from famiglia_core.agents.utils.workflow import Workflows
 from typing import Dict, Any, List, Optional, Callable
 from famiglia_core.agents.tools.web_search import web_search_client
-from famiglia_core.agents.llm.models_registry import QWEN2_5_3B, GEMMA3_4B
+from famiglia_core.agents.llm.models_registry import QWEN2_5_3B, GEMMA4_E2B
 from famiglia_core.agents.orchestration.features.market_research.market_research import setup_market_research_graph
 from famiglia_core.agents.orchestration.features.product_development.prd_drafting import setup_prd_drafting_graph
 from famiglia_core.agents.orchestration.features.product_development.prd_review import setup_prd_review_graph
@@ -26,7 +26,7 @@ class Rossini(BaseAgent, CommonSkills, GitHubSkills, NotionSkills, Workflows):
             model_config={
                 "primary": "perplexity-sonar-pro",
                 "secondary": f"ollama-{QWEN2_5_3B}",
-                "lite": f"ollama-{GEMMA3_4B.split(':')[0]}",
+                "lite": f"ollama-{GEMMA4_E2B.split(':')[0]}",
             }
         )
         

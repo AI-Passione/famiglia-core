@@ -14,7 +14,7 @@ from famiglia_core.agents.base_agent import (
     TASK_TYPE_TO_PRIORITY,
     TASK_TYPE_ALFREDO_GREETING,
 )
-from famiglia_core.agents.llm.models_registry import GEMMA3_4B
+from famiglia_core.agents.llm.models_registry import GEMMA4_E2B
 from famiglia_core.db.agents.context_store import context_store
 
 class Alfredo(BaseAgent):
@@ -25,7 +25,7 @@ class Alfredo(BaseAgent):
             role="Agent orchestrator & workflow automation",
             model_config={
                 "primary": "gemini-2.0-flash",
-                "secondary": GEMMA3_4B,
+                "secondary": GEMMA4_E2B,
             }
         )
         self.register_tool("get_scheduled_tasks_status", self.get_scheduled_tasks_status)

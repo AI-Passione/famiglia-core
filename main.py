@@ -68,8 +68,23 @@ def main():
     if app_env != "development" and not dev_channel_id:
         print("[PRODUCTION MODE] DEV channel ID unresolved; using runtime channel-name guard for #_dev.")
 
+    # 0. Wait for Ollama service to be truly ready across the Docker network
+    print("\n[Startup] Synchronizing with Ollama service...")
+    max_wait = 30
+    ready = False
+    for i in range(max_wait):
+        if client._is_ollama_service_available():
+            ready = True
+            break
+        print(f"[Startup] Waiting for Ollama to stabilize... ({i+1}/{max_wait})")
+        time.sleep(1)
+    
+    if not ready:
+        print("[Startup] WARNING: Ollama service not reachable. Continuing with limited capabilities.")
+
     # 1. Ensure local Ollama fallback is ready
     client.ensure_ollama_ready(auto_pull=True)
+
 
     # 2. Initialize DB
     init_db()
@@ -142,17 +157,7 @@ def main():
     # first boot without any manual ollama pull.
     print("\n[Registry] Ensuring all registered models are installed...")
     
-    # Sequential wait for Ollama service to be truly ready for pulls
-    max_wait = 30
-    ready = False
-    for i in range(max_wait):
-        if client._is_ollama_service_available():
-            ready = True
-            break
-        print(f"[Registry] Waiting for Ollama service to stabilize... ({i+1}/{max_wait})")
-        time.sleep(1)
-    
-    if ready:
+    if client._is_ollama_service_available():
         for model_entry in get_all_models():
             tag = model_entry["tag"]
             desc = model_entry.get("description", "")
@@ -163,6 +168,7 @@ def main():
                 client._ensure_model_pulled(tag, host=client.ollama_remote_host)
     else:
         print("[Registry] WARNING: Ollama service not reachable. Startup pulls deferred.")
+
 
 
     

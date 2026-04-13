@@ -18,7 +18,7 @@ with open(os.path.join(_HERE, "models.json")) as _f:
 # Model tag constants
 # ---------------------------------------------------------------------------
 
-GEMMA3_4B:       str = _cfg["models"]["gemma3_4b"]["tag"]        # "gemma3:4b"
+GEMMA4_E2B:       str = _cfg["models"]["gemma4_e2b"]["tag"]        # "gemma4:e2b"
 DEEPSEEK_R1_7B:  str = _cfg["models"]["deepseek_r1_7b"]["tag"]   # "deepseek-r1:7b"
 QWEN25_CODER_7B: str = _cfg["models"]["qwen2_5_coder_7b"]["tag"] # "qwen2.5-coder:7b"
 QWEN2_5_3B:      str = _cfg["models"]["qwen2_5_3b"]["tag"]      # "qwen2.5:3b-instruct-q4_0"
@@ -36,8 +36,8 @@ TASK_ROUTING: Dict[str, str] = _cfg["tasks"]
 # Defaults  (consumed by LLMClient and startup checks)
 # ---------------------------------------------------------------------------
 
-DEFAULT_OLLAMA_MODEL:          str = _cfg["defaults"]["ollama_fallback"]    # "gemma3:4b"
-DEFAULT_OLLAMA_FALLBACK_MODEL: str = _cfg["defaults"]["ollama_fallback_key"] # "ollama-gemma3"
+DEFAULT_OLLAMA_MODEL:          str = _cfg["defaults"]["ollama_fallback"]    # "gemma4:e2b"
+DEFAULT_OLLAMA_FALLBACK_MODEL: str = _cfg["defaults"]["ollama_fallback_key"] # "ollama-gemma4"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -46,3 +46,11 @@ DEFAULT_OLLAMA_FALLBACK_MODEL: str = _cfg["defaults"]["ollama_fallback_key"] # "
 def get_all_models() -> List[Dict]:
     """Return every registered model entry (key + metadata)."""
     return [{"key": k, **v} for k, v in _cfg["models"].items()]
+
+def get_model_config_by_tag(tag: str) -> Dict:
+    """Find model configuration by its Ollama tag (e.g. 'gemma4:e2b')."""
+    for entry in _cfg["models"].values():
+        if entry.get("tag") == tag:
+            return entry
+    return {}
+

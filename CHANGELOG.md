@@ -1,3 +1,8 @@
+# [1.7.2](https://github.com/AI-Passione/famiglia-core/compare/v1.7.1...v1.7.2) (2026-04-13)
+
+### Core Intelligence
+* **Model Upgrade**: Switched the base local LLM from `Gemma 3 (4B)` to `Gemma 4 (E2B)` across the entire ecosystem. This includes updates to the model registry, task routing (CHAT and SEARCH), and individual agent configurations for Tommy, Bella, Rossini, and Alfredo.
+* **Environment Defaults**: Updated `docker-compose.yml` and `.env.example` to ensure new deployments utilize the upgraded model by default.
 # [1.8.0](https://github.com/AI-Passione/famiglia-core/compare/v1.7.0...v1.8.0) (2026-04-10)
 
 

@@ -126,7 +126,13 @@ class MarketResearchWorkflow:
         Output only the new search query string.
         """
         
-        new_query, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name=self.name)
+        new_query, _ = client.complete(
+            prompt, 
+            self.agent.get_model_config(state), 
+            agent_name=self.name, 
+            routing_mode="WORKFLOW"
+        )
+
         state["search_query"] = new_query.strip().strip('"')
         return state
 
@@ -158,7 +164,13 @@ class MarketResearchWorkflow:
         Output only the Markdown content.
         """
         
-        res_text, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name=self.name)
+        res_text, _ = client.complete(
+            prompt, 
+            self.agent.get_model_config(state), 
+            agent_name=self.name, 
+            routing_mode="WORKFLOW"
+        )
+
         state["curated_markdown"] = res_text
         return state
 
@@ -260,7 +272,13 @@ class MarketResearchWorkflow:
         Output only the fixed Markdown.
         """
         
-        res_text, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name=self.name)
+        res_text, _ = client.complete(
+            prompt, 
+            self.agent.get_model_config(state), 
+            agent_name=self.name, 
+            routing_mode="WORKFLOW"
+        )
+
         state["curated_markdown"] = res_text
         return state
 
@@ -283,7 +301,13 @@ class MarketResearchWorkflow:
         ...
         """
         
-        res_text, _ = client.complete(prompt, self.agent.get_model_config(state), agent_name=self.name)
+        res_text, _ = client.complete(
+            prompt, 
+            self.agent.get_model_config(state), 
+            agent_name=self.name, 
+            routing_mode="WORKFLOW"
+        )
+
         state["business_ideas"] = res_text
         
         # Append to Notion if we have a page ID (DISABLED)
@@ -320,7 +344,13 @@ class MarketResearchWorkflow:
         Ideas: {ideas}
         """
         
-        slack_msg, _ = client.complete(summary_prompt, self.agent.get_model_config(state), agent_name=self.name)
+        slack_msg, _ = client.complete(
+            summary_prompt, 
+            self.agent.get_model_config(state), 
+            agent_name=self.name, 
+            routing_mode="WORKFLOW"
+        )
+
         
         # Convert Markdown to Slack mrkdwn
         import re

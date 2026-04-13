@@ -68,8 +68,23 @@ def main():
     if app_env != "development" and not dev_channel_id:
         print("[PRODUCTION MODE] DEV channel ID unresolved; using runtime channel-name guard for #_dev.")
 
+    # 0. Wait for Ollama service to be truly ready across the Docker network
+    print("\n[Startup] Synchronizing with Ollama service...")
+    max_wait = 30
+    ready = False
+    for i in range(max_wait):
+        if client._is_ollama_service_available():
+            ready = True
+            break
+        print(f"[Startup] Waiting for Ollama to stabilize... ({i+1}/{max_wait})")
+        time.sleep(1)
+    
+    if not ready:
+        print("[Startup] WARNING: Ollama service not reachable. Continuing with limited capabilities.")
+
     # 1. Ensure local Ollama fallback is ready
     client.ensure_ollama_ready(auto_pull=True)
+
 
     # 2. Initialize DB
     init_db()
@@ -129,26 +144,42 @@ def main():
     }
     if scheduled_enabled:
         task_orchestrator.configure(agents)
-        task_orchestrator.start()
+        # Deferred: task_orchestrator.start() moved to end of setup
     else:
         print("[ScheduledTasks] Disabled by configuration.")
+
     
     # 3.5 Pre-pull agent fallback models
     print("Ensuring agent local models are allocated and pulled if RAM permits...")
     client.allocate_resources(list(agents.values()))
 
     # 3.5b Pull ALL models declared in models.json (registry-driven)
-    # This ensures newly-added models (e.g. deepseek-r1:7b) are installed on
+    # This ensures newly-added models (e.g. gemma4:e2b) are installed on
     # first boot without any manual ollama pull.
     print("\n[Registry] Ensuring all registered models are installed...")
-    for model_entry in get_all_models():
-        tag = model_entry["tag"]
-        desc = model_entry.get("description", "")
-        print(f"[Registry]   Checking {tag} ({desc})")
-        if client._is_ollama_service_available():
+    
+    if client._is_ollama_service_available():
+        for model_entry in get_all_models():
+            tag = model_entry["tag"]
+            desc = model_entry.get("description", "")
+            print(f"[Registry]   Checking {tag} ({desc})")
             client._ensure_model_pulled(tag, host=client.ollama_host)
-        if client._is_remote_ollama_available():
-            client._ensure_model_pulled(tag, host=client.ollama_remote_host)
+            
+            if client._is_remote_ollama_available():
+                client._ensure_model_pulled(tag, host=client.ollama_remote_host)
+    else:
+        print("[Registry] WARNING: Ollama service not reachable. Startup pulls deferred.")
+
+    # Create readiness sentinel for entrypoint.sh / Command Center API
+    try:
+        with open("/tmp/famiglia_engine_ready", "w") as f:
+            f.write("ready")
+        print("[Startup] Engine readiness signal emitted.")
+    except Exception as e:
+        print(f"[Startup] Warning: Could not write readiness signal: {e}")
+
+
+
 
     
     # 3.6 Display Famiglia Model Readiness Report
@@ -334,6 +365,13 @@ def main():
     )
     mattermost_worker_thread.start()
     print("[MattermostWorker] Started.")
+
+    # Step 7. Activate agent orchestration (final step before main loop)
+    if scheduled_enabled:
+        print("\n[Startup] All local brain-models verified. Activating agent orchestration...")
+        task_orchestrator.start()
+        print("🚀 Famiglia Core is FULLY OPERATIONAL. Listening for directives...")
+
 
     if not handlers and not mattermost_queue.drivers:
         print("No Slack or Mattermost tokens found. Running in PROPOSAL mode.")

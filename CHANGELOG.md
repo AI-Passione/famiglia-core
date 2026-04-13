@@ -3,6 +3,42 @@
 ### Core Intelligence
 * **Model Upgrade**: Switched the base local LLM from `Gemma 3 (4B)` to `Gemma 4 (E2B)` across the entire ecosystem. This includes updates to the model registry, task routing (CHAT and SEARCH), and individual agent configurations for Tommy, Bella, Rossini, and Alfredo.
 * **Environment Defaults**: Updated `docker-compose.yml` and `.env.example` to ensure new deployments utilize the upgraded model by default.
+# [1.8.0](https://github.com/AI-Passione/famiglia-core/compare/v1.7.0...v1.8.0) (2026-04-10)
+
+
+### Bug Fixes
+
+* add array validation and fallback empty states to API data fetching across frontend components ([1d93009](https://github.com/AI-Passione/famiglia-core/commit/1d930098d258eb528cebc7d028c973b26b247aa2))
+* add null checks and default values to UI components to prevent runtime errors with undefined data ([c189774](https://github.com/AI-Passione/famiglia-core/commit/c18977489b804dfa99940a952e067bb1a7f8bafc))
+* update agent keyword matching to use word boundaries and add database keyword to riccardo map ([93ffcc0](https://github.com/AI-Passione/famiglia-core/commit/93ffcc07f30a590d5dcf50ab9929c3203570da94))
+* update features directory path and correct API endpoint for graph retrieval ([64ed728](https://github.com/AI-Passione/famiglia-core/commit/64ed72826af0605e16547c20d78f884b03787564))
+
+
+### Features
+
+* add famigliaName support to settings and update backend API tests ([4c095b9](https://github.com/AI-Passione/famiglia-core/commit/4c095b944dc3c94836ba57384a3820785a58ff9d))
+* add LatestMissions and OperationsHub UI modules to SituationRoom for enhanced mission tracking and directive execution. ([ae46ecc](https://github.com/AI-Passione/famiglia-core/commit/ae46ecc46c6d7a2053a59ff526d600987ad24ca7))
+* add logo asset and refactor OpsPulse heartbeat animation to use motion.circle for better alignment ([d7259c3](https://github.com/AI-Passione/famiglia-core/commit/d7259c3f97c3360e9c5f3d05bca4ff96d34cf3c7))
+* add metadata to agent state and update scheduling supervisor to handle serialized task records ([98fe07c](https://github.com/AI-Passione/famiglia-core/commit/98fe07c58c1428ca52a07257fb272c66b8d13aa7))
+* add pending action approval UI and polling to OperationsHub ([baec8cd](https://github.com/AI-Passione/famiglia-core/commit/baec8cda895565c365d030f1669bd29c05bb691e))
+* add specification field to DirectiveModal and collapse manual prompt section ([d5a91a9](https://github.com/AI-Passione/famiglia-core/commit/d5a91a995794a790b9aba02bb114107e45fe76f7))
+* add support for URL-based intelligence filtering and enhance OpsPulse heartbeat animation ([54721d1](https://github.com/AI-Passione/famiglia-core/commit/54721d1a1e5974a005ab621a72834ee3c7abc948))
+* broadcast mission dispatch logs to both command center and coordination channels with improved message deduplication in terminal context ([cb1524a](https://github.com/AI-Passione/famiglia-core/commit/cb1524a8da63b1294df4397c0b9698b7baa56b53))
+* enable GitHub Sponsors for [@davnnis2003](https://github.com/davnnis2003) and update changelog for v1.7.1 ([54d469e](https://github.com/AI-Passione/famiglia-core/commit/54d469e10d15f4a1a86b55dfb73ace35ae417066))
+* implement category-based tabbed navigation and compact layout for DirectiveModal ([a3e1fc9](https://github.com/AI-Passione/famiglia-core/commit/a3e1fc9122e93944efd4c48a65337f3eeb0aa914))
+* implement directive execution API, add DirectivesTerminal UI component, and include comprehensive backend and frontend tests. ([c8e06dd](https://github.com/AI-Passione/famiglia-core/commit/c8e06dd96718646cf1670c32617610ebdc0ef623))
+* implement DirectiveModal for manual and graph-based mission execution with global Toast notifications ([9d2c255](https://github.com/AI-Passione/famiglia-core/commit/9d2c255b1c0743b8b68ef003f0cb5fc69ec83a1a))
+* implement global error boundary and add null-safety checks to UI components to prevent runtime crashes ([97715f3](https://github.com/AI-Passione/famiglia-core/commit/97715f33e1a45dd4845e02e0596128c780267da3))
+* implement graph-based agent resolution and update task dispatch logging to the coordination channel ([26870e3](https://github.com/AI-Passione/famiglia-core/commit/26870e3b2e1af244d885d0473d0e41273d7c454e))
+* implement notification system with backend API, database storage, and frontend provider integration ([9706ff5](https://github.com/AI-Passione/famiglia-core/commit/9706ff53e9754682c3998e0fade9c5e4a078d174))
+* implement react-router-dom for navigation and add famigliaName setting to database and UI ([60b2ef6](https://github.com/AI-Passione/famiglia-core/commit/60b2ef619c24f13871e39a2598ac738da30ad7dd))
+* implement real-time mission completion notifications and background polling for agent status updates. ([0eb8526](https://github.com/AI-Passione/famiglia-core/commit/0eb852641aae01c0696eee17f0282ac204c7bca5))
+* implement terminal agent acknowledgement and remove redundant OperationsHub component ([7989dc2](https://github.com/AI-Passione/famiglia-core/commit/7989dc26645dc4e3d42a43a1e06d3098a5cce77c))
+* implement unified app_notifications system with dedicated database table and frontend integration ([49afccd](https://github.com/AI-Passione/famiglia-core/commit/49afccd1c70be976783fe5bf97da22e09f12d30a))
+* improve research topic extraction, fix pathing, and integrate Postgres checkpointer with thread-aware graph execution ([01364bc](https://github.com/AI-Passione/famiglia-core/commit/01364bccf3100c1b0cd15efe238d006b3f6b22a8))
+* include message metadata in database queries and implement mission dispatch notifications in the terminal context ([9e1f45f](https://github.com/AI-Passione/famiglia-core/commit/9e1f45f90c655d99f59646854f4801022988f5e5))
+* replace InsightsTicker with global agent notification polling in TerminalContext and backend ([5e75845](https://github.com/AI-Passione/famiglia-core/commit/5e75845c607e8cba9a0c0711a14f232a61980512))
+* set active chat to command-center and update button label in DirectiveModal ([f799108](https://github.com/AI-Passione/famiglia-core/commit/f799108e4467df02e6accd6bae6ba31bc655c009))
 
 # [1.7.1](https://github.com/AI-Passione/famiglia-core/compare/v1.7.0...v1.7.1) (2026-04-10)
 

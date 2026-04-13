@@ -145,9 +145,9 @@ services:
     ports:
       - "11434:11434"
     environment:
-      - OLLAMA_KV_CACHE_TYPE=q8_0
-      - OLLAMA_FLASH_ATTENTION=1
+      # Relaxed settings for Docker compatibility with large models (Gemma 4 7B+)
       - OLLAMA_KEEP_ALIVE=0 # Unload instantly to prevent cross-agent RAM collision
+
       - OLLAMA_MAX_QUEUE=512 # Allow requests to queue instead of failing instantly
     volumes:
       - ollama_data:/root/.ollama

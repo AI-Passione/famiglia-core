@@ -7,8 +7,9 @@
     "gemma4_e2b": {
       "tag": "gemma4:e2b",
       "description": "Default Gemma 4 (E2B) — always-warm fallback model",
-      "ram_gb": 4.0
+      "ram_gb": 8.0
     },
+
     "deepseek_r1_7b": {
       "tag": "deepseek-r1:7b",
       "description": "DeepSeek R1 (7B) — reasoning model for complex tasks",

@@ -144,9 +144,10 @@ def main():
     }
     if scheduled_enabled:
         task_orchestrator.configure(agents)
-        task_orchestrator.start()
+        # Deferred: task_orchestrator.start() moved to end of setup
     else:
         print("[ScheduledTasks] Disabled by configuration.")
+
     
     # 3.5 Pre-pull agent fallback models
     print("Ensuring agent local models are allocated and pulled if RAM permits...")
@@ -355,6 +356,13 @@ def main():
     )
     mattermost_worker_thread.start()
     print("[MattermostWorker] Started.")
+
+    # Step 7. Activate agent orchestration (final step before main loop)
+    if scheduled_enabled:
+        print("\n[Startup] All local brain-models verified. Activating agent orchestration...")
+        task_orchestrator.start()
+        print("🚀 Famiglia Core is FULLY OPERATIONAL. Listening for directives...")
+
 
     if not handlers and not mattermost_queue.drivers:
         print("No Slack or Mattermost tokens found. Running in PROPOSAL mode.")

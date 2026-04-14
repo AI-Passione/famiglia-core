@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/AI-Passione/famiglia-core/compare/v1.9.0...v1.10.0) (2026-04-14)
+
+
+### Features
+
+* update engine room service to display available Ollama models in runtime detail ([7432b2e](https://github.com/AI-Passione/famiglia-core/commit/7432b2e2ba07502b11145ba29c081cd58afc2d8c))
+
 # [1.9.0](https://github.com/AI-Passione/famiglia-core/compare/v1.8.0...v1.9.0) (2026-04-14)
 
 

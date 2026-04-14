@@ -10,8 +10,18 @@ import os
 from typing import Dict, List
 
 _HERE = os.path.dirname(__file__)
+_DEFAULT_CONFIG = os.path.join(_HERE, "models.json")
+_CUSTOM_CONFIG = os.getenv("FAMIGLIA_MODELS_CONFIG")
 
-with open(os.path.join(_HERE, "models.json")) as _f:
+_config_path = _CUSTOM_CONFIG if _CUSTOM_CONFIG and os.path.exists(_CUSTOM_CONFIG) else _DEFAULT_CONFIG
+
+if _CUSTOM_CONFIG and _CUSTOM_CONFIG != _DEFAULT_CONFIG:
+    if os.path.exists(_CUSTOM_CONFIG):
+        print(f"[Registry] Loading custom model configuration from {_CUSTOM_CONFIG}")
+    else:
+        print(f"[Registry] WARNING: Custom config {_CUSTOM_CONFIG} not found. Falling back to default.")
+
+with open(_config_path) as _f:
     _cfg = json.load(_f)
 
 # ---------------------------------------------------------------------------

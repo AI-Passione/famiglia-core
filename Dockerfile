@@ -35,5 +35,8 @@ COPY . .
 # Set up the entrypoint script
 RUN chmod +x entrypoint.sh
 
+# Expose the API port
+EXPOSE 8000
+
 # Run both the Engine and the API
 CMD ["./entrypoint.sh"]

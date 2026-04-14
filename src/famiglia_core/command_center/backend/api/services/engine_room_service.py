@@ -587,7 +587,7 @@ class EngineRoomService:
                 description="Local model-serving runtime used as the primary inference plane.",
                 configured=bool(os.getenv("OLLAMA_HOST")) or bool(os.getenv("OLLAMA_REMOTE_HOST")) or "ollama" in docker_by_service,
                 connected=docker_by_service.get("ollama", {}).get("reachable", False),
-                detail=os.getenv("OLLAMA_HOST") or os.getenv("OLLAMA_REMOTE_HOST") or "http://localhost:11434",
+                detail=self._fetch_ollama_models(),
             ),
             self._tool_item(
                 slug="langfuse",
@@ -700,6 +700,16 @@ class EngineRoomService:
                 return json.loads(response.read().decode("utf-8"))
         except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, ValueError):
             return None
+
+    def _fetch_ollama_models(self) -> str:
+        ollama_host = os.getenv("OLLAMA_HOST", "http://ollama:11434")
+        tags_url = f"{ollama_host.rstrip('/')}/api/tags"
+        data = self._fetch_json(tags_url)
+        if not data or "models" not in data:
+            return os.getenv("OLLAMA_HOST") or os.getenv("OLLAMA_REMOTE_HOST") or "http://ollama:11434"
+        
+        models = [m["name"] for m in data["models"]]
+        return f"Models: {', '.join(models)}"
 
     def _format_duration(self, seconds: int) -> str:
         remaining = max(seconds, 0)

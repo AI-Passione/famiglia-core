@@ -1,3 +1,12 @@
+# [1.12.0](https://github.com/AI-Passione/famiglia-core/compare/v1.11.0...v1.12.0) (2026-04-14)
+
+
+### Features
+
+* allow overriding default model configuration via FAMIGLIA_MODELS_CONFIG environment variable ([71ddc6d](https://github.com/AI-Passione/famiglia-core/commit/71ddc6d53ef4e99598dd10b5fc59486d4c9cc47f))
+* expose port 8000 in Dockerfile and update integrity tests to support backend-only configurations ([2329510](https://github.com/AI-Passione/famiglia-core/commit/2329510893b5996cabc93f9fa828f6b17daded9c))
+* install Node.js and frontend dependencies in Dockerfile ([1a018c4](https://github.com/AI-Passione/famiglia-core/commit/1a018c4fd1180e186e6e68d20df2eda171de1d15))
+
 # [1.11.0](https://github.com/AI-Passione/famiglia-core/compare/v1.10.0...v1.11.0) (2026-04-14)
 
 

@@ -10,6 +10,9 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
+# Start Nginx in the background
+nginx &
+
 echo "🎩 Starting Agent Engine..."
 python main.py &
 ENGINE_PID=$!

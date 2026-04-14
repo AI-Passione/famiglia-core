@@ -75,6 +75,7 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      console.info("[DEBUG] Enter key pressed in terminal.");
       sendMessage(input);
     }
   };
@@ -357,7 +358,10 @@ export function Terminal({ variant = 'full' }: TerminalProps) {
                  <span className="material-symbols-outlined text-[20px]">attach_file</span>
               </button>
               <button 
-                onClick={() => sendMessage(input)}
+                onClick={() => {
+                  console.info("[DEBUG] Execute button clicked.");
+                  sendMessage(input);
+                }}
                 disabled={!input.trim() || isTyping}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-headline text-[10px] uppercase tracking-[0.2em] transition-all ${
                   input.trim() && !isTyping

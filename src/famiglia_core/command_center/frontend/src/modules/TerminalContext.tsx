@@ -538,96 +538,96 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
   }, []);
 
   const sendMessage = async (text: string, parentId?: number) => {
-    if (!text.trim()) return;
-
-    // USE REFS for mission-critical logic to avoid stale closures
-    const currentChatId = activeChatIdRef.current;
-    const currentChat = chatsRef.current[currentChatId];
-
-    console.log(`[LA_PASSIONE_SYNC_v4] sendMessage triggered [parent=${parentId}] for channel [${currentChatId}]: "${text.slice(0, 20)}..."`);
+    // 0. IMMEDIATE LOGGING (First tick)
+    console.info(`[DEBUG] sendMessage starting: "${text.slice(0, 50)}..." [parentId=${parentId}]`);
     
-    if (!currentChat) {
-      console.warn("[TerminalContext] No chat state found for ID:", currentChatId);
+    if (!text.trim()) {
+      console.warn("[DEBUG] sendMessage aborted: empty text.");
       return;
     }
-
-    // Only block main channel inputs, threads can be concurrent maybe? 
-    // For now, let's keep it simple and block if the specific "context" is typing.
-    if (currentChat.isTyping && !parentId) {
-      console.warn("[TerminalContext] Chat is busy, ignoring.");
-      return;
-    }
-
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      type: 'user',
-      speaker: 'Don Jimmy',
-      role: 'Head of Family',
-      content: text,
-      timestamp: new Date(),
-      status: 'done',
-      parent_id: parentId
-    };
-
-    // 1. Add user message
-    setChats(prev => ({
-      ...prev,
-      [currentChatId]: {
-        ...prev[currentChatId],
-        messages: [...prev[currentChatId].messages, userMessage]
-      }
-    }));
-    
-    if (!parentId) setInput('');
-
-    // 2. Resolve target agent
-    let targetAgentIdCandidate = currentChat.agent_id || (currentChatId === 'command-center' ? 'alfredo' : 'alfredo');
-    
-    // Dynamic Topic Routing for Intelligence Hub
-    if (currentChatId === 'intelligence-hub' && !parentId) {
-      const lowerText = text.toLowerCase();
-      if (lowerText.match(/\b(tech|code|system|devops|engineering|bug|deploy|architecture|app|repo|github)\b/)) {
-        targetAgentIdCandidate = 'riccardo';
-      } else if (lowerText.match(/\b(data|analytics|metrics|dashboard|sql|numbers|query|stats|duckdb)\b/)) {
-        targetAgentIdCandidate = 'kowalski';
-      } else {
-        targetAgentIdCandidate = 'rossini';
-      }
-    }
-
-    const targetAgentId = String(targetAgentIdCandidate || 'alfredo').toLowerCase();
-
-    // 3. Add typing indicator (agent message placeholder)
-    const agentMessageId = `agent-${Date.now()}`;
-    const newAgentMessage: Message = {
-      id: agentMessageId,
-      type: 'agent',
-      speaker: targetAgentId.charAt(0).toUpperCase() + targetAgentId.slice(1),
-      role: AGENT_ROLE_MAP[targetAgentId] || 'Agent',
-      content: '',
-      timestamp: new Date(),
-      status: 'typing',
-      avatar: AGENT_IMAGE_MAP[targetAgentId],
-      parent_id: parentId
-    };
-    
-    setChats(prev => ({
-      ...prev,
-      [currentChatId]: {
-        ...prev[currentChatId],
-        isTyping: !parentId ? true : prev[currentChatId].isTyping,
-        messages: [...prev[currentChatId].messages, newAgentMessage]
-      }
-    }));
 
     try {
+      // USE REFS for mission-critical logic to avoid stale closures
+      const currentChatId = activeChatIdRef.current;
+      const currentChat = chatsRef.current[currentChatId];
+
+      console.info(`[DEBUG] sendMessage context resolved for channel: ${currentChatId}`);
+      
+      if (!currentChat) {
+        console.error(`[DEBUG] CRITICAL: No chat state found for ID: ${currentChatId}. Available chats:`, Object.keys(chatsRef.current));
+        return;
+      }
+
+      // 1. Add user message
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        type: 'user',
+        speaker: 'Don Jimmy',
+        role: 'Head of Family',
+        content: text,
+        timestamp: new Date(),
+        status: 'done',
+        parent_id: parentId
+      };
+
+      setChats(prev => ({
+        ...prev,
+        [currentChatId]: {
+          ...prev[currentChatId],
+          messages: [...prev[currentChatId].messages, userMessage]
+        }
+      }));
+      
+      if (!parentId) setInput('');
+
+      // 2. Resolve target agent
+      let targetAgentIdCandidate = currentChat.agent_id || (currentChatId === 'command-center' ? 'alfredo' : 'alfredo');
+      
+      // Dynamic Topic Routing for Intelligence Hub
+      if (currentChatId === 'intelligence-hub' && !parentId) {
+        const lowerText = text.toLowerCase();
+        if (lowerText.match(/\b(tech|code|system|devops|engineering|bug|deploy|architecture|app|repo|github)\b/)) {
+          targetAgentIdCandidate = 'riccardo';
+        } else if (lowerText.match(/\b(data|analytics|metrics|dashboard|sql|numbers|query|stats|duckdb)\b/)) {
+          targetAgentIdCandidate = 'kowalski';
+        } else {
+          targetAgentIdCandidate = 'rossini';
+        }
+      }
+
+      const targetAgentId = String(targetAgentIdCandidate || 'alfredo').toLowerCase();
+
+      // 3. Add typing indicator (agent message placeholder)
+      const agentMessageId = `agent-${Date.now()}`;
+      const newAgentMessage: Message = {
+        id: agentMessageId,
+        type: 'agent',
+        speaker: targetAgentId.charAt(0).toUpperCase() + targetAgentId.slice(1),
+        role: AGENT_ROLE_MAP[targetAgentId] || 'Agent',
+        content: '',
+        timestamp: new Date(),
+        status: 'typing',
+        avatar: AGENT_IMAGE_MAP[targetAgentId],
+        parent_id: parentId
+      };
+      
+      setChats(prev => ({
+        ...prev,
+        [currentChatId]: {
+          ...prev[currentChatId],
+          isTyping: !parentId ? true : prev[currentChatId].isTyping,
+          messages: [...prev[currentChatId].messages, newAgentMessage]
+        }
+      }));
+
+      // 4. Initialize Connection
       const url = new URL(`${API_BASE}/chat/stream`, window.location.origin);
       url.searchParams.append('message', text);
       url.searchParams.append('agent_id', targetAgentId);
       url.searchParams.append('thread_id', currentChatId); // Use channel ID as thread
       if (parentId) url.searchParams.append('parent_id', parentId.toString());
       
-      console.log("[TerminalContext] 🚀 Connection initialized:", url.toString());
+      console.info("[DEBUG] SSE initializing at:", url.toString());
 
       const eventSource = new EventSource(url.toString());
       eventSourceRef.current = eventSource;
@@ -654,7 +654,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
               };
             });
           } else if (data.type === 'final') {
-            console.log(`[TerminalContext] ✅ Directive complete for ${currentChatId}`);
+            console.info(`[DEBUG] SSE Complete for ${currentChatId}`);
             setChats(prev => {
               const chat = prev[currentChatId];
               if (!chat) return prev;
@@ -675,7 +675,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
             });
             eventSource.close();
           } else if (data.type === 'error') {
-            console.error("[TerminalContext] Backend Error:", data.content);
+            console.error("[DEBUG] Backend reported error:", data.content);
             setChats(prev => {
               const chat = prev[currentChatId];
               if (!chat) return prev;
@@ -693,12 +693,12 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
             eventSource.close();
           }
         } catch (e) {
-          console.error("[TerminalContext] SSE Parse error:", e);
+          console.error("[DEBUG] SSE Chunk Parsing Error:", e);
         }
       };
 
       eventSource.onerror = (err) => {
-        console.error("[TerminalContext] SSE Network Error:", err);
+        console.error("[DEBUG] SSE Network Error/Timeout:", err);
         setChats(prev => ({
           ...prev,
           [currentChatId]: { ...prev[currentChatId], isTyping: false }
@@ -707,7 +707,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       };
 
     } catch (error) {
-      console.error("[TerminalContext] Critical failure starting SSE:", error);
+      console.error("[DEBUG] CRITICAL: sendMessage internal crash:", error);
       setChats(prev => ({
         ...prev,
         [currentChatId]: { ...prev[currentChatId], isTyping: false }

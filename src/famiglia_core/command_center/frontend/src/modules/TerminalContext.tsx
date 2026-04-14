@@ -137,7 +137,8 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
     setActiveThreadId(dbId);
     // Optional: Fetch thread history if not already present or to ensure sync
     try {
-      const res = await fetch(`${API_BASE}/chat/thread?parent_id=${dbId}`);
+      const url = new URL(`${API_BASE}/chat/thread?parent_id=${dbId}`, window.location.origin);
+      const res = await fetch(url);
       if (res.ok) {
         const history = await res.json();
         const threadMessages = history.filter(Boolean).map((msg: any, idx: number) => {
@@ -620,7 +621,7 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
     }));
 
     try {
-      const url = new URL(`${API_BASE}/chat/stream`);
+      const url = new URL(`${API_BASE}/chat/stream`, window.location.origin);
       url.searchParams.append('message', text);
       url.searchParams.append('agent_id', targetAgentId);
       url.searchParams.append('thread_id', currentChatId); // Use channel ID as thread

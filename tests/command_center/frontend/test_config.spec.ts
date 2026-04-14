@@ -9,8 +9,8 @@ describe('Frontend Config', () => {
     vi.resetModules();
     const { BACKEND_BASE, API_BASE } = await import('@/config');
 
-    expect(BACKEND_BASE).toBe('http://localhost:8000');
-    expect(API_BASE).toBe('http://localhost:8000/api/v1');
+    expect(BACKEND_BASE).toBe('');
+    expect(API_BASE).toBe('/api/v1');
   });
 
   it('builds API_BASE from a custom backend base', async () => {

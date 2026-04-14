@@ -10,6 +10,17 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     // Relative assets work both on repo-scoped Pages URLs and custom domains.
     base: env.VITE_BASE_PATH || './',
+    server: {
+      host: '0.0.0.0',
+      port: 80,
+      strictPort: true,
+      hmr: {
+        clientPort: 80,
+      },
+      watch: {
+        usePolling: true,
+      },
+    },
     build: {
       rollupOptions: {
         input: {

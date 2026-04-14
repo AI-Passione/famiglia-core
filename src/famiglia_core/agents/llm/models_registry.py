@@ -23,7 +23,6 @@ DEEPSEEK_R1_7B:  str = _cfg["models"]["deepseek_r1_7b"]["tag"]   # "deepseek-r1:
 QWEN25_CODER_7B: str = _cfg["models"]["qwen2_5_coder_7b"]["tag"] # "qwen2.5-coder:7b"
 QWEN2_5_3B:      str = _cfg["models"]["qwen2_5_3b"]["tag"]      # "qwen2.5:3b-instruct-q4_0"
 QWEN2_5_3B_INSTR: str = _cfg["models"]["qwen2_5_3b_instruct_q4_k_m"]["tag"]
-DEEPSEEK_CODER_V2_LITE: str = _cfg["models"]["deepseek_coder_v2_lite_instruct_q4_0"]["tag"]
 MISTRAL_7B:      str = _cfg["models"]["mistral_7b"]["tag"]      # "mistral:7b"
 
 # ---------------------------------------------------------------------------

@@ -37,11 +37,6 @@
       "description": "Qwen 2.5 (3B) — tools/coding champ",
       "ram_gb": 2.5
     },
-    "deepseek_coder_v2_lite_instruct_q4_0": {
-      "tag": "deepseek-coder-v2-lite-instruct:3b-q4_0",
-      "description": "DeepSeek Coder V2 Lite (3B) — code/tools",
-      "ram_gb": 2.2
-    },
     "mistral_7b": {
       "tag": "mistral:7b",
       "description": "Mistral (7B) — reliable open-weight performer",

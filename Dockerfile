@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     curl \
     ca-certificates \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv for fast package management
@@ -31,6 +33,9 @@ RUN uv sync --no-install-project --no-dev --no-cache
 
 # Copy the rest of the application
 COPY . .
+
+# Install frontend dependencies
+RUN cd src/famiglia_core/command_center/frontend && npm install
 
 # Set up the entrypoint script
 RUN chmod +x entrypoint.sh

@@ -2,7 +2,6 @@ import json
 import os
 import unittest
 from unittest.mock import patch, MagicMock
-from pathlib import Path
 from famiglia_core.command_center.backend.api.services.engine_room_service import EngineRoomService
 
 class TestEngineRoomService(unittest.TestCase):

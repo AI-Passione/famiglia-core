@@ -54,6 +54,9 @@ class LLMClient:
         self.default_ollama_model = os.getenv("OLLAMA_FALLBACK_MODEL", DEFAULT_OLLAMA_MODEL)
         self.session = requests.Session()
 
+        # Proactive startup check
+        self._log_connectivity_status()
+
         self._ollama_bootstrapped = False
         self._ollama_process: Optional[subprocess.Popen] = None
         self._generation_lock = threading.Lock()
@@ -134,7 +137,7 @@ class LLMClient:
             print("[LLM Client] All Ollama hosts unavailable; returning mock fallback response.")
             return self._mock_ollama(prompt), "mock-fallback"
 
-        print(f"[LLM Client] All configured LLM providers failed: {errors}")
+        print(f"[LLM Client] All configured LLM providers failed: {errors}", flush=True)
         raise ValueError(f"All configured LLM providers failed ({'; '.join(errors)})")
 
     def ensure_ollama_ready(self, auto_pull: bool = True) -> bool:
@@ -153,10 +156,28 @@ class LLMClient:
             self._ollama_bootstrapped = True
             if auto_pull:
                 self._ensure_model_pulled(self.default_ollama_model, host=self.ollama_remote_host)
-            print(f"[LLM] Remote Ollama available at {self.ollama_remote_host}")
+            print(f"[LLM] Remote Ollama available at {self.ollama_remote_host}", flush=True)
             return True
 
         return False
+
+    def _log_connectivity_status(self) -> None:
+        """Explicit startup log to verify Ollama connectivity from the backend."""
+        print(f"[LLM] --- Ollama Backend Connection Test ---", flush=True)
+        print(f"[LLM] Target Host: {self.ollama_host}", flush=True)
+        
+        if self._is_ollama_service_available():
+            print(f"[LLM] ✅ Ollama is REACHABLE at {self.ollama_host}", flush=True)
+            models = self._get_available_models(self.ollama_host)
+            print(f"[LLM] Available models: {', '.join(models) or 'None found'}", flush=True)
+        else:
+            print(f"[LLM] ❌ Ollama is NOT REACHABLE at {self.ollama_host}", flush=True)
+            
+        if self.ollama_remote_host:
+            if self._is_remote_ollama_available():
+                print(f"[LLM] ✅ Remote Ollama is REACHABLE at {self.ollama_remote_host}", flush=True)
+            else:
+                print(f"[LLM] ℹ️ Remote Ollama is not configured or reachable.", flush=True)
 
     def _ensure_local_ollama_ready(self, auto_pull: bool = True) -> bool:
         # Tier 2a: local Ollama service already running

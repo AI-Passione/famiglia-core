@@ -30,7 +30,7 @@ class AgentManager:
         
         agent_cls = self._agent_classes.get(agent_id)
         if agent_cls:
-            print(f"[AgentManager] Initializing agent: {agent_id}")
+            print(f"[AgentManager] Initializing agent: {agent_id}", flush=True)
             instance = agent_cls()
             self._agents[agent_id] = instance
             return instance

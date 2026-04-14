@@ -144,23 +144,15 @@ async def root():
     }
 
 @app.get("/health")
+@app.get("/api/health")
+@app.get("/api/v1/health")
 async def health():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc)}
 
-@app.get("/api/v1/agents", response_model=List[AgentStatus])
+@app.get("/api/v1/agents")
 async def get_agents():
-    stats = context_store.get_agent_interaction_stats()
-    agents = []
-    famiglia_names = ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski"]
-    for name in famiglia_names:
-        agent_stat = stats.get(name, {"msg_count": 0, "last_active": None})
-        agents.append(AgentStatus(
-            name=name,
-            last_active=agent_stat["last_active"],
-            msg_count=agent_stat["msg_count"],
-            status="idle"
-        ))
-    return agents
+    """Returns the full agent roster enriched with dossier details."""
+    return context_store.list_famiglia_agents()
 
 @app.get("/api/v1/actions", response_model=PaginatedActions)
 async def get_actions(limit: int = 50, offset: int = 0, agent_name: Optional[str] = None):

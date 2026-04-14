@@ -400,7 +400,7 @@ class LLMClient:
             return False
         url = f"{self.ollama_remote_host}/api/tags"
         try:
-            with urllib.request.urlopen(url, timeout=3):
+            with urllib.request.urlopen(url, timeout=5):
                 return True
         except Exception:
             return False
@@ -409,7 +409,7 @@ class LLMClient:
         """Probe the local Ollama host (Tier 2)."""
         url = f"{self.ollama_host}/api/tags"
         try:
-            with urllib.request.urlopen(url, timeout=2):
+            with urllib.request.urlopen(url, timeout=5):
                 return True
         except Exception:
             return False

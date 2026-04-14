@@ -1,3 +1,14 @@
+# [1.9.0](https://github.com/AI-Passione/famiglia-core/compare/v1.8.0...v1.9.0) (2026-04-14)
+
+
+### Features
+
+* add health check aliases and refactor agent roster retrieval to use context store method ([d1c5ff9](https://github.com/AI-Passione/famiglia-core/commit/d1c5ff9be8675e1a7cd8f60e84faeb04003d8bb3))
+* add Ollama service readiness check, improve model pull reliability, and add gemma4 support ([a042d25](https://github.com/AI-Passione/famiglia-core/commit/a042d25f46899415218f0b37d37bfadfe7d40e2a))
+* implement Gemma 4 reasoning support with automated thought-block stripping and dynamic routing mode overrides. ([56cd98c](https://github.com/AI-Passione/famiglia-core/commit/56cd98ce67b4338216654322eb6fd6e945f660fc))
+* implement readiness sentinel to synchronize Command Center API startup with engine initialization ([c969f6f](https://github.com/AI-Passione/famiglia-core/commit/c969f6f61ef24913199739da3dd274ae0b5fbf6d))
+* upgrade base local LLM from Gemma 3 (4B) to Gemma 4 (E2B) across all agents and configurations ([0624728](https://github.com/AI-Passione/famiglia-core/commit/062472894c39b87a2870aebd417832f1a2347593))
+
 # [1.7.2](https://github.com/AI-Passione/famiglia-core/compare/v1.7.1...v1.7.2) (2026-04-13)
 
 ### Core Intelligence

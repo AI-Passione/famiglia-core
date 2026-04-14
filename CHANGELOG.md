@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/AI-Passione/famiglia-core/compare/v1.13.1...v1.14.0) (2026-04-14)
+
+
+### Features
+
+* enable allowedHosts in Vite development server configuration ([f118342](https://github.com/AI-Passione/famiglia-core/commit/f118342578e3842b40c75745b469284906c7a288))
+
 ## [1.13.1](https://github.com/AI-Passione/famiglia-core/compare/v1.13.0...v1.13.1) (2026-04-14)
 
 # [1.13.0](https://github.com/AI-Passione/famiglia-core/compare/v1.12.0...v1.13.0) (2026-04-14)

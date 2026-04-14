@@ -20,18 +20,23 @@ def test_health_endpoint():
 
 @patch("famiglia_core.command_center.backend.api.main.context_store")
 def test_get_agents_endpoint(mock_store):
-    # Mocking agent interaction stats
-    mock_store.get_agent_interaction_stats.return_value = {
-        "alfredo": {"msg_count": 10, "last_active": datetime(2026, 3, 31, 12, 0, 0, tzinfo=timezone.utc)},
-        "vito": {"msg_count": 5, "last_active": datetime(2026, 3, 31, 14, 0, 0, tzinfo=timezone.utc)}
-    }
+    # Mocking rich agent dossier
+    mock_store.list_famiglia_agents.return_value = [
+        {"id": "alfredo", "name": "alfredo", "status": "active", "last_active": datetime(2026, 3, 31, 12, 0, 0, tzinfo=timezone.utc).isoformat()},
+        {"id": "vito", "name": "vito", "status": "active", "last_active": datetime(2026, 3, 31, 14, 0, 0, tzinfo=timezone.utc).isoformat()},
+        {"id": "riccardo", "name": "riccardo", "status": "idle"},
+        {"id": "rossini", "name": "rossini", "status": "idle"},
+        {"id": "tommy", "name": "tommy", "status": "idle"},
+        {"id": "bella", "name": "bella", "status": "idle"},
+        {"id": "kowalski", "name": "kowalski", "status": "idle"},
+    ]
     
     response = client.get("/api/v1/agents")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 7  # 7 agents in list
     alfredo = next(a for a in data if a["name"] == "alfredo")
-    assert alfredo["msg_count"] == 10
+    assert alfredo["status"] == "active"
 
 @patch("famiglia_core.command_center.backend.api.main.context_store")
 def test_get_actions_endpoint(mock_store):

@@ -10,8 +10,18 @@ import os
 from typing import Dict, List
 
 _HERE = os.path.dirname(__file__)
+_DEFAULT_CONFIG = os.path.join(_HERE, "models.json")
+_CUSTOM_CONFIG = os.getenv("FAMIGLIA_MODELS_CONFIG")
 
-with open(os.path.join(_HERE, "models.json")) as _f:
+_config_path = _CUSTOM_CONFIG if _CUSTOM_CONFIG and os.path.exists(_CUSTOM_CONFIG) else _DEFAULT_CONFIG
+
+if _CUSTOM_CONFIG and _CUSTOM_CONFIG != _DEFAULT_CONFIG:
+    if os.path.exists(_CUSTOM_CONFIG):
+        print(f"[Registry] Loading custom model configuration from {_CUSTOM_CONFIG}")
+    else:
+        print(f"[Registry] WARNING: Custom config {_CUSTOM_CONFIG} not found. Falling back to default.")
+
+with open(_config_path) as _f:
     _cfg = json.load(_f)
 
 # ---------------------------------------------------------------------------
@@ -23,7 +33,6 @@ DEEPSEEK_R1_7B:  str = _cfg["models"]["deepseek_r1_7b"]["tag"]   # "deepseek-r1:
 QWEN25_CODER_7B: str = _cfg["models"]["qwen2_5_coder_7b"]["tag"] # "qwen2.5-coder:7b"
 QWEN2_5_3B:      str = _cfg["models"]["qwen2_5_3b"]["tag"]      # "qwen2.5:3b-instruct-q4_0"
 QWEN2_5_3B_INSTR: str = _cfg["models"]["qwen2_5_3b_instruct_q4_k_m"]["tag"]
-DEEPSEEK_CODER_V2_LITE: str = _cfg["models"]["deepseek_coder_v2_lite_instruct_q4_0"]["tag"]
 MISTRAL_7B:      str = _cfg["models"]["mistral_7b"]["tag"]      # "mistral:7b"
 
 # ---------------------------------------------------------------------------

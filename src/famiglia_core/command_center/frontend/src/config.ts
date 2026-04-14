@@ -1,4 +1,4 @@
-const DEFAULT_BACKEND_BASE = 'http://localhost:8000';
+const DEFAULT_BACKEND_BASE = '';
 
 function normalizeUrl(value: string): string {
   return value.trim().replace(/\/+$/, '');

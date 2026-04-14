@@ -1,3 +1,11 @@
+# [1.11.0](https://github.com/AI-Passione/famiglia-core/compare/v1.10.0...v1.11.0) (2026-04-14)
+
+
+### Features
+
+* start Nginx in the background within entrypoint script ([8411352](https://github.com/AI-Passione/famiglia-core/commit/8411352c8d6b3206ec2816e929a0e0978a8883cc))
+* update Dockerfile to include multi-stage frontend build and Nginx integration ([5fceedf](https://github.com/AI-Passione/famiglia-core/commit/5fceedf1e64bb33619e7469c60e5de1b4079975b))
+
 # [1.10.0](https://github.com/AI-Passione/famiglia-core/compare/v1.9.0...v1.10.0) (2026-04-14)
 
 

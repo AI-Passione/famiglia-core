@@ -546,9 +546,10 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
       return;
     }
 
+    const currentChatId = activeChatIdRef.current;
+    
     try {
       // USE REFS for mission-critical logic to avoid stale closures
-      const currentChatId = activeChatIdRef.current;
       const currentChat = chatsRef.current[currentChatId];
 
       console.info(`[DEBUG] sendMessage context resolved for channel: ${currentChatId}`);

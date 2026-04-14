@@ -1,3 +1,15 @@
+# [1.13.0](https://github.com/AI-Passione/famiglia-core/compare/v1.12.0...v1.13.0) (2026-04-14)
+
+
+### Bug Fixes
+
+* update API_BASE to use relative path instead of window.location.origin for fallback ([9008162](https://github.com/AI-Passione/famiglia-core/commit/900816229a9c08d72e399f1b7ff585a25cc6ac9c))
+
+
+### Features
+
+* enhance terminal debugging with comprehensive logging and global config exposure ([a78f6bd](https://github.com/AI-Passione/famiglia-core/commit/a78f6bdaaa68802bd395adcf92b3997584c87b2a))
+
 # [1.12.0](https://github.com/AI-Passione/famiglia-core/compare/v1.11.0...v1.12.0) (2026-04-14)
 
 

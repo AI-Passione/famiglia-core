@@ -45,7 +45,7 @@ class MarketResearchWorkflow:
     def _extract_research_goal(self, task: str) -> str:
         """Isolate the actual research topic from meta-prompts or directive wrappers."""
         if not task: return "General Market Research"
-        
+
         # 1. Handle Situation Room "Client Specification:" format
         if "Client Specification:" in task:
             parts = task.split("Client Specification:")
@@ -53,12 +53,15 @@ class MarketResearchWorkflow:
                 spec = parts[1].strip()
                 if spec: return spec
 
-        # 2. Handle "Executing graph market_research" boilerplate
-        # Remove the boilerplate to find pure topic if it exists
-        clean_task = task.replace("Executing graph market_research", "").strip()
-        if clean_task and len(clean_task) > 5:
+        # 2. Strip autonomous queue metadata wrapper (everything after \n\nTask metadata:)
+        import re
+        clean_task = re.split(r'\n\s*\n\s*(?:Task metadata|Execution constraints):', task, flags=re.IGNORECASE)[0].strip()
+
+        # 3. Handle "Executing graph market_research" boilerplate
+        clean_task = clean_task.replace("Executing graph market_research", "").strip()
+        if clean_task:
             return clean_task
-            
+
         return task
 
     def _load_rossini_personality(self) -> str:
@@ -320,9 +323,9 @@ class MarketResearchWorkflow:
                 
         return state
 
-    def notify_slack(self, state: MarketResearchState) -> MarketResearchState:
-        """Node 5: Post an update in Slack (#Research-Insights channel)."""
-        print(f"[{self.name}] Research Node: notify_slack")
+    def deliver_results(self, state: MarketResearchState) -> MarketResearchState:
+        """Node 5: Set final_response for the Directive Terminal and optionally notify Slack."""
+        print(f"[{self.name}] Research Node: deliver_results")
         
         channel = state.get("slack_channel") or "C0AGQPGNP09" # #Research-Insights
         topic = state.get("research_topic") or state.get("task")
@@ -399,8 +402,8 @@ def setup_market_research_graph(agent):
     workflow.add_node("save_to_intelligence", workflow_logic.save_to_intelligence)
     # workflow.add_node("fix_notion_error", workflow_logic.fix_notion_error)
     workflow.add_node("generate_ideas", workflow_logic.generate_ideas)
-    workflow.add_node("notify_slack", workflow_logic.notify_slack)
-    
+    workflow.add_node("deliver_results", workflow_logic.deliver_results)
+
     def route_search(state: MarketResearchState):
         if state.get("search_success"):
             return "success"
@@ -441,8 +444,8 @@ def setup_market_research_graph(agent):
     # )
     # workflow.add_edge("fix_notion_error", "save_to_notion")
     
-    workflow.add_edge("generate_ideas", "notify_slack")
-    workflow.add_edge("notify_slack", END)
+    workflow.add_edge("generate_ideas", "deliver_results")
+    workflow.add_edge("deliver_results", END)
     
     workflow.set_entry_point("perform_search")
     

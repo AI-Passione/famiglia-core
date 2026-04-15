@@ -27,7 +27,7 @@ The orchestration layer enforces a **Proactive Model Resolution** strategy. Befo
 Located in `market_research/`, focused on external intelligence and strategic ideation.
 
 ### 1. Market Research Workflow
-Performs iterative web searches, curates insights into the **Intelligence Center**, and generates innovative business proposals.
+Performs iterative web searches, curates insights into the **Intelligence Center**, generates innovative business proposals, and delivers results to the **Directive Terminal** (with an optional Slack notification to #Research-Insights).
 - **File:** `market_research/market_research.py`
 - **Tests:** `tests/agents/test_orchestration_features.py` (100% Logic Coverage)
 - **Workflow Architecture:**
@@ -39,7 +39,7 @@ graph TD;
     curate_results(curate_results)
     save_to_intelligence(save_to_intelligence)
     generate_ideas(generate_ideas)
-    notify_slack(notify_slack)
+    deliver_results(deliver_results)
     __end__([__end__]):::last
 
     __start__ --> perform_search;
@@ -48,8 +48,8 @@ graph TD;
     perform_search -- "Success / Final Attempt" --> curate_results;
     curate_results --> save_to_intelligence;
     save_to_intelligence --> generate_ideas;
-    generate_ideas --> notify_slack;
-    notify_slack --> __end__;
+    generate_ideas --> deliver_results;
+    deliver_results --> __end__;
 
     classDef default fill:#f2f0ff,line-height:1.2
     classDef first fill-opacity:0

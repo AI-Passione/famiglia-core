@@ -1,5 +1,5 @@
 from famiglia_core.agents.base_agent import BaseAgent
-from famiglia_core.agents.llm.models_registry import GEMMA4_E2B
+from famiglia_core.agents.llm.models_registry import GEMMA3_4B
 
 class Bella(BaseAgent):
     def __init__(self):
@@ -9,7 +9,7 @@ class Bella(BaseAgent):
             role="Meeting notes, Notion updates, project management, scheduling",
             model_config={
                 "primary": "gemini-2.0-flash",
-                "secondary": GEMMA4_E2B,
+                "secondary": GEMMA3_4B,
             }
         )
 

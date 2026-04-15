@@ -38,7 +38,7 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
       - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
-      - OLLAMA_FALLBACK_MODEL=${OLLAMA_FALLBACK_MODEL:-gemma4:e2b}
+      - OLLAMA_FALLBACK_MODEL=${OLLAMA_FALLBACK_MODEL:-gemma3:4b}
       - OLLAMA_API_KEY=${OLLAMA_API_KEY}
       - APP_ENV=${APP_ENV:-development}
       - DEV_CHANNEL_ID=${DEV_CHANNEL_ID}
@@ -72,7 +72,7 @@ services:
       interval: 15s
       timeout: 10s
       retries: 20
-      start_period: 20m # Generous buffer for the first-time Gemma 4 pull (7GB+)
+      start_period: 10m # Buffer for the first-time Gemma 3 (4B) pull (~3GB)
 
     depends_on:
       postgres:
@@ -145,7 +145,7 @@ services:
     ports:
       - "11434:11434"
     environment:
-      # Relaxed settings for Docker compatibility with large models (Gemma 4 7B+)
+      # Relaxed settings for Docker compatibility with local models
       - OLLAMA_KEEP_ALIVE=0 # Unload instantly to prevent cross-agent RAM collision
 
       - OLLAMA_MAX_QUEUE=512 # Allow requests to queue instead of failing instantly

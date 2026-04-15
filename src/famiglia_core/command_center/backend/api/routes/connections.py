@@ -34,14 +34,6 @@ async def get_connections_config():
         }
     }
 
-@router.get("/{service}")
-async def get_connection_status(service: str):
-    """Retrieve the status of a specific connection."""
-    status = user_connections_store.get_connection_status(service)
-    if not status:
-        return {"connected": False, "service": service}
-    return status
-
 @router.post("/ollama/key")
 async def save_ollama_api_key(payload: ApiKeyPayload):
     """Store an Ollama API key (encrypted) in the database."""
@@ -80,6 +72,14 @@ async def test_ollama_connection():
 
     models = [m["name"] for m in response.json().get("models", [])]
     return {"success": True, "host": ollama_host, "models": models}
+
+@router.get("/{service}")
+async def get_connection_status(service: str):
+    """Retrieve the status of a specific connection."""
+    status = user_connections_store.get_connection_status(service)
+    if not status:
+        return {"connected": False, "service": service}
+    return status
 
 @router.delete("/{service}")
 async def disconnect_service(service: str):

@@ -1,11 +1,15 @@
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
+from pydantic import BaseModel
 from famiglia_core.db.tools.user_connections_store import user_connections_store
 from famiglia_core.command_center.backend.github.auth_github import github_oauth_client
 from famiglia_core.command_center.backend.comms.slack.auth_slack import slack_oauth_client
 from famiglia_core.command_center.backend.notion.auth_notion import notion_oauth_client
 
 router = APIRouter(prefix="/connections", tags=["connections"])
+
+class ApiKeyPayload(BaseModel):
+    api_key: str
 
 @router.get("/config")
 async def get_connections_config():
@@ -35,6 +39,19 @@ async def get_connection_status(service: str):
     if not status:
         return {"connected": False, "service": service}
     return status
+
+@router.post("/ollama/key")
+async def save_ollama_api_key(payload: ApiKeyPayload):
+    """Store an Ollama API key (encrypted) in the database."""
+    if not payload.api_key.strip():
+        raise HTTPException(status_code=422, detail="API key cannot be empty.")
+    success = user_connections_store.upsert_connection(
+        service="ollama",
+        access_token=payload.api_key.strip(),
+    )
+    if success:
+        return {"success": True, "message": "Ollama API key saved."}
+    raise HTTPException(status_code=500, detail="Failed to save Ollama API key.")
 
 @router.delete("/{service}")
 async def disconnect_service(service: str):

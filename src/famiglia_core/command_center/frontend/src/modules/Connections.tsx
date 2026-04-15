@@ -34,6 +34,11 @@ interface SlackStatus {
   connected_at?: string;
 }
 
+interface OllamaStatus {
+  connected: boolean;
+  connected_at?: string;
+}
+
 // Shared API configuration is now imported from ../config.ts
 
 function formatDate(iso?: string) {
@@ -563,6 +568,140 @@ function NotionCard({ initialStatus, config, onFinish }: { initialStatus: Notion
     );
   }
 
+// ─── Ollama Card ─────────────────────────────────────────────────────────
+
+function OllamaCard({ initialStatus, onFinish }: { initialStatus: OllamaStatus; onFinish: () => void }) {
+  const [status, setStatus] = useState<OllamaStatus>(initialStatus);
+  const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => { setStatus(initialStatus); }, [initialStatus]);
+
+  const handleSave = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/connections/ollama/key`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: apiKey }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Failed to save API key.');
+      }
+      setApiKey('');
+      onFinish();
+    } catch (e: any) {
+      setError(e.message || 'Unknown error.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/connections/ollama`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to disconnect.');
+      setStatus({ connected: false });
+      onFinish();
+    } catch (e: any) {
+      setError(e.message || 'Unknown error.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <motion.div layout className="bg-[#161616] border border-[#232323] rounded-lg overflow-hidden group hover:border-[#ffb3b5]/20 transition-all">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-[#232323]">
+        <div className="flex items-center gap-4">
+          <div className="relative flex items-center justify-center w-11 h-11 rounded-lg bg-[#1c1b1b] border border-[#2a2a2a]">
+            <img src="/ollama.svg" alt="Ollama" className="w-7 h-7 object-contain" />
+          </div>
+          <div>
+            <p className="font-headline text-white text-base font-bold">Ollama</p>
+            <p className="font-body text-[#6b6b6b] text-xs mt-0.5">Local AI model runtime for private, on-device inference</p>
+          </div>
+        </div>
+        <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-label font-bold uppercase tracking-widest ${
+          status.connected ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-400' : 'border-[#2a2a2a] bg-[#1c1b1b] text-[#555]'
+        }`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${status.connected ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-[#444]'}`} />
+          {status.connected ? 'Connected' : 'Ready'}
+        </div>
+      </div>
+
+      <div className="px-6 py-5">
+        <AnimatePresence mode="wait">
+          {status.connected ? (
+            <motion.div key="connected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between">
+              <div>
+                <p className="font-headline text-white font-bold text-sm">API Key stored</p>
+                <p className="font-body text-[#555] text-xs mt-0.5">{formatDate(status.connected_at)}</p>
+              </div>
+              <button
+                disabled={loading}
+                onClick={handleDisconnect}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-label uppercase tracking-widest text-[#a38b88] border border-[#2a2a2a] rounded hover:border-[#4A0404] hover:text-[#ffb3b5] hover:bg-[#4A0404]/10 transition-all disabled:opacity-20"
+              >
+                <span className="material-symbols-outlined text-base">link_off</span>
+                Remove key
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div key="disconnected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
+              <p className="font-body text-[#6b6b6b] text-sm leading-relaxed max-w-md">
+                Enter your Ollama API key to enable authenticated access to your Ollama instance.
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && apiKey.trim() && handleSave()}
+                    placeholder="sk-••••••••••••••••"
+                    className="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded px-4 py-2.5 text-sm font-mono text-white placeholder-[#333] focus:outline-none focus:border-[#ffb3b5]/40 transition-all pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888] transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">{showKey ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </div>
+                <button
+                  disabled={loading || !apiKey.trim()}
+                  onClick={handleSave}
+                  className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold font-label uppercase tracking-widest bg-[#ffb3b5] text-[#131313] rounded hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  <span className="material-symbols-outlined text-base font-black">save</span>
+                  Save key
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {error && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 flex items-center gap-3 px-4 py-3 bg-[#4A0404]/20 border border-[#4A0404]/40 rounded text-[#ffb3b5] text-xs font-body">
+              <span className="material-symbols-outlined text-base">warning</span>
+              {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Main Connections View ────────────────────────────────────────────────
 
 export function Connections({ successParam, errorParam, onClearParams }: any) {
@@ -570,21 +709,24 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
   const [githubStatus, setGithubStatus] = useState<GitHubStatus>({ connected: false });
   const [slackStatus, setSlackStatus] = useState<SlackStatus>({ connected: false });
   const [notionStatus, setNotionStatus] = useState<NotionStatus>({ connected: false });
+  const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus>({ connected: false });
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ m: string; type: 'success' | 'error' } | null>(null);
 
   const fetchData = async () => {
     try {
-      const [cfgRes, githubRes, slackRes, notionRes] = await Promise.all([
+      const [cfgRes, githubRes, slackRes, notionRes, ollamaRes] = await Promise.all([
         fetch(`${API_BASE}/connections/config`),
         fetch(`${API_BASE}/connections/github`),
         fetch(`${API_BASE}/connections/slack`),
         fetch(`${API_BASE}/connections/notion`),
+        fetch(`${API_BASE}/connections/ollama`),
       ]);
       if (cfgRes.ok) setConfig(await cfgRes.json());
       if (githubRes.ok) setGithubStatus(await githubRes.json());
       if (slackRes.ok) setSlackStatus(await slackRes.json());
       if (notionRes.ok) setNotionStatus(await notionRes.json());
+      if (ollamaRes.ok) setOllamaStatus(await ollamaRes.json());
     } finally {
       setLoading(false);
     }
@@ -664,24 +806,10 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
             <h2 className="text-xl font-headline font-bold text-white uppercase tracking-tighter">AI / LLMs</h2>
             <div className="h-px flex-1 bg-[#1c1b1b]" />
           </div>
-          {/* Ollama — integration in progress */}
-          <div className="bg-[#161616] border border-[#232323] rounded-lg overflow-hidden opacity-50 grayscale pointer-events-none">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#232323]">
-              <div className="flex items-center gap-4">
-                <div className="relative flex items-center justify-center w-11 h-11 rounded-lg bg-[#1c1b1b] border border-[#2a2a2a]">
-                  <img src="/ollama.svg" alt="Ollama" className="w-7 h-7 object-contain" />
-                </div>
-                <div>
-                  <p className="font-headline text-white text-base font-bold">Ollama</p>
-                  <p className="font-body text-[#6b6b6b] text-xs mt-0.5">Local AI model runtime for private, on-device inference</p>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-[#1c1b1b] border border-[#2a2a2a] text-[10px] font-label text-[#555] uppercase tracking-widest rounded-full">In Development</span>
-            </div>
-            <div className="px-6 py-4">
-              <p className="font-body text-[#333] text-xs">This integration is under active construction and will be available shortly.</p>
-            </div>
-          </div>
+          <OllamaCard
+            initialStatus={ollamaStatus}
+            onFinish={() => { fetchData(); setToast({ m: ollamaStatus.connected ? 'Ollama key removed.' : 'Ollama API key saved.', type: 'success' }); }}
+          />
         </section>
 
         {/* ── Comms ─────────────────────────────────────────────────────── */}

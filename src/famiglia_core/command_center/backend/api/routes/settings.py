@@ -5,6 +5,7 @@ from famiglia_core.command_center.backend.api.services.user_service import user_
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 class AppSettingsPayload(BaseModel):
+    fullName: str = Field(default="Don Jimmy", min_length=1, max_length=255)
     honorific: str = Field(default="Don", min_length=1, max_length=64)
     famigliaName: str = Field(default="The Family", min_length=1, max_length=128)
     notificationsEnabled: bool = True

@@ -67,7 +67,7 @@ function openCenterPopup(url: string, title: string, w: number, h: number) {
 
 // ─── Setup Guides ─────────────────────────────────────────────────────────
 
-function GitHubSetupGuide() {
+function GitHubSetupGuide({ bossName }: { bossName: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -81,7 +81,7 @@ function GitHubSetupGuide() {
         <div>
           <h3 className="text-2xl font-headline font-bold text-white tracking-tighter">Connection Config Pending</h3>
           <p className="text-sm font-body text-[#6b6b6b] mt-1 leading-relaxed">
-            Don Jimmy, your GitHub credentials haven't been detected in the vault yet. 
+            {bossName}, your GitHub credentials haven't been detected in the vault yet. 
             Once you've added your <strong>Client ID</strong> and <strong>Secret</strong> to the <code>.env</code>, 
             restart the backend to activate the secure sync.
           </p>
@@ -115,7 +115,7 @@ function GitHubSetupGuide() {
 
 
 // ─── Integration Cards ──────────────────────────────────────────────────
-function NotionSetupGuide() {
+function NotionSetupGuide({ bossName }: { bossName: string }) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -129,7 +129,7 @@ function NotionSetupGuide() {
           <div>
             <h3 className="text-2xl font-headline font-bold text-white tracking-tighter">Notion Handshake Missing</h3>
             <p className="text-sm font-body text-[#6b6b6b] mt-1 leading-relaxed">
-              Don Jimmy, the Notion integration must be activated in your <code>.env</code> vault first. 
+              {bossName}, the Notion integration must be activated in your <code>.env</code> vault first. 
               Configure your <strong>Public Integration</strong> in the Notion Developer Portal to proceed.
             </p>
           </div>
@@ -162,7 +162,7 @@ function NotionSetupGuide() {
 
 // ─── GitHub Card (Connected/Prompt) ───────────────────────────────────────
 
-function GitHubCard({ initialStatus, config, onFinish }: { initialStatus: GitHubStatus; config: ServiceConfig; onFinish: (s: string) => void }) {
+function GitHubCard({ initialStatus, config, onFinish, bossName }: { initialStatus: GitHubStatus; config: ServiceConfig; onFinish: (s: string) => void; bossName: string }) {
   const [status, setStatus] = useState<GitHubStatus>(initialStatus);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -263,7 +263,7 @@ function GitHubCard({ initialStatus, config, onFinish }: { initialStatus: GitHub
                   </button>
                 </div>
               ) : (
-                <GitHubSetupGuide />
+                <GitHubSetupGuide bossName={bossName} />
               )}
             </motion.div>
           )}
@@ -282,7 +282,7 @@ function GitHubCard({ initialStatus, config, onFinish }: { initialStatus: GitHub
   );
 }
 
-function SlackFamigliaWizard({ onFinish }: { onFinish: () => void }) {
+function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bossName: string }) {
   const [step, setStep] = useState(1);
   const [appLevelToken, setAppLevelToken] = useState('');
   const [provisionedApps, setProvisionedApps] = useState<any[]>([]);
@@ -358,7 +358,7 @@ function SlackFamigliaWizard({ onFinish }: { onFinish: () => void }) {
             <div>
               <h3 className="text-3xl font-headline font-black text-white tracking-tighter uppercase italic">Assemble the Famiglia</h3>
               <p className="text-sm font-body text-[#a38b88] mt-2 leading-relaxed opacity-80">
-                Don Jimmy, let's manifest the multi-bot network. A single <strong>App-Level Token</strong> triggers the birth of your digital empire.
+                {bossName}, let's manifest the multi-bot network. A single <strong>App-Level Token</strong> triggers the birth of your digital empire.
               </p>
             </div>
           </div>
@@ -509,7 +509,7 @@ function SlackFamigliaWizard({ onFinish }: { onFinish: () => void }) {
   );
 }
 
-function SlackCard({ initialStatus, onFinish }: { initialStatus: SlackStatus; config: SlackConfig, onFinish: () => void }) {
+function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: SlackStatus; config: SlackConfig, onFinish: () => void; bossName: string }) {
   const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
   const [showWizard, setShowWizard] = useState(false);
 
@@ -563,7 +563,7 @@ function SlackCard({ initialStatus, onFinish }: { initialStatus: SlackStatus; co
       <div className="px-6 py-5">
         <AnimatePresence mode="wait">
           {showWizard ? (
-             <SlackFamigliaWizard onFinish={() => { fetchFamigliaStatus(); setShowWizard(false); }} />
+             <SlackFamigliaWizard onFinish={() => { fetchFamigliaStatus(); setShowWizard(false); }} bossName={bossName} />
           ) : (
             <div className="space-y-4">
                 <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
@@ -610,7 +610,7 @@ const AGENT_EMOJIS = {
 };
 // ─── Notion Card (Connected/Prompt) ────────────────────────────────────────
 
-function NotionCard({ initialStatus, config, onFinish }: { initialStatus: NotionStatus; config: ServiceConfig; onFinish: (s: string) => void }) {
+function NotionCard({ initialStatus, config, onFinish, bossName }: { initialStatus: NotionStatus; config: ServiceConfig; onFinish: (s: string) => void; bossName: string }) {
     const [status, setStatus] = useState<NotionStatus>(initialStatus);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -711,7 +711,7 @@ function NotionCard({ initialStatus, config, onFinish }: { initialStatus: Notion
                     </button>
                   </div>
                 ) : (
-                  <NotionSetupGuide />
+                  <NotionSetupGuide bossName={bossName} />
                 )}
               </motion.div>
             )}
@@ -933,7 +933,7 @@ function OllamaCard({ initialStatus, onFinish }: { initialStatus: OllamaStatus; 
 
 // ─── Main Connections View ────────────────────────────────────────────────
 
-export function Connections({ successParam, errorParam, onClearParams }: any) {
+export function Connections({ successParam, errorParam, onClearParams, bossName }: any) {
   const [config, setConfig] = useState<Record<string, ServiceConfig>>({});
   const [githubStatus, setGithubStatus] = useState<GitHubStatus>({ connected: false });
   const [slackStatus, setSlackStatus] = useState<SlackStatus>({ connected: false });
@@ -1052,6 +1052,7 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
             initialStatus={slackStatus}
             config={config.slack || { configured: false, redirect_uri: '' }}
             onFinish={() => fetchData()}
+            bossName={bossName}
           />
         </section>
 
@@ -1067,6 +1068,7 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
               initialStatus={notionStatus}
               config={config.notion || { configured: false, redirect_uri: '' }}
               onFinish={() => fetchData()}
+              bossName={bossName}
             />
             <div className="bg-[#161616] border border-[#232323] p-6 rounded-lg flex items-center justify-between opacity-30 grayscale pointer-events-none">
               <div className="flex items-center gap-4">
@@ -1094,6 +1096,7 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
             initialStatus={githubStatus}
             config={config.github || { configured: false, redirect_uri: '' }}
             onFinish={() => fetchData()}
+            bossName={bossName}
           />
         </section>
 

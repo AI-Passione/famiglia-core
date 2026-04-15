@@ -122,6 +122,7 @@ export interface MissionLogEntry {
 }
 
 export interface AppSettings {
+  fullName: string;
   honorific: string;
   famigliaName: string;
   notificationsEnabled: boolean;

@@ -323,9 +323,9 @@ class MarketResearchWorkflow:
                 
         return state
 
-    def notify_slack(self, state: MarketResearchState) -> MarketResearchState:
-        """Node 5: Post an update in Slack (#Research-Insights channel)."""
-        print(f"[{self.name}] Research Node: notify_slack")
+    def deliver_results(self, state: MarketResearchState) -> MarketResearchState:
+        """Node 5: Set final_response for the Directive Terminal and optionally notify Slack."""
+        print(f"[{self.name}] Research Node: deliver_results")
         
         channel = state.get("slack_channel") or "C0AGQPGNP09" # #Research-Insights
         topic = state.get("research_topic") or state.get("task")
@@ -402,8 +402,8 @@ def setup_market_research_graph(agent):
     workflow.add_node("save_to_intelligence", workflow_logic.save_to_intelligence)
     # workflow.add_node("fix_notion_error", workflow_logic.fix_notion_error)
     workflow.add_node("generate_ideas", workflow_logic.generate_ideas)
-    workflow.add_node("notify_slack", workflow_logic.notify_slack)
-    
+    workflow.add_node("deliver_results", workflow_logic.deliver_results)
+
     def route_search(state: MarketResearchState):
         if state.get("search_success"):
             return "success"
@@ -444,8 +444,8 @@ def setup_market_research_graph(agent):
     # )
     # workflow.add_edge("fix_notion_error", "save_to_notion")
     
-    workflow.add_edge("generate_ideas", "notify_slack")
-    workflow.add_edge("notify_slack", END)
+    workflow.add_edge("generate_ideas", "deliver_results")
+    workflow.add_edge("deliver_results", END)
     
     workflow.set_entry_point("perform_search")
     

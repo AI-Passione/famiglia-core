@@ -210,7 +210,7 @@ function App() {
         <TopNav />
         <div className="flex">
           <Sidebar famigliaName={settings.famigliaName} />
-          <main className="flex-1 ml-72 h-screen pt-16 relative overflow-hidden">
+          <main className="flex-1 ml-72 h-screen pt-16 relative overflow-y-auto">
             {/* Background Map Overlay */}
             <div className="absolute inset-0 noir-bg-map pointer-events-none opacity-20"></div>
             

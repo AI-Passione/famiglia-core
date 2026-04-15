@@ -656,21 +656,41 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
       </header>
 
       <div className="flex flex-col gap-10">
+
+        {/* ── AI / LLMs ─────────────────────────────────────────────────── */}
         <section className="space-y-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-headline font-bold text-white uppercase tracking-tighter">Source Control Integration</h2>
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#ffb3b5] text-base">smart_toy</span>
+            <h2 className="text-xl font-headline font-bold text-white uppercase tracking-tighter">AI / LLMs</h2>
             <div className="h-px flex-1 bg-[#1c1b1b]" />
           </div>
-          <GitHubCard
-            initialStatus={githubStatus}
-            config={config.github || { configured: false, redirect_uri: '' }}
-            onFinish={() => fetchData()}
-          />
+          {/* Ollama — integration in progress */}
+          <div className="bg-[#161616] border border-[#232323] rounded-lg overflow-hidden opacity-50 grayscale pointer-events-none">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#232323]">
+              <div className="flex items-center gap-4">
+                <div className="relative flex items-center justify-center w-11 h-11 rounded-lg bg-[#1c1b1b] border border-[#2a2a2a]">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 fill-[#c9c9c9]" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm0 14.5c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-headline text-white text-base font-bold">Ollama</p>
+                  <p className="font-body text-[#6b6b6b] text-xs mt-0.5">Local AI model runtime for private, on-device inference</p>
+                </div>
+              </div>
+              <span className="px-3 py-1 bg-[#1c1b1b] border border-[#2a2a2a] text-[10px] font-label text-[#555] uppercase tracking-widest rounded-full">In Development</span>
+            </div>
+            <div className="px-6 py-4">
+              <p className="font-body text-[#333] text-xs">This integration is under active construction and will be available shortly.</p>
+            </div>
+          </div>
         </section>
 
+        {/* ── Comms ─────────────────────────────────────────────────────── */}
         <section className="space-y-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-headline font-bold text-white uppercase tracking-tighter">Communication &amp; Identity</h2>
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#ffb3b5] text-base">forum</span>
+            <h2 className="text-xl font-headline font-bold text-white uppercase tracking-tighter">Comms</h2>
             <div className="h-px flex-1 bg-[#1c1b1b]" />
           </div>
           <SlackCard
@@ -680,29 +700,48 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
           />
         </section>
 
-        <section className="space-y-6 opacity-40 grayscale pointer-events-none">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-headline font-bold text-white uppercase tracking-tighter">Protected Vaults</h2>
+        {/* ── Documentation ─────────────────────────────────────────────── */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#ffb3b5] text-base">article</span>
+            <h2 className="text-xl font-headline font-bold text-white uppercase tracking-tighter">Documentation</h2>
             <div className="h-px flex-1 bg-[#1c1b1b]" />
           </div>
           <div className="grid grid-cols-1 gap-6">
-              <NotionCard
-                initialStatus={notionStatus}
-                config={config.notion || { configured: false, redirect_uri: '' }}
-                onFinish={() => fetchData()}
-              />
-              
-              <div className="bg-[#161616] border border-[#232323] p-6 rounded-lg flex items-center justify-between opacity-30 grayscale pointer-events-none">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-[#1c1b1b] border border-[#2a2a2a] rounded">
-                    <span className="material-symbols-outlined text-[#444]">calendar_month</span>
-                  </div>
-                  <p className="font-headline font-bold text-white text-base">Google Core</p>
+            <NotionCard
+              initialStatus={notionStatus}
+              config={config.notion || { configured: false, redirect_uri: '' }}
+              onFinish={() => fetchData()}
+            />
+            <div className="bg-[#161616] border border-[#232323] p-6 rounded-lg flex items-center justify-between opacity-30 grayscale pointer-events-none">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-[#1c1b1b] border border-[#2a2a2a] rounded">
+                  <span className="material-symbols-outlined text-[#444]">calendar_month</span>
                 </div>
-                <span className="px-3 py-1 bg-[#1c1b1b] border border-[#2a2a2a] text-[10px] font-label text-[#444] uppercase tracking-widest rounded">Restricted</span>
+                <div>
+                  <p className="font-headline font-bold text-white text-base">Google Core</p>
+                  <p className="font-body text-[#6b6b6b] text-xs mt-0.5">Calendar and workspace services</p>
+                </div>
               </div>
+              <span className="px-3 py-1 bg-[#1c1b1b] border border-[#2a2a2a] text-[10px] font-label text-[#444] uppercase tracking-widest rounded">Restricted</span>
+            </div>
           </div>
         </section>
+
+        {/* ── Tech ──────────────────────────────────────────────────────── */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#ffb3b5] text-base">code</span>
+            <h2 className="text-xl font-headline font-bold text-white uppercase tracking-tighter">Tech</h2>
+            <div className="h-px flex-1 bg-[#1c1b1b]" />
+          </div>
+          <GitHubCard
+            initialStatus={githubStatus}
+            config={config.github || { configured: false, redirect_uri: '' }}
+            onFinish={() => fetchData()}
+          />
+        </section>
+
       </div>
 
       <footer className="mt-auto py-10 border-t border-[#1c1b1b] flex items-center justify-center">

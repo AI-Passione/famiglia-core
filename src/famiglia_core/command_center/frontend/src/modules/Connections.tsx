@@ -570,11 +570,15 @@ function NotionCard({ initialStatus, config, onFinish }: { initialStatus: Notion
 
 // ─── Ollama Card ─────────────────────────────────────────────────────────
 
+type TestResult = { success: boolean; host?: string; models?: string[]; detail?: string } | null;
+
 function OllamaCard({ initialStatus, onFinish }: { initialStatus: OllamaStatus; onFinish: () => void }) {
   const [status, setStatus] = useState<OllamaStatus>(initialStatus);
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { setStatus(initialStatus); }, [initialStatus]);
@@ -604,6 +608,7 @@ function OllamaCard({ initialStatus, onFinish }: { initialStatus: OllamaStatus; 
   const handleDisconnect = async () => {
     setLoading(true);
     setError(null);
+    setTestResult(null);
     try {
       const res = await fetch(`${API_BASE}/connections/ollama`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to disconnect.');
@@ -613,6 +618,24 @@ function OllamaCard({ initialStatus, onFinish }: { initialStatus: OllamaStatus; 
       setError(e.message || 'Unknown error.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/connections/ollama/test`);
+      const body = await res.json();
+      if (!res.ok) {
+        setTestResult({ success: false, detail: body.detail || `Error ${res.status}` });
+      } else {
+        setTestResult({ success: true, host: body.host, models: body.models });
+      }
+    } catch {
+      setTestResult({ success: false, detail: 'Could not reach the backend.' });
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -639,19 +662,63 @@ function OllamaCard({ initialStatus, onFinish }: { initialStatus: OllamaStatus; 
       <div className="px-6 py-5">
         <AnimatePresence mode="wait">
           {status.connected ? (
-            <motion.div key="connected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between">
-              <div>
-                <p className="font-headline text-white font-bold text-sm">API Key stored</p>
-                <p className="font-body text-[#555] text-xs mt-0.5">{formatDate(status.connected_at)}</p>
+            <motion.div key="connected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-headline text-white font-bold text-sm">API Key stored</p>
+                  <p className="font-body text-[#555] text-xs mt-0.5">{formatDate(status.connected_at)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={testing || loading}
+                    onClick={handleTest}
+                    className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-label uppercase tracking-widest text-[#6b9e8a] border border-[#1e3a30] rounded hover:border-emerald-800 hover:text-emerald-400 hover:bg-emerald-950/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <span className={`material-symbols-outlined text-base ${testing ? 'animate-spin' : ''}`}>{testing ? 'progress_activity' : 'network_check'}</span>
+                    {testing ? 'Testing…' : 'Test connection'}
+                  </button>
+                  <button
+                    disabled={loading}
+                    onClick={handleDisconnect}
+                    className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-label uppercase tracking-widest text-[#a38b88] border border-[#2a2a2a] rounded hover:border-[#4A0404] hover:text-[#ffb3b5] hover:bg-[#4A0404]/10 transition-all disabled:opacity-20"
+                  >
+                    <span className="material-symbols-outlined text-base">link_off</span>
+                    Remove key
+                  </button>
+                </div>
               </div>
-              <button
-                disabled={loading}
-                onClick={handleDisconnect}
-                className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-label uppercase tracking-widest text-[#a38b88] border border-[#2a2a2a] rounded hover:border-[#4A0404] hover:text-[#ffb3b5] hover:bg-[#4A0404]/10 transition-all disabled:opacity-20"
-              >
-                <span className="material-symbols-outlined text-base">link_off</span>
-                Remove key
-              </button>
+
+              <AnimatePresence>
+                {testResult && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={`px-4 py-3 rounded border text-xs font-body flex flex-col gap-1.5 ${
+                      testResult.success
+                        ? 'bg-emerald-950/30 border-emerald-900/50 text-emerald-400'
+                        : 'bg-[#4A0404]/20 border-[#4A0404]/40 text-[#ffb3b5]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold">
+                      <span className="material-symbols-outlined text-base">
+                        {testResult.success ? 'check_circle' : 'error'}
+                      </span>
+                      {testResult.success
+                        ? `Connected to ${testResult.host}`
+                        : testResult.detail}
+                    </div>
+                    {testResult.success && testResult.models && testResult.models.length > 0 && (
+                      <p className="text-emerald-600 pl-6">
+                        Models available: {testResult.models.join(', ')}
+                      </p>
+                    )}
+                    {testResult.success && testResult.models?.length === 0 && (
+                      <p className="text-emerald-700 pl-6">No models pulled yet.</p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           ) : (
             <motion.div key="disconnected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">

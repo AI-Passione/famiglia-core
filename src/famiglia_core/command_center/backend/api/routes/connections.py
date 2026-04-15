@@ -1,3 +1,5 @@
+import os
+import requests as http_requests
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
 from pydantic import BaseModel
@@ -52,6 +54,32 @@ async def save_ollama_api_key(payload: ApiKeyPayload):
     if success:
         return {"success": True, "message": "Ollama API key saved."}
     raise HTTPException(status_code=500, detail="Failed to save Ollama API key.")
+
+@router.get("/ollama/test")
+async def test_ollama_connection():
+    """Test the stored Ollama API key by probing the Ollama /api/tags endpoint."""
+    connection = user_connections_store.get_connection("ollama")
+    if not connection:
+        raise HTTPException(status_code=404, detail="No Ollama API key stored.")
+
+    ollama_host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+    url = f"{ollama_host}/api/tags"
+    headers = {"Authorization": f"Bearer {connection['access_token']}"}
+
+    try:
+        response = http_requests.get(url, headers=headers, timeout=5)
+    except http_requests.exceptions.ConnectionError:
+        raise HTTPException(status_code=503, detail=f"Could not reach Ollama at {ollama_host}. Is it running?")
+    except http_requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail=f"Ollama at {ollama_host} timed out.")
+
+    if response.status_code == 401:
+        raise HTTPException(status_code=401, detail="API key rejected by Ollama. Check your key.")
+    if not response.ok:
+        raise HTTPException(status_code=response.status_code, detail=f"Ollama returned {response.status_code}.")
+
+    models = [m["name"] for m in response.json().get("models", [])]
+    return {"success": True, "host": ollama_host, "models": models}
 
 @router.delete("/{service}")
 async def disconnect_service(service: str):

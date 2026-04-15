@@ -284,6 +284,7 @@ function GitHubCard({ initialStatus, config, onFinish, bossName }: { initialStat
 
 function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bossName: string }) {
   const [step, setStep] = useState(1);
+  const [onboardingPath, setOnboardingPath] = useState<'foundation' | 'expansion' | null>(null);
   const [appLevelToken, setAppLevelToken] = useState('');
   const [provisionedApps, setProvisionedApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -342,7 +343,11 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
 
   return (
     <div className="space-y-6">
-      {step === 1 && (
+      {step === 1 && !onboardingPath && (
+        <SlackPathSelection onSelect={setOnboardingPath} />
+      )}
+
+      {step === 1 && onboardingPath && (
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }} 
           animate={{ opacity: 1, scale: 1 }} 
@@ -351,17 +356,45 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
           {/* Decorative Gradient Glow */}
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#ffb3b5]/10 rounded-full blur-[100px] pointer-events-none" />
           
+          <button 
+            onClick={() => setOnboardingPath(null)}
+            className="absolute top-6 right-6 text-[#555] hover:text-[#ffb3b5] transition-colors z-20 flex items-center gap-2 text-[10px] font-label font-bold uppercase tracking-widest"
+          >
+            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            Change Path
+          </button>
+
           <div className="flex items-center gap-6 relative z-10">
             <div className="p-5 bg-gradient-to-br from-[#4A0404] to-[#131313] rounded-2xl border border-white/20 shadow-[0_0_30px_rgba(74,4,4,0.3)]">
-              <span className="material-symbols-outlined text-[#ffb3b5] text-4xl">hail</span>
+              <span className="material-symbols-outlined text-[#ffb3b5] text-4xl">
+                {onboardingPath === 'foundation' ? 'door_open' : 'domain_add'}
+              </span>
             </div>
             <div>
-              <h3 className="text-3xl font-headline font-black text-white tracking-tighter uppercase italic">Assemble the Famiglia</h3>
+              <h3 className="text-3xl font-headline font-black text-white tracking-tighter uppercase italic">
+                {onboardingPath === 'foundation' ? 'Establish The Foundation' : 'Execute The Expansion'}
+              </h3>
               <p className="text-sm font-body text-[#a38b88] mt-2 leading-relaxed opacity-80">
-                {bossName}, let's manifest the multi-bot network. A single <strong>App-Level Token</strong> triggers the birth of your digital empire.
+                {bossName}, {onboardingPath === 'foundation' 
+                  ? "let's manifest the multi-bot network in your new headquarters." 
+                  : "let's integrate the Famiglia into your existing business hierarchy."} 
+                A single <strong>Bootstrap Token</strong> triggers the birth of your digital empire.
               </p>
             </div>
           </div>
+
+          {onboardingPath === 'foundation' && (
+             <div className="p-6 bg-[#ffb3b5]/5 border border-[#ffb3b5]/10 rounded-xl space-y-4 relative z-10">
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffb3b5] text-[#131313] text-[10px] font-black font-label">1</span>
+                    <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Initial Setup Required</p>
+                </div>
+                <p className="text-xs font-body text-[#a38b88] leading-relaxed">
+                    First, create your dedicated Slack Workspace at <a href="https://slack.com/create" target="_blank" className="text-[#ffb3b5] underline hover:text-white transition-colors">slack.com/create</a>. 
+                    Once ready, create a <strong>Management App</strong> to generate your bootstrap token.
+                </p>
+             </div>
+          )}
 
           <div className="flex flex-col gap-5 relative z-10">
             <div className="space-y-2">
@@ -397,7 +430,7 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                 Provisioning Protocol
             </p>
             <p className="text-[11px] font-body text-[#7f7f7f] leading-relaxed">
-                Ensure your app at <code className="text-[#ffb3b5]/60">api.slack.com</code> has the <strong className="text-white">apps.manifest:write</strong> scope enabled under App-Level Tokens. This allows Famiglia Core to auto-generate all 8 agents instantly.
+                Ensure your <strong>Management App</strong> at <code className="text-[#ffb3b5]/60">api.slack.com</code> has the <strong className="text-white">apps.manifest:write</strong> scope enabled under App-Level Tokens. This allows Famiglia Core to auto-generate all 8 agents instantly.
             </p>
           </div>
         </motion.div>
@@ -608,6 +641,60 @@ const AGENT_EMOJIS = {
     bella: "💋",
     kowalski: "📊"
 };
+function SlackPathSelection({ onSelect }: { onSelect: (path: 'foundation' | 'expansion') => void }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-2">
+      <motion.button
+        whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => onSelect('foundation')}
+        className="group relative p-10 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-left overflow-hidden shadow-2xl transition-all hover:border-[#ffb3b5]/40"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-[#6366f1]/5 to-[#a855f7]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative z-10 space-y-6">
+          <div className="p-4 bg-white/5 rounded-xl border border-white/10 w-fit group-hover:bg-[#ffb3b5] group-hover:text-[#131313] transition-all">
+            <span className="material-symbols-outlined text-3xl">foundation</span>
+          </div>
+          <div>
+            <h4 className="text-2xl font-headline font-black text-white tracking-tight uppercase italic">The Foundation</h4>
+            <p className="text-xs font-label font-bold text-[#ffb3b5]/60 uppercase tracking-widest mt-1">Dedicated Workspace</p>
+          </div>
+          <p className="text-sm font-body text-[#a38b88] leading-relaxed opacity-70">
+            Create a clean, isolated environment optimized solely for the Famiglia's digital operations. Best for maximum security and zero noise.
+          </p>
+          <div className="pt-4 flex items-center gap-2 text-[10px] font-label font-black text-white uppercase tracking-[0.2em]">
+            Establish Base <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          </div>
+        </div>
+      </motion.button>
+
+      <motion.button
+        whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => onSelect('expansion')}
+        className="group relative p-10 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-left overflow-hidden shadow-2xl transition-all hover:border-[#ffb3b5]/40"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-[#f472b6]/5 to-[#fb923c]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative z-10 space-y-6">
+          <div className="p-4 bg-white/5 rounded-xl border border-white/10 w-fit group-hover:bg-[#ffb3b5] group-hover:text-[#131313] transition-all">
+            <span className="material-symbols-outlined text-3xl">corporate_fare</span>
+          </div>
+          <div>
+            <h4 className="text-2xl font-headline font-black text-white tracking-tight uppercase italic">The Expansion</h4>
+            <p className="text-xs font-label font-bold text-[#ffb3b5]/60 uppercase tracking-widest mt-1">Existing Business HQ</p>
+          </div>
+          <p className="text-sm font-body text-[#a38b88] leading-relaxed opacity-70">
+            Integrate all eight elite agents directly into your established Slack workflow. Perfect for leveraging existing channels and team context.
+          </p>
+          <div className="pt-4 flex items-center gap-2 text-[10px] font-label font-black text-white uppercase tracking-[0.2em]">
+            Deploy Network <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          </div>
+        </div>
+      </motion.button>
+    </div>
+  );
+}
+
 // ─── Notion Card (Connected/Prompt) ────────────────────────────────────────
 
 function NotionCard({ initialStatus, config, onFinish, bossName }: { initialStatus: NotionStatus; config: ServiceConfig; onFinish: (s: string) => void; bossName: string }) {

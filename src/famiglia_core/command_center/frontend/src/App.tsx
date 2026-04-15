@@ -239,7 +239,7 @@ function App() {
                     <SituationRoom 
                       actions={actions}
                       tasks={tasks}
-                      honorific={settings?.fullName || "Don Jimmy"}
+                      honorific={settings.honorific}
                       onExecuteDirective={() => setDirectiveModalOpen(true)}
                     />
                   } 

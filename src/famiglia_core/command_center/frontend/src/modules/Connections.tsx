@@ -669,9 +669,7 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
             <div className="flex items-center justify-between px-6 py-5 border-b border-[#232323]">
               <div className="flex items-center gap-4">
                 <div className="relative flex items-center justify-center w-11 h-11 rounded-lg bg-[#1c1b1b] border border-[#2a2a2a]">
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 fill-[#c9c9c9]" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm0 14.5c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                  </svg>
+                  <img src="/ollama.svg" alt="Ollama" className="w-7 h-7 object-contain" />
                 </div>
                 <div>
                   <p className="font-headline text-white text-base font-bold">Ollama</p>

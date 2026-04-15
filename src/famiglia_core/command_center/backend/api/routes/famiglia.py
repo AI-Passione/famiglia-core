@@ -26,8 +26,20 @@ class CapabilitySync(BaseModel):
 
 @router.get("/agents")
 async def list_agents():
-    """List all agents in the Famiglia (Refactored from main.py)."""
-    return context_store.list_famiglia_agents()
+    """List all agents in the Famiglia (Refactored from main.py, enriched with Slack status)."""
+    agents = context_store.list_famiglia_agents()
+    
+    # Enrich with Slack connectivity status
+    from famiglia_core.db.tools.user_connections_store import user_connections_store
+    
+    # Bulk fetch or check each one (checking each is fine for 8 agents)
+    for agent in agents:
+        agent_id = agent.get("id") or agent.get("agent_id")
+        # Check for bot token entry
+        conn = user_connections_store.get_connection(f"slack_bot:{agent_id}")
+        agent["is_slack_connected"] = bool(conn and conn.get("access_token"))
+        
+    return agents
 
 @router.get("/capabilities")
 async def get_capabilities():

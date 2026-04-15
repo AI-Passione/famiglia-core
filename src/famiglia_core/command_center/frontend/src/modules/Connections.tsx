@@ -388,43 +388,61 @@ function SlackFamigliaWizard({ status, config, onFinish }: { status: Record<stri
   return (
     <div className="space-y-6">
       {step === 1 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-8 bg-[#0d0d0d] border border-[#ffb3b5]/10 rounded-xl space-y-6">
-          <div className="flex items-center gap-6">
-            <div className="p-4 bg-[#041a4a]/30 rounded-xl border border-[#444]/50 shadow-[0_0_20px_rgba(4,26,74,0.2)]">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.98 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          className="p-10 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl space-y-8 shadow-[0_30px_60px_rgba(0,0,0,0.4)] relative overflow-hidden"
+        >
+          {/* Decorative Gradient Glow */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#ffb3b5]/10 rounded-full blur-[100px] pointer-events-none" />
+          
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="p-5 bg-gradient-to-br from-[#4A0404] to-[#131313] rounded-2xl border border-white/20 shadow-[0_0_30px_rgba(74,4,4,0.3)]">
               <span className="material-symbols-outlined text-[#ffb3b5] text-4xl">hail</span>
             </div>
             <div>
-              <h3 className="text-2xl font-headline font-bold text-white tracking-tighter">Assemble the Famiglia</h3>
-              <p className="text-sm font-body text-[#6b6b6b] mt-1 leading-relaxed">
-                Don Jimmy, let's build the multi-bot network. You only need to provide an <strong>App-Level Token</strong> (xapp-...) from any app in your workspace that has <code>apps.manifest:write</code> scope.
+              <h3 className="text-3xl font-headline font-black text-white tracking-tighter uppercase italic">Assemble the Famiglia</h3>
+              <p className="text-sm font-body text-[#a38b88] mt-2 leading-relaxed opacity-80">
+                Don Jimmy, let's manifest the multi-bot network. A single <strong>App-Level Token</strong> triggers the birth of your digital empire.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <input
-              type="password"
-              placeholder="xapp-1-A123..."
-              value={appLevelToken}
-              onChange={e => setAppLevelToken(e.target.value)}
-              className="w-full bg-[#161616] border border-[#232323] rounded px-4 py-3 text-sm font-mono text-white placeholder-[#2a2a2a] focus:outline-none focus:border-[#ffb3b5]/40 transition-all"
-            />
+          <div className="flex flex-col gap-5 relative z-10">
+            <div className="space-y-2">
+                <label className="text-[10px] font-label font-bold text-[#ffb3b5]/60 uppercase tracking-[0.3em] ml-1">Bootstrap Token</label>
+                <input
+                  type="password"
+                  placeholder="xapp-1-A123..."
+                  value={appLevelToken}
+                  onChange={e => setAppLevelToken(e.target.value)}
+                  className="w-full bg-[#0d0d0d]/80 border border-white/5 rounded-xl px-6 py-4 text-sm font-mono text-white placeholder-[#333] focus:outline-none focus:ring-2 focus:ring-[#ffb3b5]/30 focus:border-[#ffb3b5]/40 transition-all shadow-inner"
+                />
+            </div>
             <button
                onClick={handleProvision}
                disabled={loading || !appLevelToken}
-               className="w-full py-4 bg-[#ffb3b5] text-[#131313] font-bold font-label uppercase tracking-widest rounded hover:scale-[1.01] transition-all disabled:opacity-30"
+               className="group relative w-full py-5 bg-gradient-to-r from-[#ffb3b5] to-[#f472b6] text-[#131313] font-black font-label uppercase tracking-[0.2em] rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(255,179,181,0.2)] hover:shadow-[0_15px_40px_rgba(255,179,181,0.4)] transition-all disabled:opacity-30 active:scale-[0.98]"
             >
-              Building the Family...
+              <span className="relative z-10 flex items-center justify-center gap-3">
+                {loading ? (
+                    <span className="material-symbols-outlined animate-spin">sync</span>
+                ) : (
+                    <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">bolt</span>
+                )}
+                Initialize Global Network
+              </span>
+              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           </div>
           
-          <div className="p-4 bg-[#161616]/50 rounded-lg border border-[#232323]">
-            <p className="text-[10px] font-label font-bold text-[#444] uppercase tracking-widest mb-2 flex items-center gap-2">
-                <span className="material-symbols-outlined text-xs">info</span> 
-                How to get the token?
+          <div className="p-5 bg-white/[0.02] rounded-xl border border-white/5 relative z-10">
+            <p className="text-[10px] font-label font-black text-[#555] uppercase tracking-[0.1em] mb-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-xs bg-[#ffb3b5]/10 p-1 rounded">school</span> 
+                Provisioning Protocol
             </p>
-            <p className="text-[11px] font-body text-[#555] leading-relaxed">
-                Create any app at api.slack.com, go to <strong>Basic Information</strong> → <strong>App-Level Tokens</strong> → <strong>Generate Token</strong>. Choose any name and grant the <strong>apps.manifest:write</strong> scope.
+            <p className="text-[11px] font-body text-[#7f7f7f] leading-relaxed">
+                Ensure your app at <code className="text-[#ffb3b5]/60">api.slack.com</code> has the <strong className="text-white">apps.manifest:write</strong> scope enabled under App-Level Tokens. This allows Famiglia Core to auto-generate all 8 agents instantly.
             </p>
           </div>
         </motion.div>

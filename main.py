@@ -255,6 +255,30 @@ def main():
                 @current_app.event("message")
                 def handle_messages(event, say):
                     enqueue_event(event)
+                
+                @current_app.action(re.compile(".*"))
+                def handle_actions(ack, body, say):
+                    ack()
+                    print(f"[{current_agent_id}] Received action, enqueuing...")
+                    payload = {
+                        "event": body,
+                        "agent_id": current_agent_id,
+                        "bot_id": current_bot_id,
+                        "event_type": "action"
+                    }
+                    slack_queue.enqueue_incoming(payload)
+                
+                @current_app.command(re.compile("/.*"))
+                def handle_commands(ack, body, say):
+                    ack()
+                    print(f"[{current_agent_id}] Received command {body.get('command')}, enqueuing...")
+                    payload = {
+                        "event": body,
+                        "agent_id": current_agent_id,
+                        "bot_id": current_bot_id,
+                        "event_type": "command"
+                    }
+                    slack_queue.enqueue_incoming(payload)
 
             setup_agent_events(app, agent_id, bot_id)
             apps[agent_id] = app

@@ -5,6 +5,11 @@ features:
   bot_user:
     display_name: Alfredo
     always_online: false
+  slash_commands:
+    - command: /famiglia
+      description: "Summon the Famiglia Status Cockpit"
+      usage_hint: "[status|help]"
+      should_escape: false
 oauth_config:
   scopes:
     bot:
@@ -14,6 +19,7 @@ oauth_config:
       - groups:history
       - im:history
       - reactions:write
+      - files:write
 settings:
   event_subscriptions:
     bot_events:

@@ -225,6 +225,100 @@ def process_incoming_event(
             metadata={"slack_channel": channel, "slack_thread_ts": reply_ts}
         )
 
+def process_incoming_action(
+    agent_obj: BaseAgent,
+    event: dict,
+    bot_id: str,
+    slack_client: Optional[App] = None,
+):
+    """
+    Process an interactive action (button click, menu selection).
+    """
+    actions = event.get("actions", [])
+    if not actions:
+        return
+
+    user = event.get("user", {}).get("id")
+    channel = event.get("channel", {}).get("id")
+    action = actions[0]
+    action_id = action.get("action_id")
+    
+    print(f"[{agent_obj.name}] Processing action {action_id} from user {user}")
+    
+    # Handle specific actions
+    if action_id == "approve_task":
+        # Example logic: trigger a task completion or approval
+        slack_queue.post_message(
+            agent=agent_obj.agent_id,
+            channel=channel,
+            message=f"I have received your approval, Don Jimmy. Proceeding at once.",
+            thread_ts=event.get("container", {}).get("message_ts")
+        )
+    elif action_id == "famiglia_status":
+        # Handled by command, but could be a button too
+        pass
+    else:
+        # Generic action handling or fallback
+        slack_queue.post_message(
+            agent=agent_obj.agent_id,
+            channel=channel,
+            message=f"Action '{action_id}' acknowledged. I'm on it.",
+            thread_ts=event.get("container", {}).get("message_ts")
+        )
+
+def process_incoming_command(
+    agent_obj: BaseAgent,
+    event: dict,
+    bot_id: str,
+    slack_client: Optional[App] = None,
+):
+    """
+    Process a slash command.
+    """
+    command = event.get("command")
+    user = event.get("user_id")
+    channel = event.get("channel_id")
+    text = event.get("text", "")
+    
+    print(f"[{agent_obj.name}] Processing command {command} with text: {text}")
+    
+    if command == "/famiglia":
+        # Create a "Cockpit" block
+        status_blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "🏟 *La Famiglia Status Cockpit*"
+                }
+            },
+            {
+                "type": "divider"
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": "💳 *Vito:* Vigilant"},
+                    {"type": "mrkdwn", "text": "🎩 *Alfredo:* Coordinating"},
+                    {"type": "mrkdwn", "text": "🔧 *Riccardo:* Optimizing"},
+                    {"type": "mrkdwn", "text": "🔬 *Rossini:* Researching"}
+                ]
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {"type": "mrkdwn", "text": "All systems operational. _La Passione_ vibe is high."}
+                ]
+            }
+        ]
+        
+        slack_queue.post_message(
+            agent=agent_obj.agent_id,
+            channel=channel,
+            message="Famiglia Status",
+            blocks=status_blocks
+        )
+
 def incoming_event_worker(agents: dict, apps: dict, ack_emoji: str, app_env: str, dev_channel_id: Optional[str]):
     """Background thread that pulls events from Redis and processes them in parallel."""
     from concurrent.futures import ThreadPoolExecutor
@@ -237,17 +331,37 @@ def incoming_event_worker(agents: dict, apps: dict, ack_emoji: str, app_env: str
                 if not payload:
                     time.sleep(0.1)
                     continue
-
+                
+                event_type = payload.get("event_type", "event")
                 event = payload.get("event")
                 agent_id = payload.get("agent_id")
                 bot_id = payload.get("bot_id")
                 
-                print(f"[IncomingWorker] Dequeued event {event.get('ts')} for {agent_id}")
+                print(f"[IncomingWorker] Dequeued {event_type} for {agent_id}")
 
                 agent_obj = agents.get(agent_id)
                 slack_app = apps.get(agent_id)
                 
-                if agent_obj:
+                if not agent_obj:
+                    continue
+
+                if event_type == "action":
+                    executor.submit(
+                        process_incoming_action,
+                        agent_obj=agent_obj,
+                        event=event,
+                        bot_id=bot_id,
+                        slack_client=slack_app,
+                    )
+                elif event_type == "command":
+                    executor.submit(
+                        process_incoming_command,
+                        agent_obj=agent_obj,
+                        event=event,
+                        bot_id=bot_id,
+                        slack_client=slack_app,
+                    )
+                else:
                     executor.submit(
                         process_incoming_event,
                         agent_obj=agent_obj,

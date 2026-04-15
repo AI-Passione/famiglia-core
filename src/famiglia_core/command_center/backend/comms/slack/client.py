@@ -25,6 +25,18 @@ SLACK_CHANNEL_ID_RE = re.compile(r"^[CGD][A-Z0-9]{8,}$")
 SLACK_CHANNEL_MENTION_RE = re.compile(r"^<#(?P<id>[CGD][A-Z0-9]{8,})(?:\|[^>]+)?>$")
 SLACK_ARCHIVES_URL_RE = re.compile(r"/archives/(?P<id>[CGD][A-Z0-9]{8,})")
 
+AGENT_EMOJIS = {
+    "alfredo": "🎩",
+    "vito": "🦅",
+    "riccardo": "🔧",
+    "rossini": "🔬",
+    "tommy": "🔫",
+    "bella": "💋",
+    "kowalski": "📊",
+    "giuseppina": "📢",
+    "system": "⚙️"
+}
+
 class SlackQueueClient(CommsQueue):
     def __init__(self, redis_url: Optional[str] = None):
         super().__init__(platform="slack", redis_url=redis_url)
@@ -363,7 +375,87 @@ class SlackQueueClient(CommsQueue):
             print(f"[SlackQueue 📂] WARNING: Error downloading file {filename}: {e}", flush=True)
             return None
 
-    def post_message(self, agent: str, channel: str, message: str, thread_ts: Optional[str] = None) -> Optional[str]:
+    def format_agent_message(self, agent: str, text: str, actions: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+        """
+        Formats a plain text agent message into a premium Block Kit layout.
+        """
+        emoji = AGENT_EMOJIS.get(agent.lower(), "🤖")
+        header_text = f"{emoji} *{agent.capitalize()}*"
+        
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": header_text
+                }
+            },
+            {
+                "type": "divider"
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": text
+                }
+            }
+        ]
+        
+        # Add context block (footer)
+        app_env = os.getenv("APP_ENV", "production").capitalize()
+        blocks.append({
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"_Env: {app_env} | Agent: {agent.capitalize()} | La Famiglia Core_"
+                }
+            ]
+        })
+        
+        # Add actions if provided
+        if actions:
+            action_block = {
+                "type": "actions",
+                "elements": actions
+            }
+            blocks.append(action_block)
+            
+        return blocks
+
+    def create_button(self, text: str, action_id: str, value: str = "1", style: Optional[str] = None) -> Dict[str, Any]:
+        """Utility to create a Block Kit button."""
+        btn = {
+            "type": "button",
+            "text": {
+                "type": "plain_text",
+                "text": text,
+                "emoji": True
+            },
+            "action_id": action_id,
+            "value": value
+        }
+        if style:
+            btn["style"] = style # "primary" or "danger"
+        return btn
+
+    def enqueue_message(self, agent: str, channel: str, message: str, priority: int = PRIORITY_MEDIUM, blocks: Optional[List[Dict[str, Any]]] = None, **extra) -> Optional[str]:
+        """Puts a message in the priority outgoing queue."""
+        payload = {
+            "agent": agent,
+            "channel": channel,
+            "message": message,
+            "blocks": blocks,
+            "priority": priority,
+            "timestamp": time.time(),
+            **extra
+        }
+        queue_key = f"{self.outgoing_queue_base}{priority}"
+        self.redis.rpush(queue_key, json.dumps(payload))
+        return None
+
+    def post_message(self, agent: str, channel: str, message: str, thread_ts: Optional[str] = None, blocks: Optional[List[Dict[str, Any]]] = None) -> Optional[str]:
         """
         Sends a message to Slack immediately and synchronously.
         Returns the Slack message 'ts' (timestamp) on success, or None on failure.
@@ -372,6 +464,7 @@ class SlackQueueClient(CommsQueue):
             "agent": agent,
             "channel": channel,
             "message": message,
+            "blocks": blocks,
             "priority": PRIORITY_CRITICAL, # Treat as immediate
             "thread_ts": thread_ts,
             "timestamp": time.time()
@@ -432,11 +525,49 @@ class SlackQueueClient(CommsQueue):
             self._rate_limit(channel)
             ts = self._send_to_slack(msg, thread_ts=ts)
 
+    def upload_file(self, agent: str, channel: str, file_path: str, title: Optional[str] = None, initial_comment: Optional[str] = None, thread_ts: Optional[str] = None) -> bool:
+        """
+        Uploads a file to Slack using files_upload_v2.
+        """
+        client = self.clients.get(agent.lower()) or self.clients.get("alfredo")
+        if not client:
+            return False
+            
+        try:
+            print(f"[{agent}] Uploading file {file_path} to {channel}...")
+            client.files_upload_v2(
+                channel=channel,
+                file=file_path,
+                title=title or os.path.basename(file_path),
+                initial_comment=initial_comment,
+                thread_ts=thread_ts
+            )
+            return True
+        except SlackApiError as e:
+            print(f"[{agent}] Slack API error during upload: {e.response['error']}")
+            return False
+        except Exception as e:
+            print(f"[{agent}] Error during file upload: {e}")
+            return False
+
     def _send_to_slack(self, payload: dict, thread_ts: Optional[str] = None) -> Optional[str]:
         agent_name = payload.get("agent", "system").lower()
         channel = payload.get("channel")
         message = payload.get("message")
         
+        # Handle file upload if present
+        file_path = payload.get("file_path")
+        if file_path:
+            self.upload_file(
+                agent=agent_name,
+                channel=channel,
+                file_path=file_path,
+                title=payload.get("file_title"),
+                initial_comment=message,
+                thread_ts=thread_ts
+            )
+            return "file_uploaded"
+
         # Determine client (fallback to alfredo for system messages or if agent client missing)
         client = self.clients.get(agent_name)
         if not client and agent_name != "system":
@@ -454,11 +585,22 @@ class SlackQueueClient(CommsQueue):
         
         if client:
             try:
-                response = client.chat_postMessage(
-                    channel=channel,
-                    text=formatted_message,
-                    thread_ts=thread_ts
-                )
+                # Use blocks if provided, fallback to text
+                blocks = payload.get("blocks")
+                
+                if blocks:
+                    response = client.chat_postMessage(
+                        channel=channel,
+                        text=message, # Fallback text for notifications
+                        blocks=blocks,
+                        thread_ts=thread_ts
+                    )
+                else:
+                    response = client.chat_postMessage(
+                        channel=channel,
+                        text=formatted_message,
+                        thread_ts=thread_ts
+                    )
                 return response["ts"]
             except SlackApiError as e:
                 print(f"[{agent_name}] Slack API error: {e.response['error']}")

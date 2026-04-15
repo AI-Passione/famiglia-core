@@ -431,7 +431,7 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                     <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Generate App Token</p>
                 </div>
                 <p className="text-xs font-body text-[#a38b88] leading-relaxed">
-                  Under <strong>Basic Information</strong> → <strong>App-Level Tokens</strong>, generate a token with the <code className="text-[#ffb3b5]">apps.manifest:write</code> scope and paste it below.
+                  Go to <strong>Basic Information</strong> → <strong>App-Level Tokens</strong>. Click <strong>Generate Token and Scopes</strong>. Name it "Provisioning", add the <code className="text-[#ffb3b5]">apps.manifest:write</code> scope, and paste the resulting <code className="text-white">xapp-...</code> token below.
                 </p>
             </div>
           </div>
@@ -681,9 +681,10 @@ features:
 oauth_config:
   scopes:
     bot:
-      - apps.manifest:write
+      - chat:write
 settings:
-  socket_mode_enabled: true`;
+  socket_mode_enabled: true
+  token_rotation_enabled: false`;
 
 function BootstrapperManifest() {
   const [copied, setCopied] = useState(false);

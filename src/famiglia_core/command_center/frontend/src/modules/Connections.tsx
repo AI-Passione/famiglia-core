@@ -378,23 +378,63 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                 {bossName}, {onboardingPath === 'foundation' 
                   ? "let's manifest the multi-bot network in your new headquarters." 
                   : "let's integrate the Famiglia into your existing business hierarchy."} 
-                A single <strong>Bootstrap Token</strong> triggers the birth of your digital empire.
               </p>
             </div>
           </div>
 
-          {onboardingPath === 'foundation' && (
-             <div className="p-6 bg-[#ffb3b5]/5 border border-[#ffb3b5]/10 rounded-xl space-y-4 relative z-10">
+          <div className="space-y-6 relative z-10">
+            {/* Consigliere's Note (ELI5) */}
+            <div className="p-6 bg-[#4A0404]/5 border border-[#4A0404]/20 rounded-2xl space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[#ffb3b5] text-lg">psychology</span>
+                <h4 className="text-[10px] font-label font-bold uppercase text-[#ffb3b5] tracking-[0.2em]">Consigliere's Note</h4>
+              </div>
+              <p className="text-xs font-body text-[#b6abaa] leading-relaxed">
+                Think of the <strong>Management App</strong> as the digital keys to the city. By creating this single app with "manifest write" authority, you allow the Famiglia's backend to move in and auto-provision all 8 specialized agents instantly.
+              </p>
+            </div>
+
+            {onboardingPath === 'foundation' && (
+              <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-3">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffb3b5] text-[#131313] text-[10px] font-black font-label">1</span>
+                      <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Create Workspace</p>
+                  </div>
+                  <p className="text-xs font-body text-[#a38b88] leading-relaxed">
+                      First, establish your dedicated HQ at <a href="https://slack.com/create" target="_blank" className="text-[#ffb3b5] underline hover:text-white transition-colors">slack.com/create</a>.
+                  </p>
+              </div>
+            )}
+
+            <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-6">
                 <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffb3b5] text-[#131313] text-[10px] font-black font-label">1</span>
-                    <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Initial Setup Required</p>
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffb3b5] text-[#131313] text-[10px] font-black font-label">
+                      {onboardingPath === 'foundation' ? '2' : '1'}
+                    </span>
+                    <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Create Management App</p>
+                </div>
+                
+                <div className="space-y-4">
+                  <p className="text-xs font-body text-[#a38b88] leading-relaxed">
+                    Navigate to <a href="https://api.slack.com/apps?new_app=1" target="_blank" className="text-[#ffb3b5] underline hover:text-white transition-colors">api.slack.com/apps</a> and select <strong>"From a manifest"</strong>. Paste the following "Bootstrapper" configuration:
+                  </p>
+                  
+                  <BootstrapperManifest />
+                </div>
+            </div>
+
+            <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffb3b5] text-[#131313] text-[10px] font-black font-label">
+                      {onboardingPath === 'foundation' ? '3' : '2'}
+                    </span>
+                    <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Generate App Token</p>
                 </div>
                 <p className="text-xs font-body text-[#a38b88] leading-relaxed">
-                    First, create your dedicated Slack Workspace at <a href="https://slack.com/create" target="_blank" className="text-[#ffb3b5] underline hover:text-white transition-colors">slack.com/create</a>. 
-                    Once ready, create a <strong>Management App</strong> to generate your bootstrap token.
+                  Under <strong>Basic Information</strong> → <strong>App-Level Tokens</strong>, generate a token with the <code className="text-[#ffb3b5]">apps.manifest:write</code> scope and paste it below.
                 </p>
-             </div>
-          )}
+            </div>
+          </div>
 
           <div className="flex flex-col gap-5 relative z-10">
             <div className="space-y-2">
@@ -424,15 +464,6 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
             </button>
           </div>
           
-          <div className="p-5 bg-white/[0.02] rounded-xl border border-white/5 relative z-10">
-            <p className="text-[10px] font-label font-black text-[#555] uppercase tracking-[0.1em] mb-3 flex items-center gap-2">
-                <span className="material-symbols-outlined text-xs bg-[#ffb3b5]/10 p-1 rounded">school</span> 
-                Provisioning Protocol
-            </p>
-            <p className="text-[11px] font-body text-[#7f7f7f] leading-relaxed">
-                Ensure your <strong>Management App</strong> at <code className="text-[#ffb3b5]/60">api.slack.com</code> has the <strong className="text-white">apps.manifest:write</strong> scope enabled under App-Level Tokens. This allows Famiglia Core to auto-generate all 8 agents instantly.
-            </p>
-          </div>
         </motion.div>
       )}
 
@@ -641,6 +672,53 @@ const AGENT_EMOJIS = {
     bella: "💋",
     kowalski: "📊"
 };
+
+const BOOTSTRAPPER_MANIFEST = `display_information:
+  name: Famiglia Bootstrapper
+features:
+  bot_user:
+    display_name: Bootstrapper
+oauth_config:
+  scopes:
+    bot:
+      - apps.manifest:write
+settings:
+  socket_mode_enabled: true`;
+
+function BootstrapperManifest() {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(BOOTSTRAPPER_MANIFEST);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group">
+      <div className="absolute -inset-2 bg-gradient-to-r from-[#ffb3b5]/10 to-[#f472b6]/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500" />
+      <div className="relative bg-[#0d0d0d] border border-white/5 rounded-xl overflow-hidden shadow-inner">
+        <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5">
+          <span className="text-[9px] font-label font-black text-[#555] uppercase tracking-widest">manifest.yaml</span>
+          <button 
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 transition-all"
+          >
+            <span className="material-symbols-outlined text-sm text-[#ffb3b5]">
+              {copied ? 'check_circle' : 'content_copy'}
+            </span>
+            <span className="text-[9px] font-label font-bold uppercase text-[#ffb3b5] tracking-widest">
+              {copied ? 'Copied' : 'Copy'}
+            </span>
+          </button>
+        </div>
+        <pre className="p-4 text-[11px] font-mono text-[#a38b88] leading-relaxed overflow-x-auto whitespace-pre">
+          {BOOTSTRAPPER_MANIFEST}
+        </pre>
+      </div>
+    </div>
+  );
+}
 function SlackPathSelection({ onSelect }: { onSelect: (path: 'foundation' | 'expansion') => void }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-2">

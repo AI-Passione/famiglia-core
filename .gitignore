@@ -4,6 +4,9 @@
 .env.*.local
 *.local
 
+# Local secrets (auto-generated on first run, never commit)
+secrets/
+
 # Python
 __pycache__/
 .pytest_cache

@@ -3,7 +3,7 @@ Tests for UserConnectionsStore — Fernet encryption, upsert, get, delete.
 All DB calls and Fernet key loading are mocked to keep tests hermetic.
 """
 import pytest
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock
 from cryptography.fernet import Fernet
 
 from famiglia_core.db.tools.user_connections_store import UserConnectionsStore, _get_fernet

@@ -866,7 +866,7 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
 
       <div className="flex flex-col gap-10">
 
-        {/* ── AI / LLMs ─────────────────────────────────────────────────── */}
+        {/* ── AI & LLMs ─────────────────────────────────────────────────── */}
         <section className="space-y-6">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[#ffb3b5] text-base">smart_toy</span>

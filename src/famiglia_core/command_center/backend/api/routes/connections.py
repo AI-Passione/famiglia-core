@@ -50,9 +50,16 @@ async def save_ollama_api_key(payload: ApiKeyPayload):
 @router.get("/ollama/test")
 async def test_ollama_connection():
     """Test the stored Ollama API key by probing the Ollama /api/tags endpoint."""
+    status = user_connections_store.get_connection_status("ollama")
+    if not status.get("connected"):
+        raise HTTPException(status_code=404, detail="No Ollama API key stored.")
+
     connection = user_connections_store.get_connection("ollama")
     if not connection:
-        raise HTTPException(status_code=404, detail="No Ollama API key stored.")
+        raise HTTPException(
+            status_code=500,
+            detail="API key exists but could not be decrypted — FERNET_SECRET in your .env may be missing or changed.",
+        )
 
     ollama_host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
     url = f"{ollama_host}/api/tags"

@@ -11,21 +11,41 @@ from datetime import datetime, timezone
 from famiglia_core.db.agents.context_store import context_store
 
 
+_SECRETS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "secrets")
+_FERNET_KEY_FILE = os.path.join(_SECRETS_DIR, "fernet.key")
+
+
 def _get_fernet():
-    """Lazily initialise the Fernet cipher, generating a key if none is configured."""
+    """
+    Load or generate the Fernet encryption key.
+
+    Priority:
+      1. FERNET_SECRET env var (production / CI override)
+      2. secrets/fernet.key local file (auto-created on first run)
+    """
     from cryptography.fernet import Fernet
+
+    # 1. Env var override (production / Docker / CI)
     secret = os.getenv("FERNET_SECRET")
-    if not secret:
-        # Auto-generate and print a warning — the key will change on next restart,
-        # invalidating old tokens. Always set FERNET_SECRET in production.
+    if secret:
+        return Fernet(secret.encode() if isinstance(secret, str) else secret)
+
+    # 2. Persistent local key file
+    key_path = os.path.abspath(_FERNET_KEY_FILE)
+    if os.path.exists(key_path):
+        with open(key_path, "r") as f:
+            secret = f.read().strip()
+    else:
         secret = Fernet.generate_key().decode()
+        os.makedirs(os.path.dirname(key_path), exist_ok=True)
+        with open(key_path, "w") as f:
+            f.write(secret)
         print(
-            "[UserConnectionsStore] WARNING: FERNET_SECRET not set. "
-            "Generated a temporary key — stored tokens will be invalidated on restart. "
-            f"Add this to your .env: FERNET_SECRET={secret}"
+            f"[UserConnectionsStore] Generated new Fernet key → {key_path}\n"
+            "  Back this file up — losing it means stored credentials cannot be decrypted."
         )
-    key = secret.encode() if isinstance(secret, str) else secret
-    return Fernet(key)
+
+    return Fernet(secret.encode())
 
 
 class UserConnectionsStore:

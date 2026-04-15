@@ -428,10 +428,19 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffb3b5] text-[#131313] text-[10px] font-black font-label">
                       {onboardingPath === 'foundation' ? '3' : '2'}
                     </span>
-                    <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Generate App Token</p>
+                    <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Generate Configuration Token</p>
                 </div>
                 <p className="text-xs font-body text-[#a38b88] leading-relaxed">
-                  Go to <strong>Basic Information</strong> → <strong>App-Level Tokens</strong>. Click <strong>Generate Token and Scopes</strong>. Name it "Provisioning", add the <code className="text-[#ffb3b5]">apps.manifest:write</code> scope, and paste the resulting <code className="text-white">xapp-...</code> token below.
+                  Go to <a href="https://api.slack.com/apps" target="_blank" className="text-[#ffb3b5] underline hover:text-white transition-colors">api.slack.com/apps</a>. Scroll down below your app list to the <strong>"Your App Configuration Tokens"</strong> section and click <strong>Generate Token</strong>.
+                </p>
+                <div className="p-4 bg-[#4A0404]/10 border border-[#4A0404]/20 rounded-xl space-y-2">
+                   <p className="text-[10px] font-label font-bold text-[#ffb3b5] uppercase tracking-wider">Why this token?</p>
+                   <p className="text-[10px] font-body text-[#b6abaa] leading-relaxed">
+                     This specific token allows Famiglia Core to use the Manifest API. It is the "Master Key" that builds all 8 of your agents in one click.
+                   </p>
+                </div>
+                <p className="text-xs font-body text-[#a38b88] leading-relaxed mt-2">
+                  Paste the token (it usually starts with <code className="text-white">xoxp-</code> or <code className="text-white">xoxe-</code>) below.
                 </p>
             </div>
           </div>

@@ -55,11 +55,11 @@ class MarketResearchWorkflow:
 
         # 2. Strip autonomous queue metadata wrapper (everything after \n\nTask metadata:)
         import re
-        clean_task = re.split(r'\n\n(?:Task metadata|Execution constraints):', task)[0].strip()
+        clean_task = re.split(r'\n\s*\n\s*(?:Task metadata|Execution constraints):', task, flags=re.IGNORECASE)[0].strip()
 
         # 3. Handle "Executing graph market_research" boilerplate
         clean_task = clean_task.replace("Executing graph market_research", "").strip()
-        if clean_task and len(clean_task) > 5:
+        if clean_task:
             return clean_task
 
         return task

@@ -67,6 +67,62 @@ def test_market_research_save_to_intel(mock_agent, mock_services):
     assert call_args.title == "Market Research: AI"
     assert "# AI Research" in call_args.content
 
+def test_market_research_curate_results(mock_agent, mock_llm):
+    workflow = MarketResearchWorkflow(mock_agent)
+    mock_llm.return_value = ("# Curated Report", "model")
+    
+    state = MarketResearchState(
+        task="Research AI",
+        research_topic="AI",
+        search_results="Some results",
+        curated_markdown="",
+        notion_page_id="", notion_url="", business_ideas="", slack_channel=""
+    )
+    
+    new_state = workflow.curate_results(state)
+    assert new_state["curated_markdown"] == "# Curated Report"
+    assert mock_llm.called
+
+def test_market_research_save_to_intel_failure(mock_agent, mock_services):
+    workflow = MarketResearchWorkflow(mock_agent)
+    mock_services["intel_research"].create_item.side_effect = Exception("DB Timeout")
+    
+    state = MarketResearchState(
+        task="Test", 
+        research_topic="AI", 
+        curated_markdown="# AI Research", 
+        business_ideas="Idea 1",
+        search_results="", notion_page_id="", notion_url="", slack_channel=""
+    )
+    
+    new_state = workflow.save_to_intelligence(state)
+    assert new_state["db_success"] is False
+    assert "DB Timeout" in new_state["last_error"]
+    assert "FAILED" in new_state["final_response"]
+
+def test_market_research_generate_ideas(mock_agent, mock_llm):
+    workflow = MarketResearchWorkflow(mock_agent)
+    mock_llm.return_value = ("### Business Ideas\n1. AI Assistant", "model")
+    
+    state = MarketResearchState(
+        task="Research AI",
+        research_topic="AI",
+        curated_markdown="# AI Research",
+        business_ideas="",
+        search_results="", notion_page_id="", notion_url="", slack_channel=""
+    )
+    
+    new_state = workflow.generate_ideas(state)
+    assert "AI Assistant" in new_state["business_ideas"]
+
+def test_market_research_load_personality(mock_agent):
+    from unittest.mock import mock_open
+    workflow = MarketResearchWorkflow(mock_agent)
+    with patch("os.path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data="## PERSONA & TONE\nDr. Rossini is a strategist.")):
+        personality = workflow._load_rossini_personality()
+        assert "Dr. Rossini is a strategist" in personality
+
 # --- PRD Drafting Tests ---
 
 def test_prd_drafting_understand_context(mock_agent, mock_llm):
@@ -286,3 +342,43 @@ def test_web_search_uses_db_key_for_request():
 
         called_req = mock_urlopen.call_args[0][0]
         assert called_req.get_header("Authorization") == "Bearer db-key-789"
+
+
+def test_web_search_cache_hit():
+    from famiglia_core.agents.tools.web_search import WebSearchClient
+    with patch.dict("os.environ", {"OLLAMA_API_KEY": "test-key"}):
+        client = WebSearchClient()
+        
+        with patch("famiglia_core.db.agents.context_store.context_store.get_web_search_cache") as mock_get, \
+             patch("urllib.request.urlopen") as mock_urlopen:
+            mock_get.return_value = [{"title": "Cached", "url": "http://cached.com", "content": "data"}]
+            
+            result = client.search("test query")
+            
+            assert "Cached" in result
+            mock_urlopen.assert_not_called()
+
+def test_web_search_http_error():
+    from famiglia_core.agents.tools.web_search import WebSearchClient
+    import urllib.error
+    with patch.dict("os.environ", {"OLLAMA_API_KEY": "key"}):
+        client = WebSearchClient()
+        
+        with patch("famiglia_core.db.agents.context_store.context_store.get_web_search_cache", return_value=None), \
+             patch("urllib.request.urlopen") as mock_urlopen:
+            
+            # Mock HTTPError
+            import urllib.request
+            mock_urlopen.side_effect = urllib.error.HTTPError("http://ollama.com", 500, "Internal Server Error", {}, None)
+            
+            result = client.search("test query")
+            assert "HTTP 500" in result
+
+def test_web_search_format_results():
+    from famiglia_core.agents.tools.web_search import WebSearchClient
+    client = WebSearchClient()
+    results = [{"title": "T1", "url": "U1", "content": "C1"}]
+    formatted = client._format_results("query", results)
+    assert "T1" in formatted
+    assert "U1" in formatted
+    assert "C1" in formatted

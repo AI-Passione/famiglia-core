@@ -509,7 +509,7 @@ function SlackFamigliaWizard({ onFinish }: { onFinish: () => void }) {
   );
 }
 
-function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackStatus; config: SlackConfig, onFinish: () => void }) {
+function SlackCard({ initialStatus, onFinish }: { initialStatus: SlackStatus; config: SlackConfig, onFinish: () => void }) {
   const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
   const [showWizard, setShowWizard] = useState(false);
 

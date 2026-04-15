@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 
 import { Famiglia } from '@/modules/Famiglia';
+import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('@/modules/AgentEditModal', () => ({
   AgentEditModal: ({ agent, onClose }: { agent: any, onClose: () => void }) => (
@@ -48,7 +49,7 @@ describe('Famiglia Component', () => {
       });
     });
 
-    render(<Famiglia />);
+    render(<MemoryRouter><Famiglia /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getByText('Alfredo')).toBeTruthy();
@@ -74,7 +75,7 @@ describe('Famiglia Component', () => {
       json: async () => [],
     });
 
-    render(<Famiglia />);
+    render(<MemoryRouter><Famiglia /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getByText('No agents found')).toBeTruthy();
@@ -87,7 +88,7 @@ describe('Famiglia Component', () => {
       json: async () => ({}),
     });
 
-    render(<Famiglia />);
+    render(<MemoryRouter><Famiglia /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getByText('The Famiglia')).toBeTruthy();

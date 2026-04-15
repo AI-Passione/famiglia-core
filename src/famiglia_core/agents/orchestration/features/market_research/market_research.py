@@ -45,7 +45,7 @@ class MarketResearchWorkflow:
     def _extract_research_goal(self, task: str) -> str:
         """Isolate the actual research topic from meta-prompts or directive wrappers."""
         if not task: return "General Market Research"
-        
+
         # 1. Handle Situation Room "Client Specification:" format
         if "Client Specification:" in task:
             parts = task.split("Client Specification:")
@@ -53,12 +53,15 @@ class MarketResearchWorkflow:
                 spec = parts[1].strip()
                 if spec: return spec
 
-        # 2. Handle "Executing graph market_research" boilerplate
-        # Remove the boilerplate to find pure topic if it exists
-        clean_task = task.replace("Executing graph market_research", "").strip()
+        # 2. Strip autonomous queue metadata wrapper (everything after \n\nTask metadata:)
+        import re
+        clean_task = re.split(r'\n\n(?:Task metadata|Execution constraints):', task)[0].strip()
+
+        # 3. Handle "Executing graph market_research" boilerplate
+        clean_task = clean_task.replace("Executing graph market_research", "").strip()
         if clean_task and len(clean_task) > 5:
             return clean_task
-            
+
         return task
 
     def _load_rossini_personality(self) -> str:

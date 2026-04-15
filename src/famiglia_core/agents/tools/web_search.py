@@ -13,12 +13,26 @@ class WebSearchClient:
     def __init__(self):
         self.api_key = os.getenv("OLLAMA_API_KEY", "")
 
+    def _resolve_api_key(self) -> str:
+        """Return the API key from env var or, as fallback, from the user_connections table."""
+        if self.api_key:
+            return self.api_key
+        try:
+            from famiglia_core.db.tools.user_connections_store import user_connections_store
+            conn = user_connections_store.get_connection("ollama")
+            if conn and conn.get("access_token"):
+                return conn["access_token"]
+        except Exception as e:
+            print(f"[WebSearch] Could not fetch Ollama key from DB: {e}")
+        return ""
+
     def search(self, query: str, agent_name: str = "", user_prompt: Optional[str] = None) -> str:
         """
         Execute a web search and return a formatted string of results.
         Checks cache first.
         """
-        if not self.api_key:
+        api_key = self._resolve_api_key()
+        if not api_key:
             return "[Web Search] OLLAMA_API_KEY is not set. Cannot perform web search."
 
         # Cache Check
@@ -36,7 +50,7 @@ class WebSearchClient:
             data=payload,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
+                "Authorization": f"Bearer {api_key}",
             },
             method="POST",
         )

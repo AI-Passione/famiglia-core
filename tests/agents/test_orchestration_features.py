@@ -195,10 +195,10 @@ def test_market_research_perform_search_failure(mock_agent, mock_services):
     assert new_state["search_success"] is False
     assert "Search API Down" in new_state["last_error"]
 
-def test_market_research_notify_slack(mock_agent, mock_llm, mock_services):
+def test_market_research_deliver_results(mock_agent, mock_llm, mock_services):
     workflow = MarketResearchWorkflow(mock_agent)
     mock_llm.return_value = ("### Ideas\n- **Idea 1**: [Link](http://test.com)", "model")
-    
+
     state = MarketResearchState(
         research_topic="AI",
         business_ideas="Some ideas",
@@ -207,12 +207,82 @@ def test_market_research_notify_slack(mock_agent, mock_llm, mock_services):
         task="Research AI",
         search_results="", curated_markdown="", notion_page_id="", notion_url="", search_retry_count=0
     )
-    
-    workflow.notify_slack(state)
-    
+
+    new_state = workflow.deliver_results(state)
+
     assert mock_services["slack_research"].post_message.called
     msg = mock_services["slack_research"].post_message.call_args[1]["message"]
-    # Check simple formatting conversions
+    # Check Markdown → Slack mrkdwn conversions
     assert "*Ideas*" in msg
     assert "*Idea 1*" in msg
     assert "<http://test.com|Link>" in msg
+    # Check final_response is set for Directive Terminal
+    assert "final_response" in new_state
+    assert "AI" in new_state["final_response"]
+
+
+def test_market_research_extract_research_goal_autonomous_queue(mock_agent):
+    """Autonomous queue wraps the real topic with metadata — ensure it is stripped."""
+    workflow = MarketResearchWorkflow(mock_agent)
+
+    task = "love\n\nTask metadata:\n- No extra metadata provided.\n\nExecution constraints:\n- Provide concise execution output."
+    assert workflow._extract_research_goal(task) == "love"
+
+    task2 = "AI Trends 2025\n\nExecution constraints:\n- This task is running from the autonomous scheduled queue."
+    assert workflow._extract_research_goal(task2) == "AI Trends 2025"
+
+
+# --- Web Search Tests ---
+
+def test_web_search_uses_env_key():
+    """When OLLAMA_API_KEY env var is set it should be used directly."""
+    from famiglia_core.agents.tools.web_search import WebSearchClient
+    with patch.dict("os.environ", {"OLLAMA_API_KEY": "env-key-123"}):
+        client = WebSearchClient()
+        assert client._resolve_api_key() == "env-key-123"
+
+
+def test_web_search_falls_back_to_db_key():
+    """When env var is absent the key should be fetched from user_connections table."""
+    from famiglia_core.agents.tools.web_search import WebSearchClient
+    with patch.dict("os.environ", {}, clear=True):
+        client = WebSearchClient()
+        # Patch the store at the module level where it is imported inside the method
+        with patch("famiglia_core.db.tools.user_connections_store.user_connections_store.get_connection") as mock_get:
+            mock_get.return_value = {"access_token": "db-key-456"}
+            key = client._resolve_api_key()
+        assert key == "db-key-456"
+
+
+def test_web_search_returns_error_when_no_key():
+    """If neither env var nor DB provides a key, search() returns the expected error string."""
+    from famiglia_core.agents.tools.web_search import WebSearchClient
+    with patch.dict("os.environ", {}, clear=True):
+        client = WebSearchClient()
+        with patch("famiglia_core.db.tools.user_connections_store.user_connections_store.get_connection", return_value=None):
+            result = client.search("test query")
+    assert "OLLAMA_API_KEY is not set" in result
+
+
+def test_web_search_uses_db_key_for_request():
+    """End-to-end: key from DB is used in the Authorization header."""
+    from famiglia_core.agents.tools.web_search import WebSearchClient
+    import urllib.request
+
+    with patch.dict("os.environ", {}, clear=True):
+        client = WebSearchClient()
+        with patch("famiglia_core.db.tools.user_connections_store.user_connections_store.get_connection",
+                   return_value={"access_token": "db-key-789"}), \
+             patch("famiglia_core.db.agents.context_store.context_store.get_web_search_cache", return_value=None), \
+             patch("urllib.request.urlopen") as mock_urlopen:
+            mock_response = MagicMock()
+            mock_response.read.return_value = b'{"results": [{"title": "T", "url": "http://x.com", "content": "c"}]}'
+            mock_response.__enter__ = lambda s: s
+            mock_response.__exit__ = MagicMock(return_value=False)
+            mock_urlopen.return_value = mock_response
+
+            with patch("famiglia_core.db.agents.context_store.context_store.set_web_search_cache"):
+                client.search("test query")
+
+        called_req = mock_urlopen.call_args[0][0]
+        assert called_req.get_header("Authorization") == "Bearer db-key-789"

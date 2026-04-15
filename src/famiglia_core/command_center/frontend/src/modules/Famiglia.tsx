@@ -174,10 +174,16 @@ export function Famiglia() {
                     </button>
                   </div>
                 </div>
-                  {status}
-                </span>
-
                 <div className="flex flex-col items-end gap-2">
+                  <span
+                    className={`px-2 py-1 font-label text-[10px] uppercase tracking-widest border ${status === 'active'
+                        ? 'text-tertiary border-tertiary/40 bg-on-tertiary-fixed-variant/20'
+                        : 'text-outline border-outline/30'
+                      }`}
+                  >
+                    {status}
+                  </span>
+
                   <div 
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 ${
                       agent.is_slack_connected 

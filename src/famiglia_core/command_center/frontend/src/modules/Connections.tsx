@@ -113,51 +113,6 @@ function GitHubSetupGuide() {
   );
 }
 
-function SlackSetupGuide() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-8 bg-[#0d0d0d] border border-[#ffb3b5]/10 rounded-xl space-y-6"
-    >
-      <div className="flex items-center gap-6">
-        <div className="p-4 bg-[#041a4a]/30 rounded-xl border border-[#444]/50 shadow-[0_0_20px_rgba(4,26,74,0.2)]">
-          <span className="material-symbols-outlined text-[#ffb3b5] text-4xl">settings_input_component</span>
-        </div>
-        <div>
-          <h3 className="text-2xl font-headline font-bold text-white tracking-tighter">Slack Vault Integration Pending</h3>
-          <p className="text-sm font-body text-[#6b6b6b] mt-1 leading-relaxed">
-            Don Jimmy, your Slack OAuth credentials haven't been secured in the environment yet. 
-            Add your <strong>App Client ID</strong> and <strong>Secret</strong> to the <code>.env</code> file, 
-            then signal the backend to activate the secure channel.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 bg-[#161616] border border-[#232323] rounded-lg space-y-2">
-            <span className="text-[10px] font-label font-bold text-[#a38b88] uppercase tracking-widest">Step 1</span>
-            <p className="text-[11px] font-body text-[#555] leading-relaxed">
-                Add <code>SLACK_OAUTH_CLIENT_ID</code> and <code>SLACK_OAUTH_CLIENT_SECRET</code> to your <code>.env</code>.
-            </p>
-        </div>
-        <div className="p-4 bg-[#161616] border border-[#232323] rounded-lg space-y-2 text-center flex flex-col justify-center">
-            <span className="material-symbols-outlined text-[#3a3a3a] text-3xl">restart_alt</span>
-            <p className="text-[10px] font-label font-bold text-[#3a3a3a] uppercase tracking-widest mt-2">Restart Backend</p>
-        </div>
-        <div className="p-4 bg-[#161616] border border-[#232323] rounded-lg space-y-2 text-right">
-            <span className="text-[10px] font-label font-bold text-[#a38b88] uppercase tracking-widest">Done?</span>
-            <button
-                onClick={() => window.location.reload()}
-                className="block w-full py-2 bg-[#ffb3b5]/10 text-[#ffb3b5] border border-[#ffb3b5]/20 rounded text-[10px] font-bold font-label uppercase tracking-widest hover:bg-[#ffb3b5]/20 transition-all"
-            >
-                Refresh UI
-            </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
 
 // ─── Integration Cards ──────────────────────────────────────────────────
 function NotionSetupGuide() {
@@ -327,7 +282,7 @@ function GitHubCard({ initialStatus, config, onFinish }: { initialStatus: GitHub
   );
 }
 
-function SlackFamigliaWizard({ status, config, onFinish }: { status: Record<string, any>; config: ServiceConfig; onFinish: () => void }) {
+function SlackFamigliaWizard({ onFinish }: { onFinish: () => void }) {
   const [step, setStep] = useState(1);
   const [appLevelToken, setAppLevelToken] = useState('');
   const [provisionedApps, setProvisionedApps] = useState<any[]>([]);
@@ -554,15 +509,11 @@ function SlackFamigliaWizard({ status, config, onFinish }: { status: Record<stri
   );
 }
 
-function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackStatus; config: SlackConfig; onFinish: (s: string) => void }) {
-  const [status, setStatus] = useState<SlackStatus>(initialStatus);
+function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackStatus; config: SlackConfig, onFinish: () => void }) {
   const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showWizard, setShowWizard] = useState(false);
 
   useEffect(() => {
-    setStatus(initialStatus);
     fetchFamigliaStatus();
   }, [initialStatus]);
 
@@ -574,16 +525,13 @@ function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackSt
   };
 
   const handleDisconnect = async () => {
-    setLoading(true);
-    setError(null);
     try {
       const res = await fetch(`${API_BASE}/connections/slack`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to disconnect.');
-      setStatus({ connected: false });
+      fetchFamigliaStatus();
+      onFinish();
     } catch (e: any) {
-      setError(e.message || 'Unknown error');
-    } finally {
-      setLoading(false);
+      console.error(e.message || 'Unknown error');
     }
   };
 
@@ -615,7 +563,7 @@ function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackSt
       <div className="px-6 py-5">
         <AnimatePresence mode="wait">
           {showWizard ? (
-             <SlackFamigliaWizard status={famigliaStatus} config={config} onFinish={() => { fetchFamigliaStatus(); setShowWizard(false); }} />
+             <SlackFamigliaWizard onFinish={() => { fetchFamigliaStatus(); setShowWizard(false); }} />
           ) : (
             <div className="space-y-4">
                 <div className="grid grid-cols-4 md:grid-cols-7 gap-2">

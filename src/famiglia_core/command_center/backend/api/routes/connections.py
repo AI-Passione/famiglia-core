@@ -80,6 +80,50 @@ async def test_ollama_connection():
     models = [m["name"] for m in response.json().get("models", [])]
     return {"success": True, "host": ollama_host, "models": models}
 
+@router.post("/slack/provision")
+async def provision_slack_famiglia(payload: Dict[str, str]):
+    """Trigger bulk creation of Slack apps using an App-Level Token."""
+    token = payload.get("app_level_token")
+    if not token:
+        raise HTTPException(status_code=422, detail="App-Level Token is required.")
+    
+    from famiglia_core.command_center.backend.comms.slack.provisioning import slack_provisioning
+    try:
+        apps = slack_provisioning.provision_famiglia(token)
+        return {"success": True, "apps": apps}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/slack/finalize")
+async def finalize_slack_agent(payload: Dict[str, str]):
+    """Save finalized tokens (Bot + Socket) for a specific agent."""
+    agent_id = payload.get("agent_id")
+    bot_token = payload.get("bot_token")
+    app_token = payload.get("app_token")
+    
+    if not all([agent_id, bot_token, app_token]):
+        raise HTTPException(status_code=422, detail="agent_id, bot_token, and app_token are required.")
+    
+    from famiglia_core.command_center.backend.comms.slack.provisioning import slack_provisioning
+    success = slack_provisioning.finalize_agent(agent_id, bot_token, app_token)
+    if success:
+        return {"success": True}
+    raise HTTPException(status_code=500, detail="Failed to save tokens.")
+
+@router.get("/slack/status")
+async def get_slack_famiglia_status():
+    """Report connection status for all 8 agent bots."""
+    agents = ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski"]
+    status = {}
+    for agent_id in agents:
+        bot_check = user_connections_store.get_connection_status(f"slack_bot:{agent_id}")
+        socket_check = user_connections_store.get_connection_status(f"slack_socket:{agent_id}")
+        status[agent_id] = {
+            "connected": bot_check.get("connected") and socket_check.get("connected"),
+            "name": agent_id.capitalize()
+        }
+    return status
+
 @router.get("/{service}")
 async def get_connection_status(service: str):
     """Retrieve the status of a specific connection."""

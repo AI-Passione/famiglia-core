@@ -44,6 +44,7 @@ class SlackQueueClient(CommsQueue):
         load_dotenv()
         
         # Multi-bot support
+        # 1. Load from environment first (legacy / override)
         self.agent_tokens = {
             "alfredo": os.getenv("SLACK_BOT_TOKEN_ALFREDO"),
             "vito": os.getenv("SLACK_BOT_TOKEN_VITO"),
@@ -54,8 +55,32 @@ class SlackQueueClient(CommsQueue):
             "kowalski": os.getenv("SLACK_BOT_TOKEN_KOWALSKI"),
         }
         
+        self.agent_app_tokens = {
+            "alfredo": os.getenv("SLACK_APP_TOKEN_ALFREDO"),
+            "vito": os.getenv("SLACK_APP_TOKEN_VITO"),
+            "riccardo": os.getenv("SLACK_APP_TOKEN_RICCARDO"),
+            "rossini": os.getenv("SLACK_APP_TOKEN_ROSSINI"),
+            "tommy": os.getenv("SLACK_APP_TOKEN_TOMMY"),
+            "bella": os.getenv("SLACK_APP_TOKEN_BELLA"),
+            "kowalski": os.getenv("SLACK_APP_TOKEN_KOWALSKI"),
+        }
+
+        # 2. Overlay tokens from database (Dynamic Self-Service)
+        from famiglia_core.db.tools.user_connections_store import user_connections_store
+        db_bot_tokens = user_connections_store.list_connections("slack_bot:")
+        for service, conn in db_bot_tokens.items():
+            agent_id = service.replace("slack_bot:", "")
+            self.agent_tokens[agent_id] = conn["access_token"]
+            
+        db_socket_tokens = user_connections_store.list_connections("slack_socket:")
+        for service, conn in db_socket_tokens.items():
+            agent_id = service.replace("slack_socket:", "")
+            self.agent_app_tokens[agent_id] = conn["access_token"]
+        
         # Fallback to general SLACK_BOT_TOKEN if specific ones aren't set
         default_token = os.getenv("SLACK_BOT_TOKEN")
+        self.app_token = os.getenv("SLACK_APP_TOKEN")
+        
         self.clients = {}
         self.bot_ids = {} # {agent_name: bot_user_id}
         self.bot_id_to_name = {} # {bot_user_id: agent_name}
@@ -64,26 +89,17 @@ class SlackQueueClient(CommsQueue):
         seen_user_ids: dict[str, str] = {}
         for agent, token in self.agent_tokens.items():
             if not token and not default_token:
-                # no specific or global token available for this agent
-                print(f"[{agent}] No bot token configured; Slack features for this agent will be disabled.")
                 continue
 
             active_token = token or default_token
-            if token and default_token and token == default_token:
-                # explicit token matches the global one; warn the operator
-                print(f"[SlackQueue 🔌] [{agent}] WARNING: using the global SLACK_BOT_TOKEN as the agent-specific token.")
-
             if not active_token:
-                # should have been caught above, but guard anyway
                 continue
 
             # detect duplicate tokens to avoid cross-agent impersonation
             if active_token in seen_tokens:
                 other = seen_tokens[active_token]
-                raise RuntimeError(
-                    f"Slack bot token for '{agent}' is identical to token for '{other}'. "
-                    "Each agent must have a unique bot token; fix your environment."
-                )
+                print(f"[SlackQueue] Skipping '{agent}' because token is identical to '{other}'.")
+                continue
             seen_tokens[active_token] = agent
 
             client = WebClient(token=active_token)
@@ -91,14 +107,10 @@ class SlackQueueClient(CommsQueue):
                 auth = client.auth_test()
                 user_id = auth.get("user_id")
 
-                # ensure tokens map to distinct Slack users as well
                 if user_id in seen_user_ids:
                     other_agent = seen_user_ids[user_id]
-                    raise RuntimeError(
-                        f"Token for '{agent}' authenticates as the same Slack user "
-                        f"({user_id}) as token for '{other_agent}'. "
-                        "Each agent must be a separate Slack bot/app."
-                    )
+                    print(f"[SlackQueue] Skipping '{agent}' because it authenticates as the same user as '{other_agent}'.")
+                    continue
                 seen_user_ids[user_id] = agent
 
                 self.clients[agent] = client
@@ -124,19 +136,6 @@ class SlackQueueClient(CommsQueue):
             configured_user_name = self._lookup_slack_user_name(self.user_id)
             if configured_user_name:
                 self.user_name_cache[self.user_id] = configured_user_name
-        
-        # Multi-bot app tokens
-        self.agent_app_tokens = {
-            "alfredo": os.getenv("SLACK_APP_TOKEN_ALFREDO"),
-            "vito": os.getenv("SLACK_APP_TOKEN_VITO"),
-            "riccardo": os.getenv("SLACK_APP_TOKEN_RICCARDO"),
-            "rossini": os.getenv("SLACK_APP_TOKEN_ROSSINI"),
-            "tommy": os.getenv("SLACK_APP_TOKEN_TOMMY"),
-            "bella": os.getenv("SLACK_APP_TOKEN_BELLA"),
-            "kowalski": os.getenv("SLACK_APP_TOKEN_KOWALSKI"),
-        }
-        # Global app token (optional if per-agent tokens are provided)
-        self.app_token = os.getenv("SLACK_APP_TOKEN")
         
         self.app_env = os.getenv("APP_ENV", "production").lower()
         self.channel_name_cache: Dict[str, str] = {}

@@ -287,6 +287,57 @@ def main():
             handler.connect()
             handlers.append(handler)
 
+    def dynamic_listener_watcher():
+        """Background thread to detect new tokens in DB and start listeners."""
+        nonlocal handlers
+        while True:
+            time.sleep(10) # Check every 10s
+            try:
+                # Refresh tokens from DB
+                from famiglia_core.db.tools.user_connections_store import user_connections_store
+                db_bot_tokens = user_connections_store.list_connections("slack_bot:")
+                db_socket_tokens = user_connections_store.list_connections("slack_socket:")
+                
+                for service, conn in db_bot_tokens.items():
+                    agent_id = service.replace("slack_bot:", "")
+                    token = conn["access_token"]
+                    socket_token = db_socket_tokens.get(f"slack_socket:{agent_id}", {}).get("access_token")
+                    
+                    if not socket_token: continue
+                    
+                    # If we don't have a listener for this agent yet, start one
+                    if agent_id not in apps:
+                        print(f"[DynamicWatcher] New token detected for {agent_id}. Starting listener...")
+                        
+                        # We need to update slack_queue as well so outgoing messages work
+                        slack_queue.agent_tokens[agent_id] = token
+                        slack_queue.agent_app_tokens[agent_id] = socket_token
+                        
+                        # Auth check
+                        client_tmp = WebClient(token=token)
+                        auth = client_tmp.auth_test()
+                        bot_id = auth["user_id"]
+                        
+                        slack_queue.clients[agent_id] = client_tmp
+                        slack_queue.bot_ids[agent_id] = bot_id
+                        slack_queue.bot_id_to_name[bot_id] = agent_id
+
+                        # Start listener
+                        app = App(token=token)
+                        setup_agent_events(app, agent_id, bot_id)
+                        apps[agent_id] = app
+                        
+                        handler = SocketModeHandler(app, socket_token)
+                        handler.connect()
+                        handlers.append(handler)
+                        print(f"[DynamicWatcher] {agent_id.capitalize()} is now ONLINE.")
+            except Exception as e:
+                # Silently catch to keep thread alive
+                pass
+
+    watcher_thread = threading.Thread(target=dynamic_listener_watcher, daemon=True)
+    watcher_thread.start()
+
     if handlers:
         print(f"Successfully started {len(handlers)} bot listeners.")
         

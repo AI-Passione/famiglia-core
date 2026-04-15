@@ -327,37 +327,232 @@ function GitHubCard({ initialStatus, config, onFinish }: { initialStatus: GitHub
   );
 }
 
-function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackStatus; config: SlackConfig; onFinish: (s: string) => void }) {
-  const [status, setStatus] = useState<SlackStatus>(initialStatus);
+function SlackFamigliaWizard({ status, config, onFinish }: { status: Record<string, any>; config: ServiceConfig; onFinish: () => void }) {
+  const [step, setStep] = useState(1);
+  const [appLevelToken, setAppLevelToken] = useState('');
+  const [provisionedApps, setProvisionedApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('');
 
-  useEffect(() => {
-    setStatus(initialStatus);
-  }, [initialStatus]);
-
-  const handleConnect = async () => {
+  const handleProvision = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/auth/slack`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || 'Slack OAuth setup is incomplete.');
-      }
-      const { authorization_url } = await res.json();
-      const popup = openCenterPopup(authorization_url, 'Slack Integration', 600, 700);
-      const interval = setInterval(() => {
-        if (!popup || popup.closed) {
-          clearInterval(interval);
-          setLoading(false);
-          onFinish('check');
-        }
-      }, 1000);
+      const res = await fetch(`${API_BASE}/connections/slack/provision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ app_level_token: appLevelToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Provisioning failed');
+      
+      setProvisionedApps(data.apps);
+      setStep(2);
+      if (data.apps.length > 0) setActiveTab(data.apps[0].agent_id);
     } catch (e: any) {
-      setError(e.message || 'Check your .env configuration.');
+      setError(e.message);
+    } finally {
       setLoading(false);
     }
+  };
+
+  const [tokens, setTokens] = useState<Record<string, { bot: string; app: string }>>({});
+
+  const handleFinalize = async (agentId: string) => {
+    const t = tokens[agentId];
+    if (!t || !t.bot || !t.app) {
+        setError('Both Bot and Socket tokens are required.');
+        return;
+    }
+    setLoading(true);
+    try {
+        const res = await fetch(`${API_BASE}/connections/slack/finalize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                agent_id: agentId,
+                bot_token: t.bot,
+                app_token: t.app
+            }),
+        });
+        if (!res.ok) throw new Error('Failed to save tokens');
+        onFinish();
+    } catch (e: any) {
+        setError(e.message);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {step === 1 && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-8 bg-[#0d0d0d] border border-[#ffb3b5]/10 rounded-xl space-y-6">
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-[#041a4a]/30 rounded-xl border border-[#444]/50 shadow-[0_0_20px_rgba(4,26,74,0.2)]">
+              <span className="material-symbols-outlined text-[#ffb3b5] text-4xl">hail</span>
+            </div>
+            <div>
+              <h3 className="text-2xl font-headline font-bold text-white tracking-tighter">Assemble the Famiglia</h3>
+              <p className="text-sm font-body text-[#6b6b6b] mt-1 leading-relaxed">
+                Don Jimmy, let's build the multi-bot network. You only need to provide an <strong>App-Level Token</strong> (xapp-...) from any app in your workspace that has <code>apps.manifest:write</code> scope.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <input
+              type="password"
+              placeholder="xapp-1-A123..."
+              value={appLevelToken}
+              onChange={e => setAppLevelToken(e.target.value)}
+              className="w-full bg-[#161616] border border-[#232323] rounded px-4 py-3 text-sm font-mono text-white placeholder-[#2a2a2a] focus:outline-none focus:border-[#ffb3b5]/40 transition-all"
+            />
+            <button
+               onClick={handleProvision}
+               disabled={loading || !appLevelToken}
+               className="w-full py-4 bg-[#ffb3b5] text-[#131313] font-bold font-label uppercase tracking-widest rounded hover:scale-[1.01] transition-all disabled:opacity-30"
+            >
+              Building the Family...
+            </button>
+          </div>
+          
+          <div className="p-4 bg-[#161616]/50 rounded-lg border border-[#232323]">
+            <p className="text-[10px] font-label font-bold text-[#444] uppercase tracking-widest mb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-xs">info</span> 
+                How to get the token?
+            </p>
+            <p className="text-[11px] font-body text-[#555] leading-relaxed">
+                Create any app at api.slack.com, go to <strong>Basic Information</strong> → <strong>App-Level Tokens</strong> → <strong>Generate Token</strong>. Choose any name and grant the <strong>apps.manifest:write</strong> scope.
+            </p>
+          </div>
+        </motion.div>
+      )}
+
+      {step === 2 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+                <h4 className="text-xl font-headline font-bold text-white tracking-tight">Agent Authorization Portal</h4>
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-950/20 border border-emerald-900/30 rounded-full">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"/>
+                    <span className="text-[10px] font-label font-bold uppercase text-emerald-400 tracking-widest">Manifests Deployed</span>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                {provisionedApps.map(app => (
+                    <button
+                        key={app.agent_id}
+                        onClick={() => setActiveTab(app.agent_id)}
+                        className={`px-4 py-3 rounded-lg border text-xs font-label uppercase tracking-widest font-bold transition-all ${
+                            activeTab === app.agent_id 
+                            ? 'bg-[#ffb3b5] text-[#131313] border-[#ffb3b5]' 
+                            : 'bg-[#161616] text-[#444] border-[#232323] hover:border-[#444]'
+                        }`}
+                    >
+                        {app.name}
+                    </button>
+                ))}
+            </div>
+
+            <AnimatePresence mode="wait">
+                {provisionedApps.map(app => (
+                    activeTab === app.agent_id && (
+                        <motion.div
+                            key={app.agent_id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 10 }}
+                            className="bg-[#161616] border border-[#232323] rounded-xl p-8 space-y-6 shadow-2xl"
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="space-y-1">
+                                    <h5 className="text-2xl font-headline font-black text-white">{app.name} Configuration</h5>
+                                    <p className="text-xs font-body text-[#555]">App ID: <code className="text-[#a38b88]">{app.app_id}</code></p>
+                                </div>
+                                <a
+                                    href={app.install_url}
+                                    target="_blank"
+                                    className="flex items-center gap-3 px-6 py-3 bg-white text-black text-xs font-black font-label uppercase tracking-widest rounded hover:bg-[#ffb3b5] transition-all shadow-[0_4px_20px_rgba(255,179,181,0.1)]"
+                                >
+                                    <span className="material-symbols-outlined text-base">install_desktop</span>
+                                    Install App
+                                </a>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-label font-bold text-[#888] uppercase tracking-widest">Bot User OAuth Token</label>
+                                    <div className="relative">
+                                        <input
+                                            type="password"
+                                            placeholder="xoxb-..."
+                                            value={tokens[app.agent_id]?.bot || ''}
+                                            onChange={e => setTokens({ ...tokens, [app.agent_id]: { ...tokens[app.agent_id], bot: e.target.value } })}
+                                            className="w-full bg-[#0d0d0d] border border-[#232323] rounded px-4 py-3 text-sm font-mono text-[#ffb3b5] focus:outline-none focus:border-[#ffb3b5]/40"
+                                        />
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-label font-black text-[#2a2a2a] uppercase">Identity</span>
+                                    </div>
+                                    <p className="text-[10px] font-body text-[#444]">Found in <strong>OAuth & Permissions</strong> after installation.</p>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-label font-bold text-[#888] uppercase tracking-widest">App-Level Socket Token</label>
+                                    <div className="relative">
+                                        <input
+                                            type="password"
+                                            placeholder="xapp-..."
+                                            value={tokens[app.agent_id]?.app || ''}
+                                            onChange={e => setTokens({ ...tokens, [app.agent_id]: { ...tokens[app.agent_id], app: e.target.value } })}
+                                            className="w-full bg-[#0d0d0d] border border-[#232323] rounded px-4 py-3 text-sm font-mono text-[#ffb3b5] focus:outline-none focus:border-[#ffb3b5]/40"
+                                        />
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-label font-black text-[#2a2a2a] uppercase">Stream</span>
+                                    </div>
+                                    <p className="text-[10px] font-body text-[#444]">Found in <strong>Basic Information</strong> → App-Level Tokens.</p>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => handleFinalize(app.agent_id)}
+                                disabled={loading || !tokens[app.agent_id]?.bot || !tokens[app.agent_id]?.app}
+                                className="w-full py-4 border border-[#ffb3b5]/20 text-[#ffb3b5] text-xs font-bold font-label uppercase tracking-widest rounded hover:bg-[#ffb3b5]/5 transition-all"
+                            >
+                                Secure {app.name}'s Connection
+                            </button>
+                        </motion.div>
+                    )
+                ))}
+            </AnimatePresence>
+        </motion.div>
+      )}
+
+      {error && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-[#4A0404]/30 border border-[#4A0404] rounded text-[#ff1a1a] text-xs font-body flex items-center gap-3">
+            <span className="material-symbols-outlined text-base">error</span>
+            {error}
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackStatus; config: SlackConfig; onFinish: (s: string) => void }) {
+  const [status, setStatus] = useState<SlackStatus>(initialStatus);
+  const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
+
+  useEffect(() => {
+    setStatus(initialStatus);
+    fetchFamigliaStatus();
+  }, [initialStatus]);
+
+  const fetchFamigliaStatus = async () => {
+    try {
+        const res = await fetch(`${API_BASE}/connections/slack/status`);
+        if (res.ok) setFamigliaStatus(await res.json());
+    } catch (e) {}
   };
 
   const handleDisconnect = async () => {
@@ -374,6 +569,8 @@ function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackSt
     }
   };
 
+  const allConnected = Object.values(famigliaStatus).every(s => s.connected) && Object.keys(famigliaStatus).length > 0;
+
   return (
     <motion.div layout className="bg-[#161616] border border-[#232323] rounded-lg overflow-hidden group hover:border-[#ffb3b5]/20 transition-all">
       <div className="flex items-center justify-between px-6 py-5 border-b border-[#232323]">
@@ -384,68 +581,67 @@ function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackSt
             </svg>
           </div>
           <div>
-            <p className="font-headline text-white text-base font-bold">Slack Workspace</p>
-            <p className="font-body text-[#6b6b6b] text-xs mt-0.5">Secure channel for identity-based team communications</p>
+            <p className="font-headline text-white text-base font-bold">Slack Famiglia</p>
+            <p className="font-body text-[#6b6b6b] text-xs mt-0.5">Multi-bot network for high-vibe executive assistance</p>
           </div>
         </div>
 
         <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-label font-bold uppercase tracking-widest ${
-          status.connected ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-400' : 'border-[#2a2a2a] bg-[#1c1b1b] text-[#555]'
+          allConnected ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-400' : 'border-[#2a2a2a] bg-[#1c1b1b] text-[#555]'
         }`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${status.connected ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-[#444]'}`} />
-          {status.connected ? 'Active Sync' : 'Offline'}
+          <span className={`h-1.5 w-1.5 rounded-full ${allConnected ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-[#444]'}`} />
+          {allConnected ? 'Full Family Online' : 'Awaiting Orders'}
         </div>
       </div>
 
       <div className="px-6 py-5">
         <AnimatePresence mode="wait">
-          {status.connected ? (
-            <motion.div key="connected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {status.avatar_url && <img src={status.avatar_url} className="w-10 h-10 rounded-lg border-2 border-[#2a2a2a] ring-1 ring-[#ffb3b5]/20" />}
-                <div>
-                  <p className="font-headline text-white font-bold text-sm">{status.username}</p>
-                  <p className="font-body text-[#555] text-xs mt-0.5">{formatDate(status.connected_at)}</p>
-                </div>
-              </div>
-              <button disabled={loading} onClick={handleDisconnect} className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-label uppercase tracking-widest text-[#a38b88] border border-[#2a2a2a] rounded hover:border-[#4A0404] hover:text-[#ffb3b5] hover:bg-[#4A0404]/10 transition-all disabled:opacity-20">
-                <span className="material-symbols-outlined text-base">leak_remove</span>
-                Sever Connection
-              </button>
-            </motion.div>
+          {showWizard ? (
+             <SlackFamigliaWizard status={famigliaStatus} config={config} onFinish={() => { fetchFamigliaStatus(); setShowWizard(false); }} />
           ) : (
-            <motion.div key="disconnected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
-              {config.configured ? (
-                <div className="flex items-center justify-between">
-                  <p className="font-body text-[#6b6b6b] text-sm leading-relaxed max-w-md">Encrypted handshake ready. Use the secure portal to authorize the Command Center in your workspace.</p>
-                  <button
-                    disabled={loading}
-                    onClick={handleConnect}
-                    className="flex items-center gap-3 px-6 py-3 text-xs font-bold font-label uppercase tracking-widest bg-[#122e23] text-[#42d392] border border-[#42d392]/20 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
-                  >
-                    <span className="material-symbols-outlined text-base font-black">sync_alt</span>
-                    Initiate Sync
-                  </button>
+            <div className="space-y-4">
+                <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                    {Object.entries(famigliaStatus).map(([id, s]) => (
+                        <div key={id} className={`flex flex-col items-center gap-2 p-2 rounded border transition-all ${s.connected ? 'border-emerald-950 bg-emerald-950/20' : 'border-[#232323] grayscale opacity-40'}`}>
+                            <div className="text-xl">{AGENT_EMOJIS[id as keyof typeof AGENT_EMOJIS]}</div>
+                            <span className="text-[8px] font-label font-bold uppercase tracking-tighter text-[#888]">{id}</span>
+                        </div>
+                    ))}
                 </div>
-              ) : (
-                <SlackSetupGuide />
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        <AnimatePresence>
-          {error && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 flex items-center gap-3 px-4 py-3 bg-[#4A0404]/20 border border-[#4A0404]/40 rounded text-[#ffb3b5] text-xs font-body">
-              <span className="material-symbols-outlined text-base">warning</span>
-              {error}
-            </motion.div>
+                <div className="flex items-center justify-between border-t border-[#232323] pt-4">
+                   <p className="font-body text-[#6b6b6b] text-sm leading-relaxed max-w-sm">
+                        {allConnected ? 'All agents have been provisioned and secured. The famiglia is ready for directives.' : 'The family needs assembly. Enter the secure portal to provision your agent bots.'}
+                   </p>
+                   {allConnected ? (
+                       <button onClick={handleDisconnect} className="text-[10px] font-label font-bold uppercase text-[#4A0404] hover:text-[#ff1a1a]">Purge credentials</button>
+                   ) : (
+                       <button
+                         onClick={() => setShowWizard(true)}
+                         className="flex items-center gap-3 px-6 py-3 text-xs font-bold font-label uppercase tracking-widest bg-[#122e23] text-[#42d392] border border-[#42d392]/20 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
+                       >
+                         <span className="material-symbols-outlined text-base font-black">bolt</span>
+                         Assemble the Family
+                       </button>
+                   )}
+                </div>
+            </div>
           )}
         </AnimatePresence>
       </div>
     </motion.div>
   );
 }
+
+const AGENT_EMOJIS = {
+    alfredo: "🎩",
+    vito: "🦅",
+    riccardo: "🔧",
+    rossini: "🔬",
+    tommy: "🔫",
+    bella: "💋",
+    kowalski: "📊"
+};
 // ─── Notion Card (Connected/Prompt) ────────────────────────────────────────
 
 function NotionCard({ initialStatus, config, onFinish }: { initialStatus: NotionStatus; config: ServiceConfig; onFinish: (s: string) => void }) {

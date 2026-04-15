@@ -164,6 +164,41 @@ class UserConnectionsStore:
             print(f"[UserConnectionsStore] Error retrieving status for '{service}': {e}")
             return {"connected": False}
 
+    def list_connections(self, service_prefix: str) -> Dict[str, Dict[str, Any]]:
+        """Retrieve all connections starting with a specific prefix (e.g. 'slack:')."""
+        try:
+            with context_store.db_session(commit=False) as cursor:
+                if cursor is None:
+                    return {}
+                cursor.execute(
+                    """
+                    SELECT service, username, avatar_url, access_token, scopes, connected_at
+                    FROM user_connections
+                    WHERE service LIKE %s;
+                    """,
+                    (f"{service_prefix}%",),
+                )
+                rows = cursor.fetchall()
+
+            fernet = _get_fernet()
+            results = {}
+            for row in rows:
+                try:
+                    decrypted_token = fernet.decrypt(row["access_token"].encode()).decode()
+                    results[row["service"]] = {
+                        "username": row["username"],
+                        "avatar_url": row["avatar_url"],
+                        "access_token": decrypted_token,
+                        "scopes": row["scopes"],
+                        "connected_at": row["connected_at"].isoformat() if row["connected_at"] else None,
+                    }
+                except Exception:
+                    continue
+            return results
+        except Exception as e:
+            print(f"[UserConnectionsStore] Error listing connections for '{service_prefix}': {e}")
+            return {}
+
     # ------------------------------------------------------------------ #
     #  Delete                                                               #
     # ------------------------------------------------------------------ #

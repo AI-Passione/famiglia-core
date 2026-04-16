@@ -390,7 +390,7 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                 <h4 className="text-[10px] font-label font-bold uppercase text-[#ffb3b5] tracking-[0.2em]">Consigliere's Note</h4>
               </div>
               <p className="text-xs font-body text-[#b6abaa] leading-relaxed">
-                Think of the <strong>Management App</strong> as the digital keys to the city. By creating this single app with "manifest write" authority, you allow the Famiglia's backend to move in and auto-provision all 8 specialized agents instantly.
+                Think of the <strong>Configuration Token</strong> as the "Master Key" to your workspace. By providing this token, you allow the Famiglia's backend to programmatically manifest and configure all 8 specialized agents instantly, no manual app creation required.
               </p>
             </div>
 
@@ -406,37 +406,20 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
               </div>
             )}
 
-            <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-6">
+            <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
                 <div className="flex items-center gap-3">
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffb3b5] text-[#131313] text-[10px] font-black font-label">
                       {onboardingPath === 'foundation' ? '2' : '1'}
                     </span>
-                    <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Create Management App</p>
-                </div>
-                
-                <div className="space-y-4">
-                  <p className="text-xs font-body text-[#a38b88] leading-relaxed">
-                    Navigate to <a href="https://api.slack.com/apps?new_app=1" target="_blank" className="text-[#ffb3b5] underline hover:text-white transition-colors">api.slack.com/apps</a> and select <strong>"From a manifest"</strong>. Paste the following "Bootstrapper" configuration:
-                  </p>
-                  
-                  <BootstrapperManifest />
-                </div>
-            </div>
-
-            <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
-                <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffb3b5] text-[#131313] text-[10px] font-black font-label">
-                      {onboardingPath === 'foundation' ? '3' : '2'}
-                    </span>
                     <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Generate Configuration Token</p>
                 </div>
                 <p className="text-xs font-body text-[#a38b88] leading-relaxed">
-                  Go to <a href="https://api.slack.com/apps" target="_blank" className="text-[#ffb3b5] underline hover:text-white transition-colors">api.slack.com/apps</a>. Scroll down below your app list to the <strong>"Your App Configuration Tokens"</strong> section and click <strong>Generate Token</strong>.
+                  Navigate to <a href="https://api.slack.com/apps" target="_blank" className="text-[#ffb3b5] underline hover:text-white transition-colors">api.slack.com/apps</a>. Scroll completely to the bottom to the <strong>"Your App Configuration Tokens"</strong> section and click <strong>Generate Token</strong> for your workspace.
                 </p>
                 <div className="p-4 bg-[#4A0404]/10 border border-[#4A0404]/20 rounded-xl space-y-2">
                    <p className="text-[10px] font-label font-bold text-[#ffb3b5] uppercase tracking-wider">Why this token?</p>
                    <p className="text-[10px] font-body text-[#b6abaa] leading-relaxed">
-                     This specific token allows Famiglia Core to use the Manifest API. It is the "Master Key" that builds all 8 of your agents in one click.
+                     This token uses Slack's Manifest API to build all 8 of your agents in one click. It is short-lived for security, but once the agents are created, they will persist.
                    </p>
                 </div>
                 <p className="text-xs font-body text-[#a38b88] leading-relaxed mt-2">
@@ -706,53 +689,6 @@ const AGENT_EMOJIS = {
     giuseppina: "📢"
 };
 
-const BOOTSTRAPPER_MANIFEST = `display_information:
-  name: Famiglia Bootstrapper
-features:
-  bot_user:
-    display_name: Bootstrapper
-oauth_config:
-  scopes:
-    bot:
-      - chat:write
-settings:
-  socket_mode_enabled: true
-  token_rotation_enabled: false`;
-
-function BootstrapperManifest() {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(BOOTSTRAPPER_MANIFEST);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="relative group">
-      <div className="absolute -inset-2 bg-gradient-to-r from-[#ffb3b5]/10 to-[#f472b6]/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500" />
-      <div className="relative bg-[#0d0d0d] border border-white/5 rounded-xl overflow-hidden shadow-inner">
-        <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5">
-          <span className="text-[9px] font-label font-black text-[#555] uppercase tracking-widest">manifest.yaml</span>
-          <button 
-            onClick={handleCopy}
-            className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 transition-all"
-          >
-            <span className="material-symbols-outlined text-sm text-[#ffb3b5]">
-              {copied ? 'check_circle' : 'content_copy'}
-            </span>
-            <span className="text-[9px] font-label font-bold uppercase text-[#ffb3b5] tracking-widest">
-              {copied ? 'Copied' : 'Copy'}
-            </span>
-          </button>
-        </div>
-        <pre className="p-4 text-[11px] font-mono text-[#a38b88] leading-relaxed overflow-x-auto whitespace-pre">
-          {BOOTSTRAPPER_MANIFEST}
-        </pre>
-      </div>
-    </div>
-  );
-}
 function SlackPathSelection({ onSelect }: { onSelect: (path: 'foundation' | 'expansion') => void }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-2">

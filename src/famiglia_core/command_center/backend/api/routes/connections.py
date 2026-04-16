@@ -127,8 +127,12 @@ async def get_slack_famiglia_status():
     for agent_id in agents:
         bot_check = user_connections_store.get_connection_status(f"slack_bot:{agent_id}")
         socket_check = user_connections_store.get_connection_status(f"slack_socket:{agent_id}")
+        bot_connected = bool(bot_check.get("connected"))
+        socket_connected = bool(socket_check.get("connected"))
         status[agent_id] = {
-            "connected": bot_check.get("connected"),
+            "connected": bot_connected and socket_connected,
+            "bot_connected": bot_connected,
+            "socket_connected": socket_connected,
             "name": agent_id.capitalize()
         }
     return status

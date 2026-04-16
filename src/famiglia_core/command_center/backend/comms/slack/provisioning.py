@@ -257,6 +257,13 @@ class SlackProvisioningService:
             return {"success": False, "error": "Alfredo is not connected. Please install Alfredo first."}
         
         client = WebClient(token=alfredo_token["access_token"])
+        try:
+            auth = client.auth_test()
+            print(f"📡 Syncing with Slack Workspace: {auth.get('team')} ({auth.get('url')})")
+        except Exception as e:
+            print(f"❌ Slack Auth Test failed: {e}")
+            return {"success": False, "error": f"Slack Auth Test failed: {e}"}
+
         results = {"channels": [], "errors": []}
         
         # 2. Map Agent IDs to Bot User IDs (needed for invitations)
@@ -314,13 +321,16 @@ class SlackProvisioningService:
                     resp = client.conversations_create(name=desired_name)
                     if resp["ok"]:
                         channel_id = resp["channel"]["id"]
+                        print(f"✅ Created channel ID: {channel_id}")
                         user_connections_store.upsert_connection(
                             service=f"slack_channel:{code}",
                             access_token=channel_id,
                             username=desired_name
                         )
                 except SlackApiError as e:
-                    results["errors"].append(f"Failed to create #{desired_name}: {e.response['error']}")
+                    error_msg = e.response['error']
+                    print(f"❌ Failed to create #{desired_name}: {error_msg}")
+                    results["errors"].append(f"Failed to create #{desired_name}: {error_msg}")
                     continue
             else:
                 # Rename if needed

@@ -113,7 +113,7 @@ async def finalize_slack_agent(payload: Dict[str, str]):
 @router.get("/slack/status")
 async def get_slack_famiglia_status():
     """Report connection status for all 8 agent bots."""
-    agents = ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski"]
+    agents = ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski", "giuseppina"]
     status = {}
     for agent_id in agents:
         bot_check = user_connections_store.get_connection_status(f"slack_bot:{agent_id}")

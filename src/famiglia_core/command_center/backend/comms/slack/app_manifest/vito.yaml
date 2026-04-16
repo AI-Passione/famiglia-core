@@ -1,10 +1,10 @@
 display_information:
-  name: Kowalski
-  description: The Analytics & Data Science expert of the Famiglia
-  background_color: "#2e2e30"
+  name: Vito
+  description: Shrewd Italian banker & finance guardian for the Passione Famiglia
+  background_color: "#1a1a1c"
 features:
   bot_user:
-    display_name: Kowalski
+    display_name: Vito
     always_online: false
 oauth_config:
   scopes:

@@ -9,13 +9,12 @@ features:
 oauth_config:
   scopes:
     bot:
-      - reactions:write
       - app_mentions:read
-      - channels:join
-      - channels:read
+      - channels:history
       - chat:write
+      - groups:history
       - im:history
-      - users:read
+      - reactions:write
   pkce_enabled: false
 settings:
   event_subscriptions:

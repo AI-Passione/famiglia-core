@@ -1,6 +1,7 @@
 display_information:
   name: Riccardo
   description: Principal Data Engineer and DevOps master for the Passione Famiglia
+  background_color: "#3b1e1e"
 features:
   bot_user:
     display_name: Riccardo

@@ -1,6 +1,7 @@
 display_information:
   name: Alfredo
   description: Agent orchestrator & workflow automation for the Passione Famiglia
+  background_color: "#2c2e33"
 features:
   bot_user:
     display_name: Alfredo

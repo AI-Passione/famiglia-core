@@ -662,7 +662,7 @@ function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: Slack
              <SlackFamigliaWizard onFinish={() => { fetchFamigliaStatus(); setShowWizard(false); }} bossName={bossName} />
           ) : (
             <div className="space-y-4">
-                <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
                     {Object.entries(famigliaStatus).map(([id, s]) => (
                         <div key={id} className={`flex flex-col items-center gap-2 p-2 rounded border transition-all ${s.connected ? 'border-emerald-950 bg-emerald-950/20' : 'border-[#232323] grayscale opacity-40'}`}>
                             <div className="text-xl">{AGENT_EMOJIS[id as keyof typeof AGENT_EMOJIS]}</div>
@@ -702,7 +702,8 @@ const AGENT_EMOJIS = {
     rossini: "🔬",
     tommy: "🔫",
     bella: "💋",
-    kowalski: "📊"
+    kowalski: "📊",
+    giuseppina: "📢"
 };
 
 const BOOTSTRAPPER_MANIFEST = `display_information:

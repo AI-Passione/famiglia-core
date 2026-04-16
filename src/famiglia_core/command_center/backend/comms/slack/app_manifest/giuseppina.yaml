@@ -1,10 +1,10 @@
 display_information:
-  name: Kowalski
-  description: The Analytics & Data Science expert of the Famiglia
-  background_color: "#2e2e30"
+  name: Giuseppina
+  description: High-energy PR & brand manager for the Passione Famiglia
+  background_color: "#4a1c40"
 features:
   bot_user:
-    display_name: Kowalski
+    display_name: Giuseppina
     always_online: false
 oauth_config:
   scopes:

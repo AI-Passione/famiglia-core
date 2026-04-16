@@ -1,10 +1,10 @@
 display_information:
-  name: Kowalski
-  description: The Analytics & Data Science expert of the Famiglia
-  background_color: "#2e2e30"
+  name: Tommy
+  description: Reliable soldier & operations executor for the Passione Famiglia
+  background_color: "#2a2d2f"
 features:
   bot_user:
-    display_name: Kowalski
+    display_name: Tommy
     always_online: false
 oauth_config:
   scopes:

@@ -7,8 +7,10 @@ from famiglia_core.db.tools.user_connections_store import user_connections_store
 from famiglia_core.command_center.backend.github.auth_github import github_oauth_client
 from famiglia_core.command_center.backend.comms.slack.auth_slack import slack_oauth_client
 from famiglia_core.command_center.backend.notion.auth_notion import notion_oauth_client
+from famiglia_core.command_center.backend.comms.slack.agent_auth import router as agent_auth_router
 
 router = APIRouter(prefix="/connections", tags=["connections"])
+router.include_router(agent_auth_router)
 
 class ApiKeyPayload(BaseModel):
     api_key: str
@@ -126,7 +128,7 @@ async def get_slack_famiglia_status():
         bot_check = user_connections_store.get_connection_status(f"slack_bot:{agent_id}")
         socket_check = user_connections_store.get_connection_status(f"slack_socket:{agent_id}")
         status[agent_id] = {
-            "connected": bot_check.get("connected") and socket_check.get("connected"),
+            "connected": bot_check.get("connected"),
             "name": agent_id.capitalize()
         }
     return status

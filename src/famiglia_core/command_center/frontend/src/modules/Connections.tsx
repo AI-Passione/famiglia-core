@@ -282,7 +282,7 @@ function GitHubCard({ initialStatus, config, onFinish, bossName }: { initialStat
   );
 }
 
-function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bossName: string }) {
+function SlackFamigliaWizard({ bossName }: { bossName: string }) {
   const [step, setStep] = useState(1);
   const [appLevelToken, setAppLevelToken] = useState('');
   const [provisionedApps, setProvisionedApps] = useState<any[]>([]);
@@ -299,7 +299,12 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ app_level_token: appLevelToken }),
       });
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = { detail: 'The backend returned an unexpected response. Please check the logs.' };
+      }
       if (!res.ok) throw new Error(data.detail || 'Provisioning failed');
       
       setProvisionedApps(data.apps);
@@ -312,32 +317,21 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
     }
   };
 
-  const [tokens, setTokens] = useState<Record<string, { bot: string; app: string }>>({});
+  const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
 
-  const handleFinalize = async (agentId: string) => {
-    const t = tokens[agentId];
-    if (!t || !t.bot || !t.app) {
-        setError('Both Bot and Socket tokens are required.');
-        return;
+  // Polling for automated connection status
+  useEffect(() => {
+    if (step === 2) {
+      const interval = setInterval(fetchFamigliaStatus, 3000);
+      return () => clearInterval(interval);
     }
-    setLoading(true);
+  }, [step]);
+
+  const fetchFamigliaStatus = async () => {
     try {
-        const res = await fetch(`${API_BASE}/connections/slack/finalize`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                agent_id: agentId,
-                bot_token: t.bot,
-                app_token: t.app
-            }),
-        });
-        if (!res.ok) throw new Error('Failed to save tokens');
-        onFinish();
-    } catch (e: any) {
-        setError(e.message);
-    } finally {
-        setLoading(false);
-    }
+      const res = await fetch(`${API_BASE}/connections/slack/status`);
+      if (res.ok) setFamigliaStatus(await res.json());
+    } catch (e) {}
   };
 
   return (
@@ -467,7 +461,7 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                    <div className="h-2 w-full bg-[#0d0d0d] rounded-full overflow-hidden border border-white/5 shadow-inner p-[1px]">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: '100%' }}
+                        animate={{ width: `${(Object.values(famigliaStatus).filter((s:any) => s.connected).length / provisionedApps.length) * 100}%` }}
                         transition={{ duration: 1.5, ease: "easeOut" }}
                         className="h-full rounded-full bg-gradient-to-r from-[#6366f1] via-[#a855f7] to-[#ffb3b5] relative"
                       >
@@ -475,7 +469,7 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                       </motion.div>
                    </div>
                    <p className="text-[11px] font-body text-[#555] italic text-center">
-                     {bossName}, the network has been mapped. Secure the unique spirits of each agent to finalize the integration.
+                     {bossName}, the network has been mapped. Secure each spirit below to finalize the integration.
                    </p>
                 </div>
               </div>
@@ -485,12 +479,17 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                     <button
                         key={app.agent_id}
                         onClick={() => setActiveTab(app.agent_id)}
-                        className={`px-4 py-3 rounded-lg border text-xs font-label uppercase tracking-widest font-bold transition-all ${
+                        className={`px-4 py-3 rounded-lg border text-xs font-label uppercase tracking-widest font-bold transition-all relative overflow-hidden ${
                             activeTab === app.agent_id 
                             ? 'bg-[#ffb3b5] text-[#131313] border-[#ffb3b5]' 
                             : 'bg-[#161616] text-[#444] border-[#232323] hover:border-[#444]'
                         }`}
                     >
+                        {famigliaStatus[app.agent_id]?.connected && (
+                            <div className="absolute top-1 right-1">
+                                <span className="material-symbols-outlined text-[10px] text-[#1cbb8c]">check_circle</span>
+                            </div>
+                        )}
                         {app.name}
                     </button>
                 ))}
@@ -525,52 +524,42 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                             </div>
 
                             <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl flex items-start gap-4">
-                                <span className="material-symbols-outlined text-[#ffb3b5] text-lg mt-1">info</span>
+                                <span className="material-symbols-outlined text-[#ffb3b5] text-lg mt-1">hub</span>
                                 <div className="space-y-1">
                                     <p className="text-[11px] font-body text-[#a38b88] leading-relaxed">
-                                        Once installed, go to your <a href={`https://api.slack.com/apps/${app.app_id}`} target="_blank" className="text-white underline">Slack App Settings</a> to retrieve the tokens below. This is the final link in the chain.
+                                        The credentials for <strong>{app.name}</strong> have been secured in the Famiglia's vault. Click below to manifesting their spirit in your workspace.
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-label font-bold text-[#888] uppercase tracking-widest">Bot User OAuth Token</label>
-                                    <div className="relative">
-                                        <input
-                                            type="password"
-                                            placeholder="xoxb-..."
-                                            value={tokens[app.agent_id]?.bot || ''}
-                                            onChange={e => setTokens({ ...tokens, [app.agent_id]: { ...tokens[app.agent_id], bot: e.target.value } })}
-                                            className="w-full bg-[#0d0d0d] border border-[#232323] rounded px-4 py-3 text-sm font-mono text-[#ffb3b5] focus:outline-none focus:border-[#ffb3b5]/40"
-                                        />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-label font-black text-[#2a2a2a] uppercase">Identity</span>
+                            <div className="flex flex-col items-center justify-center py-8 space-y-6">
+                                {famigliaStatus[app.agent_id]?.connected ? (
+                                    <motion.div 
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        className="flex flex-col items-center gap-3"
+                                    >
+                                        <div className="w-16 h-16 rounded-full bg-[#1cbb8c]/10 border border-[#1cbb8c]/20 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-[#1cbb8c] text-3xl">check_circle</span>
+                                        </div>
+                                        <span className="text-[10px] font-label font-black text-[#1cbb8c] uppercase tracking-[0.2em]">Connection Secured</span>
+                                    </motion.div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-4 w-full">
+                                        <div className="w-16 h-16 rounded-full bg-[#ffb3b5]/5 border border-[#ffb3b5]/10 flex items-center justify-center animate-pulse">
+                                            <span className="material-symbols-outlined text-[#ffb3b5] text-3xl">hourglass_empty</span>
+                                        </div>
+                                        <a
+                                            href={app.install_url}
+                                            target="_blank"
+                                            className="w-full max-w-sm py-4 bg-[#ffb3b5] text-[#131313] text-center text-xs font-black font-label uppercase tracking-widest rounded hover:bg-white transition-all shadow-[0_0_30px_rgba(255,179,181,0.2)]"
+                                        >
+                                            Authorize {app.name}
+                                        </a>
+                                        <span className="text-[9px] font-label font-bold text-[#444] uppercase tracking-widest">Waiting for Handshake</span>
                                     </div>
-                                    <p className="text-[10px] font-body text-[#444]">Found in <strong>OAuth & Permissions</strong> after installation.</p>
-                                </div>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-label font-bold text-[#888] uppercase tracking-widest">App-Level Socket Token</label>
-                                    <div className="relative">
-                                        <input
-                                            type="password"
-                                            placeholder="xapp-..."
-                                            value={tokens[app.agent_id]?.app || ''}
-                                            onChange={e => setTokens({ ...tokens, [app.agent_id]: { ...tokens[app.agent_id], app: e.target.value } })}
-                                            className="w-full bg-[#0d0d0d] border border-[#232323] rounded px-4 py-3 text-sm font-mono text-[#ffb3b5] focus:outline-none focus:border-[#ffb3b5]/40"
-                                        />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-label font-black text-[#2a2a2a] uppercase">Stream</span>
-                                    </div>
-                                    <p className="text-[10px] font-body text-[#444]">Found in <strong>Basic Information</strong> → App-Level Tokens.</p>
-                                </div>
+                                )}
                             </div>
-
-                            <button
-                                onClick={() => handleFinalize(app.agent_id)}
-                                disabled={loading || !tokens[app.agent_id]?.bot || !tokens[app.agent_id]?.app}
-                                className="w-full py-4 border border-[#ffb3b5]/20 text-[#ffb3b5] text-xs font-bold font-label uppercase tracking-widest rounded hover:bg-[#ffb3b5]/5 transition-all"
-                            >
-                                Secure {app.name}'s Connection
-                            </button>
                         </motion.div>
                     )
                 ))}
@@ -642,7 +631,7 @@ function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: Slack
       <div className="px-6 py-5">
         <AnimatePresence mode="wait">
           {showWizard ? (
-             <SlackFamigliaWizard onFinish={() => { fetchFamigliaStatus(); setShowWizard(false); }} bossName={bossName} />
+             <SlackFamigliaWizard bossName={bossName} />
           ) : (
             <div className="space-y-4">
                 <div className="grid grid-cols-4 md:grid-cols-8 gap-2">

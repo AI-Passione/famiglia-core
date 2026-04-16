@@ -1,4 +1,5 @@
 import os
+import json
 import requests as http_requests
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
@@ -135,10 +136,25 @@ async def get_slack_famiglia_status():
         socket_check = user_connections_store.get_connection_status(f"slack_socket:{agent_id}")
         bot_connected = bool(bot_check.get("connected"))
         socket_connected = bool(socket_check.get("connected"))
+        # Check transport mode
+        creds_conn = user_connections_store.get_connection(f"slack_creds:{agent_id}")
+        transport = "socket" # Default
+        public_url = None
+        if creds_conn:
+            try:
+                cdata = json.loads(creds_conn["access_token"])
+                transport = cdata.get("transport", "socket")
+                public_url = cdata.get("public_url")
+            except (json.JSONDecodeError, KeyError, TypeError):
+                # Keep defaults when stored credentials are missing or malformed.
+                pass
+
         status[agent_id] = {
-            "connected": bot_connected and socket_connected,
+            "connected": bot_connected,
             "bot_connected": bot_connected,
             "socket_connected": socket_connected,
+            "transport": transport,
+            "public_url": public_url,
             "name": agent_id.capitalize()
         }
     return status

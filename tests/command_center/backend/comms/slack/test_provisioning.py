@@ -93,7 +93,8 @@ settings:
             app_info = result[0]
             assert app_info["agent_id"] == "test_agent"
             assert app_info["app_id"] == "A12345678"
-            assert "https://api.slack.com/apps/A12345678" in app_info["install_url"]
+            assert "oauth/v2/authorize" in app_info["install_url"]
+            assert "client_id=client_123" in app_info["install_url"]
 
             # Ensures DB upsert was called
             mock_store.upsert_connection.assert_called()

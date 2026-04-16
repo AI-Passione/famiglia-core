@@ -81,19 +81,22 @@ class SlackProvisioningService:
                 try:
                     manifest_data = yaml.safe_load(f)
                     
-                    # TOTAL AUTOMATION INJECTION (Choice B)
-                    # If we have a public URL, we flip the app to HTTP mode
+                    # 2. Set Redirect URI for OAuth bridge
+                    # We always want this so we can use direct installation links
+                    # NOTE: Backend is on 8000, 3000 is Grafana.
+                    base_url = (public_url or "http://localhost:8000").rstrip("/")
+                    callback_url = f"{base_url}/api/v1/connections/auth/slack/agent/callback"
+                    
+                    if 'oauth_config' not in manifest_data:
+                         manifest_data['oauth_config'] = {}
+                    manifest_data['oauth_config']['redirect_urls'] = [callback_url]
+
+                    # Choice B: HTTP Mode Configuration (if public URL is present)
                     if public_url:
                         # 1. Disable Socket Mode
                         if 'settings' not in manifest_data:
                             manifest_data['settings'] = {}
                         manifest_data['settings']['socket_mode_enabled'] = False
-                        
-                        # 2. Set Redirect URI for OAuth bridge
-                        callback_url = f"{public_url}/api/v1/connections/auth/slack/agent/callback"
-                        if 'oauth_config' not in manifest_data:
-                             manifest_data['oauth_config'] = {}
-                        manifest_data['oauth_config']['redirect_urls'] = [callback_url]
                         
                         # 3. Set Request URLs for Events & Interactivity
                         events_url = f"{public_url}/api/v1/comms/slack/events/{agent_id}"
@@ -154,7 +157,9 @@ class SlackProvisioningService:
                         access_token=json.dumps({
                             "client_id": creds.get("client_id"),
                             "client_secret": creds.get("client_secret"),
-                            "app_id": app_id
+                            "app_id": app_id,
+                            "transport": "http" if public_url else "socket",
+                            "public_url": public_url
                         }),
                         username=manifest_data["display_information"]["name"]
                     )
@@ -162,9 +167,11 @@ class SlackProvisioningService:
                     # Construct Install URL
                     client_id = creds.get("client_id")
                     scopes = "app_mentions:read,chat:write,channels:history,groups:history,im:history,reactions:write,channels:read,groups:read,im:read"
-                    if public_url and client_id:
-                        # HTTP Mode: use full OAuth flow with redirect back to our server
-                        redirect_uri = f"{public_url}/api/v1/connections/auth/slack/agent/callback"
+                    
+                    if client_id:
+                        # Direct OAuth logic: more straightforward than sending to API dashboard
+                        base_url = (public_url or "http://localhost:8000").rstrip("/")
+                        redirect_uri = f"{base_url}/api/v1/connections/auth/slack/agent/callback"
                         install_url = (
                             f"https://slack.com/oauth/v2/authorize"
                             f"?client_id={client_id}"
@@ -173,9 +180,7 @@ class SlackProvisioningService:
                             f"&redirect_uri={redirect_uri}"
                         )
                     else:
-                        # Socket Mode: the OAuth URL adds redirect_uri= (empty) which Slack rejects.
-                        # The direct app settings page has a built-in "Install to Workspace"
-                        # button that bypasses this entirely — this is the correct Dev flow.
+                        # Fallback (shouldn't happen with Manifest API)
                         install_url = f"https://api.slack.com/apps/{app_id}"
 
                     app_info = {

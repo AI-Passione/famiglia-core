@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS user_connections (
   scopes       TEXT,
   connected_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at   TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE (user_id, service)
+  UNIQUE (service)
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_connections_lookup

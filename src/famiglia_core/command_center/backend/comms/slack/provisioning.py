@@ -314,7 +314,6 @@ class SlackProvisioningService:
                     resp = client.conversations_create(name=desired_name)
                     if resp["ok"]:
                         channel_id = resp["channel"]["id"]
-                        slack_channel = resp["channel"]
                         user_connections_store.upsert_connection(
                             service=f"slack_channel:{code}",
                             access_token=channel_id,

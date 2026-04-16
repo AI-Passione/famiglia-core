@@ -38,7 +38,7 @@ class SlackProvisioningService:
                         https_tunnel = next((t for t in tunnels if t.get("proto") == "https"), None)
                         if https_tunnel:
                             return https_tunnel.get("public_url").rstrip("/")
-                except:
+                except Exception:
                     continue
         except Exception as e:
             print(f"⚠️  Could not detect public URL: {e}")

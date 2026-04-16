@@ -126,6 +126,18 @@ async def finalize_slack_agent(payload: Dict[str, str]):
         return {"success": True}
     raise HTTPException(status_code=500, detail="Failed to save tokens.")
 
+@router.post("/slack/sync-workspace")
+async def sync_slack_workspace():
+    """Trigger the creation and configuration of Slack channels and bot memberships."""
+    from famiglia_core.command_center.backend.comms.slack.provisioning import slack_provisioning
+    try:
+        results = slack_provisioning.sync_workspace_structure()
+        if not results.get("success", True):
+             raise HTTPException(status_code=400, detail=results.get("error", "Sync failed"))
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/slack/status")
 async def get_slack_famiglia_status():
     """Report connection status for all 8 agent bots."""

@@ -651,9 +651,11 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
   );
 }
 
-function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: SlackStatus; config: SlackConfig, onFinish: () => void; bossName: string }) {
+function SlackCard({ initialStatus, onFinish, bossName, onToast }: { initialStatus: SlackStatus; config: SlackConfig, onFinish: () => void; bossName: string, onToast: (m: string, type: 'success' | 'error') => void }) {
   const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
   const [showWizard, setShowWizard] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<any>(null);
 
   useEffect(() => {
     fetchFamigliaStatus();
@@ -674,6 +676,25 @@ function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: Slack
       onFinish();
     } catch (e: any) {
       console.error(e.message || 'Unknown error');
+    }
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/connections/slack/sync-workspace`, { method: 'POST' });
+      const data = await res.json();
+      setSyncResult(data);
+      if (res.ok) {
+        onToast('Workspace synchronization complete.', 'success');
+      } else {
+        onToast(data.detail || 'Sync failed.', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -722,16 +743,31 @@ function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: Slack
                         {allConnected ? 'All agents have been provisioned and secured. The famiglia is ready for directives.' : 'The family needs assembly. Enter the secure portal to provision your agent bots.'}
                    </p>
                    {allConnected ? (
-                       <button onClick={handleDisconnect} className="text-[10px] font-label font-bold uppercase text-[#4A0404] hover:text-[#ff1a1a]">Purge credentials</button>
-                   ) : (
-                       <button
-                         onClick={() => setShowWizard(true)}
-                         className="flex items-center gap-3 px-6 py-3 text-xs font-bold font-label uppercase tracking-widest bg-[#122e23] text-[#42d392] border border-[#42d392]/20 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
-                       >
-                         <span className="material-symbols-outlined text-base font-black">bolt</span>
-                         Assemble the Family
-                       </button>
-                   )}
+                      <div className="flex items-center gap-4">
+                        <button
+                          disabled={syncing}
+                          onClick={handleSync}
+                          className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-label uppercase tracking-widest bg-emerald-950/40 text-emerald-400 border border-emerald-900/60 rounded hover:bg-emerald-950/30 transition-all disabled:opacity-50"
+                        >
+                          {syncing ? (
+                            <span className="material-symbols-outlined animate-spin text-base">sync</span>
+                          ) : (
+                            <span className="material-symbols-outlined text-base">account_tree</span>
+                          )}
+                          {syncing ? 'Syncing...' : 'Sync Workspace'}
+                        </button>
+                        <button onClick={handleDisconnect} className="text-[10px] font-label font-bold uppercase text-[#4A0404] hover:text-[#ff1a1a]">Purge credentials</button>
+                      </div>
+                    ) : (
+                        <button
+                          disabled={syncing}
+                          onClick={() => setShowWizard(true)}
+                          className="flex items-center gap-3 px-6 py-3 text-xs font-bold font-label uppercase tracking-widest bg-[#122e23] text-[#42d392] border border-[#42d392]/20 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        >
+                          <span className="material-symbols-outlined text-base font-black">bolt</span>
+                          Assemble the Family
+                        </button>
+                    )}
                 </div>
             </div>
           )}
@@ -1199,6 +1235,7 @@ export function Connections({ successParam, errorParam, onClearParams, bossName 
             config={config.slack || { configured: false, redirect_uri: '' }}
             onFinish={() => fetchData()}
             bossName={bossName}
+            onToast={(m, type) => setToast({ m, type })}
           />
         </section>
 

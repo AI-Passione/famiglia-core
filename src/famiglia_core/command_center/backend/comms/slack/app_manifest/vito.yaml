@@ -15,6 +15,12 @@ oauth_config:
       - groups:history
       - im:history
       - reactions:write
+      - channels:read
+      - groups:read
+      - im:read
+      - channels:manage
+      - groups:write
+      - users:read
   pkce_enabled: false
 settings:
   event_subscriptions:

@@ -17,6 +17,29 @@ class SlackProvisioningService:
             os.path.dirname(os.path.abspath(__file__)), 
             "app_manifest"
         )
+        self.registry = {
+            "ALFREDO_COMMAND": {"name": "alfredo-command", "agents": ["alfredo"]},
+            "CODE_REVIEWS": {"name": "code-reviews", "agents": ["riccardo"]},
+            "DATA_ENGINEERING": {"name": "data-engineering", "agents": ["riccardo"]},
+            "DEV_OPS": {"name": "devops", "agents": ["riccardo"]},
+            "PROJECTS": {"name": "projects", "agents": ["bella"]},
+            "WEEKLY_UPDATES": {"name": "weekly-updates", "agents": ["bella"]},
+            "RESEARCH_INSIGHTS": {"name": "research-insights", "agents": ["rossini"]},
+            "PRODUCT_STRATEGY": {"name": "product-strategy", "agents": ["rossini"]},
+            "MARKETING": {"name": "marketing", "agents": ["rossini", "giuseppina"]},
+            "FINANCE": {"name": "finance", "agents": ["vito"]},
+            "INVESTMENTS": {"name": "investments", "agents": ["vito"]},
+            "OPERATIONS": {"name": "operations", "agents": ["tommy"]},
+            "LOGISTICS": {"name": "logistics", "agents": ["tommy"]},
+            "ANALYTICS": {"name": "analytics", "agents": ["kowalski"]},
+            "DATA_SCIENCE": {"name": "data-science", "agents": ["kowalski"]},
+            "TOWNHALL": {"name": "townhall", "agents": ["giuseppina"]},
+            "SOCIAL": {"name": "social", "agents": ["giuseppina"]},
+            "CORE_FAMIGLIA": {
+                "name": "the-famiglia",
+                "agents": ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski", "giuseppina"]
+            }
+        }
 
     def _get_public_url(self) -> Optional[str]:
         """Fetch the public URL from environment or ngrok container's API."""
@@ -166,7 +189,10 @@ class SlackProvisioningService:
 
                     # Construct Install URL
                     client_id = creds.get("client_id")
-                    scopes = "app_mentions:read,chat:write,channels:history,groups:history,im:history,reactions:write,channels:read,groups:read,im:read"
+                    scopes = (
+                        "app_mentions:read,chat:write,channels:history,groups:history,im:history,"
+                        "reactions:write,channels:read,groups:read,im:read,channels:manage,groups:write,users:read"
+                    )
                     
                     if client_id:
                         # Direct OAuth logic: more straightforward than sending to API dashboard
@@ -219,5 +245,124 @@ class SlackProvisioningService:
         )
         
         return bot_success and app_success
+
+    def sync_workspace_structure(self) -> Dict[str, Any]:
+        """
+        Synchronizes Slack channels and memberships based on the registry.
+        Uses Alfredo's token as the primary administrative client.
+        """
+        # 1. Get Alfredo's token
+        alfredo_token = user_connections_store.get_connection("slack_bot:alfredo")
+        if not alfredo_token:
+            return {"success": False, "error": "Alfredo is not connected. Please install Alfredo first."}
+        
+        client = WebClient(token=alfredo_token["access_token"])
+        results = {"channels": [], "errors": []}
+        
+        # 2. Map Agent IDs to Bot User IDs (needed for invitations)
+        agent_user_ids = {}
+        for agent_id in ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski", "giuseppina"]:
+            bot_token_conn = user_connections_store.get_connection(f"slack_bot:{agent_id}")
+            if bot_token_conn:
+                try:
+                    bot_client = WebClient(token=bot_token_conn["access_token"])
+                    auth = bot_client.auth_test()
+                    agent_user_ids[agent_id] = auth["user_id"]
+                except Exception as e:
+                    print(f"⚠️ Could not resolve bot user ID for {agent_id}: {e}")
+
+        # 3. Process the Registry
+        for code, config in self.registry.items():
+            desired_name = config["name"]
+            required_agents = config["agents"]
+            
+            # Check if we have a stored channel_id for this code
+            stored_ref = user_connections_store.get_connection(f"slack_channel:{code}")
+            channel_id = stored_ref["access_token"] if stored_ref else None
+            
+            # Verify channel in Slack
+            slack_channel = None
+            if channel_id:
+                try:
+                    info = client.conversations_info(channel=channel_id)
+                    if info["ok"]:
+                        slack_channel = info["channel"]
+                except SlackApiError:
+                    channel_id = None # Reset if not found
+            
+            # If not found by ID, try to find by name
+            if not channel_id:
+                try:
+                    cursor = None
+                    while True:
+                        resp = client.conversations_list(types="public_channel,private_channel", cursor=cursor, limit=1000)
+                        for chan in resp["channels"]:
+                            if chan["name"] == desired_name:
+                                channel_id = chan["id"]
+                                slack_channel = chan
+                                break
+                        if channel_id or not resp.get("response_metadata", {}).get("next_cursor"):
+                            break
+                        cursor = resp["response_metadata"]["next_cursor"]
+                except SlackApiError as e:
+                    results["errors"].append(f"List channels failed: {e.response['error']}")
+
+            # Create if still missing
+            if not channel_id:
+                try:
+                    print(f"🔨 Creating channel: #{desired_name} ({code})")
+                    resp = client.conversations_create(name=desired_name)
+                    if resp["ok"]:
+                        channel_id = resp["channel"]["id"]
+                        slack_channel = resp["channel"]
+                        user_connections_store.upsert_connection(
+                            service=f"slack_channel:{code}",
+                            access_token=channel_id,
+                            username=desired_name
+                        )
+                except SlackApiError as e:
+                    results["errors"].append(f"Failed to create #{desired_name}: {e.response['error']}")
+                    continue
+            else:
+                # Rename if needed
+                if slack_channel and slack_channel["name"] != desired_name:
+                    try:
+                        print(f"🔄 Renaming channel {slack_channel['name']} -> #{desired_name} ({code})")
+                        client.conversations_rename(channel=channel_id, name=desired_name)
+                        user_connections_store.upsert_connection(
+                            service=f"slack_channel:{code}",
+                            access_token=channel_id,
+                            username=desired_name
+                        )
+                    except SlackApiError as e:
+                        results["errors"].append(f"Failed to rename #{desired_name}: {e.response['error']}")
+
+            # Join bots
+            if channel_id:
+                actual_agents_joined = []
+                for agent_id in required_agents:
+                    bot_user_id = agent_user_ids.get(agent_id)
+                    if not bot_user_id:
+                        continue
+                        
+                    try:
+                        # Alfredo invites the bot
+                        client.conversations_invite(channel=channel_id, users=bot_user_id)
+                        actual_agents_joined.append(agent_id)
+                    except SlackApiError as e:
+                        # Often "already_in_channel" or "cant_invite_self", which we can ignore
+                        if e.response["error"] not in ["already_in_channel", "cant_invite_self"]:
+                            results["errors"].append(f"Invite {agent_id} to #{desired_name} failed: {e.response['error']}")
+                        else:
+                            actual_agents_joined.append(agent_id)
+                
+                results["channels"].append({
+                    "code": code,
+                    "name": desired_name,
+                    "id": channel_id,
+                    "agents": actual_agents_joined
+                })
+
+        return results
 
 slack_provisioning = SlackProvisioningService()

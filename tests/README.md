@@ -24,7 +24,6 @@ uv run pytest tests/agents/test_agents.py
 | :--- | :--- | :--- |
 | **`tests/agents/`** | **Agents** | Multi-agent orchestration, trait resolution, LLM mocking. |
 | **`tests/command_center/backend/slack/`** | **Slack** | Slack client communication, file downloads, and resolution. |
-| **`tests/command_center/backend/mattermost/`** | **Mattermost** | Mattermost client and provisioning logic. |
 | **`tests/command_center/backend/api/`** | **Backend API** | FastAPI endpoints, services, and response validation. |
 | **`tests/command_center/frontend/`** | **Web Dashboard** | React component validation, Vitest configuration, and UI logic. |
 | **`tests/db/`** | **Infrastructure** | Database seeding and schema initialization. |

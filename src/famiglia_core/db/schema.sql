@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS langgraph_writes (
 );
 
 -- 9. User Central Identity (The Don's Ecosystem)
--- Centralized user profile to sync across Slack, Mattermost, and the Web Dashboard.
+-- Centralized user profile to sync across Slack and the Web Dashboard.
 CREATE TABLE IF NOT EXISTS users (
   id           SERIAL PRIMARY KEY,
   full_name    VARCHAR(255) NOT NULL,
@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS user_platform_identities (
   id                SERIAL PRIMARY KEY,
   user_id           INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  platform          VARCHAR(50) NOT NULL, -- 'slack', 'mattermost', 'github', 'notion'
+  platform          VARCHAR(50) NOT NULL, -- 'slack', 'github', 'notion'
   platform_user_id  VARCHAR(255) NOT NULL,
   metadata          JSONB,
   created_at        TIMESTAMPTZ DEFAULT NOW(),

@@ -19,7 +19,7 @@ BATCH_INTERVALS = {
 }
 
 class CommsQueue:
-    """Base class for platform-specific (Slack/Mattermost) Redis-backed priority queues."""
+    """Base class for platform-specific (e.g. Slack) Redis-backed priority queues."""
     
     def __init__(self, platform: str, redis_url: Optional[str] = None):
         self.platform = platform.lower()

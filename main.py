@@ -8,15 +8,13 @@ from typing import Optional, List
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
-from mattermostdriver.websocket import Websocket
 
 # Load configuration from .env as early as possible so that any module
-# importing slack_queue or mattermost_queue (which constructs their singletons immediately)
+# importing slack_queue (which constructs their singletons immediately)
 # can read the proper tokens.
 load_dotenv()
 
 from famiglia_core.command_center.backend.comms.slack.client import slack_queue
-from famiglia_core.command_center.backend.comms.mattermost.client import mattermost_queue
 from famiglia_core.db.agents.context_store import context_store
 from famiglia_core.db.init_db import init_db
 from famiglia_core.agents.alfredo import Alfredo
@@ -40,10 +38,6 @@ from famiglia_core.command_center.backend.comms.slack.handlers import (
     incoming_event_worker as slack_worker, 
     process_incoming_event, 
     should_handle_message
-)
-from famiglia_core.command_center.backend.comms.mattermost.handlers import (
-    incoming_event_worker as mm_worker, 
-    process_mattermost_event
 )
 
 # load_dotenv() moved to the top of the file for early availability.
@@ -361,86 +355,6 @@ def main():
             print(f"[Alfredo] Announcing in command-center...")
             slack_queue.enqueue_message("alfredo", "#command-center", startup_msg)
 
-    # 5.5 Start Mattermost Handlers
-    print("Starting Mattermost message queue worker...")
-    mattermost_queue.start_worker()
-    
-    mm_started = 0
-    # Log missing tokens for Mattermost agents to match Slack style
-    all_agent_keys = ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski"]
-    for a_key in all_agent_keys:
-        if not os.getenv(f"MATTERMOST_BOT_TOKEN_{a_key.upper()}"):
-            print(f"[Mattermost] [{a_key}] no bot token found; listener will not start.")
-
-    for agent_id, driver in mattermost_queue.drivers.items():
-        bot_id = mattermost_queue.user_ids.get(agent_id)
-        if not bot_id: continue
-        
-        print(f"Initializing Mattermost listener for {agent_id} ({bot_id})...")
-        mm_started += 1
-        
-        def setup_mattermost_events(current_agent_id, current_bot_id, current_driver):
-            async def handle_event(event_json):
-                try:
-                    event = json.loads(event_json)
-                    event_type = event.get('event')
-                    print(f"[{current_agent_id}] [Mattermost] Received WebSocket event: {event_type}")
-                    
-                    if event_type == 'posted':
-                        print(f"[{current_agent_id}] [Mattermost] Detected 'posted' event, enqueuing...")
-                        payload = {
-                            "event": event,
-                            "agent_id": current_agent_id,
-                            "bot_id": current_bot_id,
-                            "app_env": app_env
-                        }
-                        mattermost_queue.enqueue_incoming(payload)
-                except Exception as e:
-                    print(f"[{current_agent_id}] [Mattermost] Error handling event: {e}")
-
-            def run_ws():
-                # Create a fresh event loop for this thread — Python 3.10+ has no
-                # implicit event loop in non-main threads, so we must do this explicitly
-                # instead of relying on init_websocket's internal asyncio.get_event_loop().
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    print(f"[{current_agent_id}] [Mattermost] Starting WebSocket loop...")
-                    ws = Websocket(current_driver.options, current_driver.client.token)
-                    loop.run_until_complete(ws.connect(handle_event))
-                except Exception as e:
-                    print(f"[{current_agent_id}] [Mattermost ❌] WebSocket loop terminated: {e}")
-                finally:
-                    loop.close()
-
-            # Start WebSocket listener in a dedicated thread
-            threading.Thread(
-                target=run_ws,
-                name=f"mm-ws-{current_agent_id}",
-                daemon=True
-            ).start()
-
-        setup_mattermost_events(agent_id, bot_id, driver)
-
-    if mm_started:
-        print(f"Successfully started {mm_started} Mattermost bot listeners.")
-        
-        # Alfredo announces startup in Mattermost as well
-        if "alfredo" in mattermost_queue.drivers:
-            mm_startup_msg = f"{env_label} Alfredo is here on Mattermost, Don Jimmy. The famiglia is ready."
-            # Note: We use 'command-center' as the default channel name for Mattermost
-            print(f"[Alfredo] [Mattermost] Announcing in command-center...")
-            mattermost_queue.enqueue_message("alfredo", "command-center", mm_startup_msg)
-
-    # Start the background worker for Mattermost events
-    mattermost_worker_thread = threading.Thread(
-        target=mm_worker,
-        args=(agents, ack_emoji.replace(":", ""), app_env),
-        daemon=True
-    )
-    mattermost_worker_thread.start()
-    print("[MattermostWorker] Started.")
-
     # Step 7. Activate agent orchestration (final step before main loop)
     if scheduled_enabled:
         print("\n[Startup] All local brain-models verified. Activating agent orchestration...")
@@ -448,8 +362,8 @@ def main():
         print("🚀 Famiglia Core is FULLY OPERATIONAL. Listening for directives...")
 
 
-    if not handlers and not mattermost_queue.drivers:
-        print("No Slack or Mattermost tokens found. Running in PROPOSAL mode.")
+    if not handlers:
+        print("No Slack tokens found. Running in PROPOSAL mode.")
         slack_queue.enqueue_message("alfredo", "system", "Alfredo initialized (Mock mode).")
 
     # 6. Keep the main thread alive
@@ -463,7 +377,6 @@ def main():
         # Note: Worker stop is inside finally or handled separately
         task_orchestrator.stop()
         slack_queue.stop_worker()
-        mattermost_queue.stop_worker()
 
 if __name__ == "__main__":
     main()

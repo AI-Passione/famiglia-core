@@ -27,6 +27,7 @@ import { API_BASE } from './config';
 
 const SETTINGS_STORAGE_KEY = 'command_center_settings';
 const DEFAULT_SETTINGS: AppSettings = {
+  fullName: 'Don Jimmy',
   honorific: 'Don',
   famigliaName: 'The Family',
   notificationsEnabled: true,
@@ -41,6 +42,7 @@ function getInitialSettings(): AppSettings {
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
     return {
+      fullName: parsed.fullName || DEFAULT_SETTINGS.fullName,
       honorific: parsed.honorific || DEFAULT_SETTINGS.honorific,
       famigliaName: parsed.famigliaName || DEFAULT_SETTINGS.famigliaName,
       notificationsEnabled:
@@ -96,6 +98,7 @@ function App() {
         if (response.ok) {
           const backendSettings = (await response.json()) as AppSettings;
           setSettings({
+            fullName: backendSettings.fullName || DEFAULT_SETTINGS.fullName,
             honorific: backendSettings.honorific || DEFAULT_SETTINGS.honorific,
             famigliaName: backendSettings.famigliaName || DEFAULT_SETTINGS.famigliaName,
             notificationsEnabled:
@@ -226,6 +229,7 @@ function App() {
                       tasks={tasks}
                       recurringTasks={recurringTasks}
                       honorific={settings.honorific}
+                      fullName={settings.fullName}
                     />
                   } 
                 />
@@ -235,7 +239,7 @@ function App() {
                     <SituationRoom 
                       actions={actions}
                       tasks={tasks}
-                      honorific={settings?.famigliaName || "Don Jimmy"}
+                      honorific={settings.honorific}
                       onExecuteDirective={() => setDirectiveModalOpen(true)}
                     />
                   } 

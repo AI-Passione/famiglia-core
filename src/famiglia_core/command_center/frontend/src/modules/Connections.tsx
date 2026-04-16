@@ -67,7 +67,7 @@ function openCenterPopup(url: string, title: string, w: number, h: number) {
 
 // ─── Setup Guides ─────────────────────────────────────────────────────────
 
-function GitHubSetupGuide() {
+function GitHubSetupGuide({ bossName }: { bossName: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -81,7 +81,7 @@ function GitHubSetupGuide() {
         <div>
           <h3 className="text-2xl font-headline font-bold text-white tracking-tighter">Connection Config Pending</h3>
           <p className="text-sm font-body text-[#6b6b6b] mt-1 leading-relaxed">
-            Don Jimmy, your GitHub credentials haven't been detected in the vault yet. 
+            {bossName}, your GitHub credentials haven't been detected in the vault yet. 
             Once you've added your <strong>Client ID</strong> and <strong>Secret</strong> to the <code>.env</code>, 
             restart the backend to activate the secure sync.
           </p>
@@ -113,54 +113,9 @@ function GitHubSetupGuide() {
   );
 }
 
-function SlackSetupGuide() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-8 bg-[#0d0d0d] border border-[#ffb3b5]/10 rounded-xl space-y-6"
-    >
-      <div className="flex items-center gap-6">
-        <div className="p-4 bg-[#041a4a]/30 rounded-xl border border-[#444]/50 shadow-[0_0_20px_rgba(4,26,74,0.2)]">
-          <span className="material-symbols-outlined text-[#ffb3b5] text-4xl">settings_input_component</span>
-        </div>
-        <div>
-          <h3 className="text-2xl font-headline font-bold text-white tracking-tighter">Slack Vault Integration Pending</h3>
-          <p className="text-sm font-body text-[#6b6b6b] mt-1 leading-relaxed">
-            Don Jimmy, your Slack OAuth credentials haven't been secured in the environment yet. 
-            Add your <strong>App Client ID</strong> and <strong>Secret</strong> to the <code>.env</code> file, 
-            then signal the backend to activate the secure channel.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 bg-[#161616] border border-[#232323] rounded-lg space-y-2">
-            <span className="text-[10px] font-label font-bold text-[#a38b88] uppercase tracking-widest">Step 1</span>
-            <p className="text-[11px] font-body text-[#555] leading-relaxed">
-                Add <code>SLACK_OAUTH_CLIENT_ID</code> and <code>SLACK_OAUTH_CLIENT_SECRET</code> to your <code>.env</code>.
-            </p>
-        </div>
-        <div className="p-4 bg-[#161616] border border-[#232323] rounded-lg space-y-2 text-center flex flex-col justify-center">
-            <span className="material-symbols-outlined text-[#3a3a3a] text-3xl">restart_alt</span>
-            <p className="text-[10px] font-label font-bold text-[#3a3a3a] uppercase tracking-widest mt-2">Restart Backend</p>
-        </div>
-        <div className="p-4 bg-[#161616] border border-[#232323] rounded-lg space-y-2 text-right">
-            <span className="text-[10px] font-label font-bold text-[#a38b88] uppercase tracking-widest">Done?</span>
-            <button
-                onClick={() => window.location.reload()}
-                className="block w-full py-2 bg-[#ffb3b5]/10 text-[#ffb3b5] border border-[#ffb3b5]/20 rounded text-[10px] font-bold font-label uppercase tracking-widest hover:bg-[#ffb3b5]/20 transition-all"
-            >
-                Refresh UI
-            </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
 
 // ─── Integration Cards ──────────────────────────────────────────────────
-function NotionSetupGuide() {
+function NotionSetupGuide({ bossName }: { bossName: string }) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -174,7 +129,7 @@ function NotionSetupGuide() {
           <div>
             <h3 className="text-2xl font-headline font-bold text-white tracking-tighter">Notion Handshake Missing</h3>
             <p className="text-sm font-body text-[#6b6b6b] mt-1 leading-relaxed">
-              Don Jimmy, the Notion integration must be activated in your <code>.env</code> vault first. 
+              {bossName}, the Notion integration must be activated in your <code>.env</code> vault first. 
               Configure your <strong>Public Integration</strong> in the Notion Developer Portal to proceed.
             </p>
           </div>
@@ -207,7 +162,7 @@ function NotionSetupGuide() {
 
 // ─── GitHub Card (Connected/Prompt) ───────────────────────────────────────
 
-function GitHubCard({ initialStatus, config, onFinish }: { initialStatus: GitHubStatus; config: ServiceConfig; onFinish: (s: string) => void }) {
+function GitHubCard({ initialStatus, config, onFinish, bossName }: { initialStatus: GitHubStatus; config: ServiceConfig; onFinish: (s: string) => void; bossName: string }) {
   const [status, setStatus] = useState<GitHubStatus>(initialStatus);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -308,7 +263,7 @@ function GitHubCard({ initialStatus, config, onFinish }: { initialStatus: GitHub
                   </button>
                 </div>
               ) : (
-                <GitHubSetupGuide />
+                <GitHubSetupGuide bossName={bossName} />
               )}
             </motion.div>
           )}
@@ -327,52 +282,328 @@ function GitHubCard({ initialStatus, config, onFinish }: { initialStatus: GitHub
   );
 }
 
-function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackStatus; config: SlackConfig; onFinish: (s: string) => void }) {
-  const [status, setStatus] = useState<SlackStatus>(initialStatus);
+function SlackFamigliaWizard({ bossName }: { bossName: string }) {
+  const [step, setStep] = useState(1);
+  const [appLevelToken, setAppLevelToken] = useState('');
+  const [provisionedApps, setProvisionedApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('');
 
-  useEffect(() => {
-    setStatus(initialStatus);
-  }, [initialStatus]);
-
-  const handleConnect = async () => {
+  const handleProvision = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/auth/slack`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || 'Slack OAuth setup is incomplete.');
+      const res = await fetch(`${API_BASE}/connections/slack/provision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ app_level_token: appLevelToken }),
+      });
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = { detail: 'The backend returned an unexpected response. Please check the logs.' };
       }
-      const { authorization_url } = await res.json();
-      const popup = openCenterPopup(authorization_url, 'Slack Integration', 600, 700);
-      const interval = setInterval(() => {
-        if (!popup || popup.closed) {
-          clearInterval(interval);
-          setLoading(false);
-          onFinish('check');
-        }
-      }, 1000);
+      if (!res.ok) throw new Error(data.detail || 'Provisioning failed');
+      
+      setProvisionedApps(data.apps);
+      setStep(2);
+      if (data.apps.length > 0) setActiveTab(data.apps[0].agent_id);
     } catch (e: any) {
-      setError(e.message || 'Check your .env configuration.');
-      setLoading(false);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${API_BASE}/connections/slack`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to disconnect.');
-      setStatus({ connected: false });
-    } catch (e: any) {
-      setError(e.message || 'Unknown error');
+      setError(e.message);
     } finally {
       setLoading(false);
     }
   };
+
+  const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
+
+  // Polling for automated connection status
+  useEffect(() => {
+    if (step === 2) {
+      const interval = setInterval(fetchFamigliaStatus, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [step]);
+
+  const fetchFamigliaStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/connections/slack/status`);
+      if (res.ok) setFamigliaStatus(await res.json());
+    } catch (e) {}
+  };
+
+  return (
+    <div className="space-y-6">
+      {step === 1 && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.98 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          className="p-10 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl space-y-8 shadow-[0_30px_60px_rgba(0,0,0,0.4)] relative overflow-hidden"
+        >
+          {/* Decorative Gradient Glow */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#ffb3b5]/10 rounded-full blur-[100px] pointer-events-none" />
+          
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="p-5 bg-gradient-to-br from-[#4A0404] to-[#131313] rounded-2xl border border-white/20 shadow-[0_0_30px_rgba(74,4,4,0.3)]">
+              <span className="material-symbols-outlined text-[#ffb3b5] text-4xl">bolt</span>
+            </div>
+            <div>
+              <h3 className="text-3xl font-headline font-black text-white tracking-tighter uppercase italic">
+                Assemble the Family
+              </h3>
+              <p className="text-sm font-body text-[#a38b88] mt-2 leading-relaxed opacity-80">
+                {bossName}, let's manifest the multi-bot network in your workspace.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-6 relative z-10">
+            {/* Consigliere's Note (ELI5) */}
+            <div className="p-6 bg-[#4A0404]/5 border border-[#4A0404]/20 rounded-2xl space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[#ffb3b5] text-lg">psychology</span>
+                <h4 className="text-[10px] font-label font-bold uppercase text-[#ffb3b5] tracking-[0.2em]">Consigliere's Note</h4>
+              </div>
+              <p className="text-xs font-body text-[#b6abaa] leading-relaxed">
+                Think of the <strong>Configuration Token</strong> as the "Master Key" to your workspace. By providing this token, you allow the Famiglia's backend to programmatically manifest and configure all 8 specialized agents instantly, no manual app creation required.
+              </p>
+            </div>
+
+            <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+                <div className="flex items-center gap-3 text-[#ffb3b5] hover:text-white transition-colors cursor-pointer" onClick={() => window.open('https://slack.com/create', '_blank')}>
+                    <span className="material-symbols-outlined text-sm">door_open</span>
+                    <p className="text-[10px] font-bold font-label uppercase tracking-widest">Need a new HQ? Create a Workspace first</p>
+                </div>
+            </div>
+
+            <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffb3b5] text-[#131313] text-[10px] font-black font-label">1</span>
+                    <p className="text-xs font-bold font-label uppercase text-white tracking-widest">Generate Configuration Token</p>
+                </div>
+                <p className="text-xs font-body text-[#a38b88] leading-relaxed">
+                  Navigate to <a href="https://api.slack.com/apps" target="_blank" className="text-[#ffb3b5] underline hover:text-white transition-colors">api.slack.com/apps</a>. Scroll completely to the bottom to the <strong>"Your App Configuration Tokens"</strong> section and click <strong>Generate Token</strong> for your workspace.
+                </p>
+                <div className="p-4 bg-[#4A0404]/10 border border-[#4A0404]/20 rounded-xl space-y-2">
+                   <p className="text-[10px] font-label font-bold text-[#ffb3b5] uppercase tracking-wider">Why this token?</p>
+                   <p className="text-[10px] font-body text-[#b6abaa] leading-relaxed">
+                     This token uses Slack's Manifest API to build all 8 of your agents in one click. It is short-lived for security, but once the agents are created, they will persist.
+                   </p>
+                </div>
+                <p className="text-xs font-body text-[#a38b88] leading-relaxed mt-2">
+                  Paste the token (it usually starts with <code className="text-white">xoxe.xoxp-</code> or <code className="text-white">xoxe.xoxb-</code>) below.
+                </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-5 relative z-10">
+            <div className="space-y-2">
+                <label className="text-[10px] font-label font-bold text-[#ffb3b5]/60 uppercase tracking-[0.3em] ml-1">Bootstrap Token</label>
+                <input
+                  type="password"
+                  placeholder="xapp-1-A123..."
+                  value={appLevelToken}
+                  onChange={e => setAppLevelToken(e.target.value)}
+                  className="w-full bg-[#0d0d0d]/80 border border-white/5 rounded-xl px-6 py-4 text-sm font-mono text-white placeholder-[#333] focus:outline-none focus:ring-2 focus:ring-[#ffb3b5]/30 focus:border-[#ffb3b5]/40 transition-all shadow-inner"
+                />
+            </div>
+            <button
+               onClick={handleProvision}
+               disabled={loading || !appLevelToken}
+               className="group relative w-full py-5 bg-gradient-to-r from-[#ffb3b5] to-[#f472b6] text-[#131313] font-black font-label uppercase tracking-[0.2em] rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(255,179,181,0.2)] hover:shadow-[0_15px_40px_rgba(255,179,181,0.4)] transition-all disabled:opacity-30 active:scale-[0.98]"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-3">
+                {loading ? (
+                    <span className="material-symbols-outlined animate-spin">sync</span>
+                ) : (
+                    <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">bolt</span>
+                )}
+                Initialize Global Network
+              </span>
+              <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          </div>
+          
+        </motion.div>
+      )}
+
+      {step === 2 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+                <h4 className="text-xl font-headline font-bold text-white tracking-tight">Agent Authorization Portal</h4>
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-950/20 border border-emerald-900/30 rounded-full">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"/>
+                    <span className="text-[10px] font-label font-bold uppercase text-emerald-400 tracking-widest">Manifests Deployed</span>
+                </div>
+            </div>
+
+            <div className="p-8 bg-[#4A0404]/10 border border-[#4A0404]/20 rounded-2xl space-y-4 relative overflow-hidden">
+                <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#ffb3b5]/5 rounded-full blur-3xl" />
+                <div className="flex items-center justify-between relative z-10">
+                  <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[#ffb3b5] text-2xl">handshake</span>
+                      <h4 className="text-[12px] font-label font-bold uppercase text-[#ffb3b5] tracking-[0.3em] font-black italic">The Manifestation</h4>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full">
+                    <span className="text-[10px] font-label font-bold text-white uppercase tracking-widest">
+                       {provisionedApps.length} Agents Initiated
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-4 relative z-10">
+                   <div className="flex items-center justify-between text-[11px] font-label font-black text-[#a38b88] uppercase tracking-widest px-1">
+                      <span>Global Synchronizing</span>
+                      <span className="text-[#ffb3b5]">Ready for Securing</span>
+                   </div>
+                   <div className="h-2 w-full bg-[#0d0d0d] rounded-full overflow-hidden border border-white/5 shadow-inner p-[1px]">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(Object.values(famigliaStatus).filter((s:any) => s.connected).length / provisionedApps.length) * 100}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className="h-full rounded-full bg-gradient-to-r from-[#6366f1] via-[#a855f7] to-[#ffb3b5] relative"
+                      >
+                         <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                      </motion.div>
+                   </div>
+                   <p className="text-[11px] font-body text-[#555] italic text-center">
+                     {bossName}, the network has been mapped. Secure each spirit below to finalize the integration.
+                   </p>
+                </div>
+              </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                {provisionedApps.map(app => (
+                    <button
+                        key={app.agent_id}
+                        onClick={() => setActiveTab(app.agent_id)}
+                        className={`px-4 py-3 rounded-lg border text-xs font-label uppercase tracking-widest font-bold transition-all relative overflow-hidden ${
+                            activeTab === app.agent_id 
+                            ? 'bg-[#ffb3b5] text-[#131313] border-[#ffb3b5]' 
+                            : 'bg-[#161616] text-[#444] border-[#232323] hover:border-[#444]'
+                        }`}
+                    >
+                        {famigliaStatus[app.agent_id]?.connected && (
+                            <div className="absolute top-1 right-1">
+                                <span className="material-symbols-outlined text-[10px] text-[#1cbb8c]">check_circle</span>
+                            </div>
+                        )}
+                        {app.name}
+                    </button>
+                ))}
+            </div>
+
+            <AnimatePresence mode="wait">
+                {provisionedApps.map(app => (
+                    activeTab === app.agent_id && (
+                        <motion.div
+                            key={app.agent_id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 10 }}
+                            className="bg-[#161616] border border-[#232323] rounded-xl p-8 space-y-6 shadow-2xl"
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="space-y-1">
+                                    <h5 className="text-2xl font-headline font-black text-white">{app.name} Configuration</h5>
+                                    <p className="text-xs font-body text-[#555]">App ID: <code className="text-[#a38b88]">{app.app_id}</code></p>
+                                </div>
+                                <div className="flex flex-col items-end gap-2">
+                                    <a
+                                        href={app.install_url}
+                                        target="_blank"
+                                        className="flex items-center gap-3 px-6 py-3 bg-white text-black text-xs font-black font-label uppercase tracking-widest rounded hover:bg-[#ffb3b5] transition-all shadow-[0_4px_20px_rgba(255,179,181,0.1)]"
+                                    >
+                                        <span className="material-symbols-outlined text-base">install_desktop</span>
+                                        Install App
+                                    </a>
+                                    <span className="text-[9px] font-label font-bold text-[#444] uppercase tracking-tighter">Step 1: Manifest the Agent</span>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl flex items-start gap-4">
+                                <span className="material-symbols-outlined text-[#ffb3b5] text-lg mt-1">hub</span>
+                                <div className="space-y-1">
+                                    <p className="text-[11px] font-body text-[#a38b88] leading-relaxed">
+                                        The credentials for <strong>{app.name}</strong> have been secured in the Famiglia's vault. Click below to manifesting their spirit in your workspace.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center py-8 space-y-6">
+                                {famigliaStatus[app.agent_id]?.connected ? (
+                                    <motion.div 
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        className="flex flex-col items-center gap-3"
+                                    >
+                                        <div className="w-16 h-16 rounded-full bg-[#1cbb8c]/10 border border-[#1cbb8c]/20 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-[#1cbb8c] text-3xl">check_circle</span>
+                                        </div>
+                                        <span className="text-[10px] font-label font-black text-[#1cbb8c] uppercase tracking-[0.2em]">Connection Secured</span>
+                                    </motion.div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-4 w-full">
+                                        <div className="w-16 h-16 rounded-full bg-[#ffb3b5]/5 border border-[#ffb3b5]/10 flex items-center justify-center animate-pulse">
+                                            <span className="material-symbols-outlined text-[#ffb3b5] text-3xl">hourglass_empty</span>
+                                        </div>
+                                        <a
+                                            href={app.install_url}
+                                            target="_blank"
+                                            className="w-full max-w-sm py-4 bg-[#ffb3b5] text-[#131313] text-center text-xs font-black font-label uppercase tracking-widest rounded hover:bg-white transition-all shadow-[0_0_30px_rgba(255,179,181,0.2)]"
+                                        >
+                                            Authorize {app.name}
+                                        </a>
+                                        <span className="text-[9px] font-label font-bold text-[#444] uppercase tracking-widest">Waiting for Handshake</span>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )
+                ))}
+            </AnimatePresence>
+        </motion.div>
+      )}
+
+      {error && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-[#4A0404]/30 border border-[#4A0404] rounded text-[#ff1a1a] text-xs font-body flex items-center gap-3">
+            <span className="material-symbols-outlined text-base">error</span>
+            {error}
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: SlackStatus; config: SlackConfig, onFinish: () => void; bossName: string }) {
+  const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
+  const [showWizard, setShowWizard] = useState(false);
+
+  useEffect(() => {
+    fetchFamigliaStatus();
+  }, [initialStatus]);
+
+  const fetchFamigliaStatus = async () => {
+    try {
+        const res = await fetch(`${API_BASE}/connections/slack/status`);
+        if (res.ok) setFamigliaStatus(await res.json());
+    } catch (e) {}
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/connections/slack`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to disconnect.');
+      fetchFamigliaStatus();
+      onFinish();
+    } catch (e: any) {
+      console.error(e.message || 'Unknown error');
+    }
+  };
+
+  const allConnected = Object.values(famigliaStatus).every(s => s.connected) && Object.keys(famigliaStatus).length > 0;
 
   return (
     <motion.div layout className="bg-[#161616] border border-[#232323] rounded-lg overflow-hidden group hover:border-[#ffb3b5]/20 transition-all">
@@ -384,71 +615,74 @@ function SlackCard({ initialStatus, config, onFinish }: { initialStatus: SlackSt
             </svg>
           </div>
           <div>
-            <p className="font-headline text-white text-base font-bold">Slack Workspace</p>
-            <p className="font-body text-[#6b6b6b] text-xs mt-0.5">Secure channel for identity-based team communications</p>
+            <p className="font-headline text-white text-base font-bold">Slack Famiglia</p>
+            <p className="font-body text-[#6b6b6b] text-xs mt-0.5">Multi-bot network for high-vibe executive assistance</p>
           </div>
         </div>
 
         <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-label font-bold uppercase tracking-widest ${
-          status.connected ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-400' : 'border-[#2a2a2a] bg-[#1c1b1b] text-[#555]'
+          allConnected ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-400' : 'border-[#2a2a2a] bg-[#1c1b1b] text-[#555]'
         }`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${status.connected ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-[#444]'}`} />
-          {status.connected ? 'Active Sync' : 'Offline'}
+          <span className={`h-1.5 w-1.5 rounded-full ${allConnected ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-[#444]'}`} />
+          {allConnected ? 'Full Family Online' : 'Awaiting Orders'}
         </div>
       </div>
 
       <div className="px-6 py-5">
         <AnimatePresence mode="wait">
-          {status.connected ? (
-            <motion.div key="connected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {status.avatar_url && <img src={status.avatar_url} className="w-10 h-10 rounded-lg border-2 border-[#2a2a2a] ring-1 ring-[#ffb3b5]/20" />}
-                <div>
-                  <p className="font-headline text-white font-bold text-sm">{status.username}</p>
-                  <p className="font-body text-[#555] text-xs mt-0.5">{formatDate(status.connected_at)}</p>
-                </div>
-              </div>
-              <button disabled={loading} onClick={handleDisconnect} className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-label uppercase tracking-widest text-[#a38b88] border border-[#2a2a2a] rounded hover:border-[#4A0404] hover:text-[#ffb3b5] hover:bg-[#4A0404]/10 transition-all disabled:opacity-20">
-                <span className="material-symbols-outlined text-base">leak_remove</span>
-                Sever Connection
-              </button>
-            </motion.div>
+          {showWizard ? (
+             <SlackFamigliaWizard bossName={bossName} />
           ) : (
-            <motion.div key="disconnected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
-              {config.configured ? (
-                <div className="flex items-center justify-between">
-                  <p className="font-body text-[#6b6b6b] text-sm leading-relaxed max-w-md">Encrypted handshake ready. Use the secure portal to authorize the Command Center in your workspace.</p>
-                  <button
-                    disabled={loading}
-                    onClick={handleConnect}
-                    className="flex items-center gap-3 px-6 py-3 text-xs font-bold font-label uppercase tracking-widest bg-[#122e23] text-[#42d392] border border-[#42d392]/20 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
-                  >
-                    <span className="material-symbols-outlined text-base font-black">sync_alt</span>
-                    Initiate Sync
-                  </button>
+            <div className="space-y-4">
+                <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                    {Object.entries(famigliaStatus).map(([id, s]) => (
+                        <div key={id} className={`flex flex-col items-center gap-2 p-2 rounded border transition-all ${s.connected ? 'border-emerald-950 bg-emerald-950/20' : 'border-[#232323] grayscale opacity-40'}`}>
+                            <div className="text-xl">{AGENT_EMOJIS[id as keyof typeof AGENT_EMOJIS]}</div>
+                            <span className="text-[8px] font-label font-bold uppercase tracking-tighter text-[#888]">{id}</span>
+                        </div>
+                    ))}
                 </div>
-              ) : (
-                <SlackSetupGuide />
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        <AnimatePresence>
-          {error && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 flex items-center gap-3 px-4 py-3 bg-[#4A0404]/20 border border-[#4A0404]/40 rounded text-[#ffb3b5] text-xs font-body">
-              <span className="material-symbols-outlined text-base">warning</span>
-              {error}
-            </motion.div>
+                <div className="flex items-center justify-between border-t border-[#232323] pt-4">
+                   <p className="font-body text-[#6b6b6b] text-sm leading-relaxed max-w-sm">
+                        {allConnected ? 'All agents have been provisioned and secured. The famiglia is ready for directives.' : 'The family needs assembly. Enter the secure portal to provision your agent bots.'}
+                   </p>
+                   {allConnected ? (
+                       <button onClick={handleDisconnect} className="text-[10px] font-label font-bold uppercase text-[#4A0404] hover:text-[#ff1a1a]">Purge credentials</button>
+                   ) : (
+                       <button
+                         onClick={() => setShowWizard(true)}
+                         className="flex items-center gap-3 px-6 py-3 text-xs font-bold font-label uppercase tracking-widest bg-[#122e23] text-[#42d392] border border-[#42d392]/20 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
+                       >
+                         <span className="material-symbols-outlined text-base font-black">bolt</span>
+                         Assemble the Family
+                       </button>
+                   )}
+                </div>
+            </div>
           )}
         </AnimatePresence>
       </div>
     </motion.div>
   );
 }
+
+const AGENT_EMOJIS = {
+    alfredo: "🎩",
+    vito: "🦅",
+    riccardo: "🔧",
+    rossini: "🔬",
+    tommy: "🔫",
+    bella: "💋",
+    kowalski: "📊",
+    giuseppina: "📢"
+};
+
+
+
 // ─── Notion Card (Connected/Prompt) ────────────────────────────────────────
 
-function NotionCard({ initialStatus, config, onFinish }: { initialStatus: NotionStatus; config: ServiceConfig; onFinish: (s: string) => void }) {
+function NotionCard({ initialStatus, config, onFinish, bossName }: { initialStatus: NotionStatus; config: ServiceConfig; onFinish: (s: string) => void; bossName: string }) {
     const [status, setStatus] = useState<NotionStatus>(initialStatus);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -549,7 +783,7 @@ function NotionCard({ initialStatus, config, onFinish }: { initialStatus: Notion
                     </button>
                   </div>
                 ) : (
-                  <NotionSetupGuide />
+                  <NotionSetupGuide bossName={bossName} />
                 )}
               </motion.div>
             )}
@@ -771,7 +1005,7 @@ function OllamaCard({ initialStatus, onFinish }: { initialStatus: OllamaStatus; 
 
 // ─── Main Connections View ────────────────────────────────────────────────
 
-export function Connections({ successParam, errorParam, onClearParams }: any) {
+export function Connections({ successParam, errorParam, onClearParams, bossName }: any) {
   const [config, setConfig] = useState<Record<string, ServiceConfig>>({});
   const [githubStatus, setGithubStatus] = useState<GitHubStatus>({ connected: false });
   const [slackStatus, setSlackStatus] = useState<SlackStatus>({ connected: false });
@@ -890,6 +1124,7 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
             initialStatus={slackStatus}
             config={config.slack || { configured: false, redirect_uri: '' }}
             onFinish={() => fetchData()}
+            bossName={bossName}
           />
         </section>
 
@@ -905,6 +1140,7 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
               initialStatus={notionStatus}
               config={config.notion || { configured: false, redirect_uri: '' }}
               onFinish={() => fetchData()}
+              bossName={bossName}
             />
             <div className="bg-[#161616] border border-[#232323] p-6 rounded-lg flex items-center justify-between opacity-30 grayscale pointer-events-none">
               <div className="flex items-center gap-4">
@@ -932,6 +1168,7 @@ export function Connections({ successParam, errorParam, onClearParams }: any) {
             initialStatus={githubStatus}
             config={config.github || { configured: false, redirect_uri: '' }}
             onFinish={() => fetchData()}
+            bossName={bossName}
           />
         </section>
 

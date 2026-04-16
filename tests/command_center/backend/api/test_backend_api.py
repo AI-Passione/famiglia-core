@@ -109,6 +109,7 @@ def test_get_recurring_tasks_endpoint(mock_store):
 @patch("famiglia_core.command_center.backend.api.routes.settings.user_service")
 def test_get_settings_endpoint(mock_user_service):
     mock_user_service.get_don_settings.return_value = {
+        "fullName": "Don Corleone",
         "honorific": "Capo",
         "famigliaName": "The Family",
         "notificationsEnabled": False,
@@ -119,6 +120,7 @@ def test_get_settings_endpoint(mock_user_service):
 
     response = client.get("/api/v1/settings")
     assert response.status_code == 200
+    assert response.json()["fullName"] == "Don Corleone"
     assert response.json()["honorific"] == "Capo"
     assert response.json()["notificationsEnabled"] is False
     assert response.json()["personalDirective"] == "Be efficient."
@@ -127,6 +129,7 @@ def test_get_settings_endpoint(mock_user_service):
 @patch("famiglia_core.command_center.backend.api.routes.settings.user_service")
 def test_update_settings_endpoint(mock_user_service):
     payload = {
+        "fullName": "Don Jimmy",
         "honorific": "Donna",
         "famigliaName": "The Family",
         "notificationsEnabled": True,

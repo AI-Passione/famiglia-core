@@ -1,6 +1,7 @@
 display_information:
   name: Dr. Rossini
-  description: "Product strategy, marketing intelligence, and academic research for the Passione Famiglia"
+  description: Principal Product Manager for the Passione Famiglia
+  background_color: "#303133"
 features:
   bot_user:
     display_name: Dr. Rossini
@@ -14,17 +15,15 @@ oauth_config:
       - groups:history
       - im:history
       - reactions:write
-      - apps.manifest:read
-      - apps.manifest:write
+  pkce_enabled: false
 settings:
   event_subscriptions:
     bot_events:
       - app_mention
-      - message.channels
-      - message.groups
       - message.im
   interactivity:
     is_enabled: true
   org_deploy_enabled: false
   socket_mode_enabled: true
   token_rotation_enabled: false
+  is_mcp_enabled: false

@@ -122,6 +122,7 @@ export interface MissionLogEntry {
 }
 
 export interface AppSettings {
+  fullName: string;
   honorific: string;
   famigliaName: string;
   notificationsEnabled: boolean;
@@ -149,6 +150,7 @@ export interface FamigliaAgent {
   latest_conversation_snippet: string;
   last_active: string | null;
   avatar_url: string | null;
+  is_slack_connected: boolean;
 }
 
 export interface EngineRoomPort {

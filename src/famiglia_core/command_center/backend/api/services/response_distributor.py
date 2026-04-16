@@ -41,13 +41,27 @@ class ResponseDistributor:
         slack_channel = metadata.get("slack_channel")
         if slack_channel:
             # Check if slack is actually configured
-            # We look at agent_tokens or clients in slack_queue
             if slack_queue.clients:
                 try:
+                    # Determine if we should use Block Kit
+                    blocks = metadata.get("slack_blocks")
+                    actions = metadata.get("slack_actions")
+                    
+                    if not blocks and text:
+                        # Auto-format text into blocks for the "Vibe"
+                        blocks = slack_queue.format_agent_message(
+                            agent=agent_id,
+                            text=text,
+                            actions=actions
+                        )
+                    
                     slack_queue.enqueue_message(
                         agent=agent_id,
                         channel=slack_channel,
                         message=text,
+                        blocks=blocks,
+                        file_path=metadata.get("file_path"),
+                        file_title=metadata.get("file_title"),
                         thread_ts=metadata.get("slack_thread_ts"),
                         priority=metadata.get("priority", 2)
                     )

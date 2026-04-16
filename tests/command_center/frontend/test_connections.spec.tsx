@@ -31,7 +31,7 @@ describe('Connections Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('GitHub Account')).toBeTruthy();
-      expect(screen.getByText('Slack Workspace')).toBeTruthy();
+      expect(screen.getByText('Slack Famiglia')).toBeTruthy();
       expect(screen.getByText('Notion Workspace')).toBeTruthy();
     });
   });

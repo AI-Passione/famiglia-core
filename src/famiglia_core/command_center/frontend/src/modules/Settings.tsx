@@ -92,23 +92,41 @@ export function Settings({
                   </div>
                   
                   <div className="space-y-6">
-                    <div className="space-y-3">
-                      <label htmlFor="famigliaName" className="font-label text-[10px] text-[#ffb3b5] uppercase tracking-[0.2em]">
-                        The Famiglia Name
-                      </label>
-                      <input
-                        id="famigliaName"
-                        value={settings.famigliaName}
-                        onChange={(event) =>
-                          onSettingsChange({ ...settings, famigliaName: event.target.value })
-                        }
-                        placeholder="e.g. La Passione Inc."
-                        className="w-full bg-[#171717]/90 border border-[#2e2e2e] rounded-lg px-4 py-3 text-sm font-body text-white placeholder:text-[#666] focus:outline-none focus:ring-2 focus:ring-[#ffb3b5]/40"
-                      />
-                      <p className="font-body text-[10px] text-[#7f7f7f] leading-relaxed">
-                        This name appears in the sidebar as the center of your operations.
-                      </p>
-                    </div>
+                      <div className="space-y-3">
+                        <label htmlFor="fullName" className="font-label text-[10px] text-[#ffb3b5] uppercase tracking-[0.2em]">
+                          Your Full Name
+                        </label>
+                        <input
+                          id="fullName"
+                          value={settings.fullName}
+                          onChange={(event) =>
+                            onSettingsChange({ ...settings, fullName: event.target.value })
+                          }
+                          placeholder="e.g. Jimmy Pang"
+                          className="w-full bg-[#171717]/90 border border-[#2e2e2e] rounded-lg px-4 py-3 text-sm font-body text-white placeholder:text-[#666] focus:outline-none focus:ring-2 focus:ring-[#ffb3b5]/40"
+                        />
+                        <p className="font-body text-[10px] text-[#7f7f7f] leading-relaxed">
+                          Your primary identity in the Command Center.
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        <label htmlFor="famigliaName" className="font-label text-[10px] text-[#ffb3b5] uppercase tracking-[0.2em]">
+                          The Famiglia Name
+                        </label>
+                        <input
+                          id="famigliaName"
+                          value={settings.famigliaName}
+                          onChange={(event) =>
+                            onSettingsChange({ ...settings, famigliaName: event.target.value })
+                          }
+                          placeholder="e.g. La Passione Inc."
+                          className="w-full bg-[#171717]/90 border border-[#2e2e2e] rounded-lg px-4 py-3 text-sm font-body text-white placeholder:text-[#666] focus:outline-none focus:ring-2 focus:ring-[#ffb3b5]/40"
+                        />
+                        <p className="font-body text-[10px] text-[#7f7f7f] leading-relaxed">
+                          This name appears in the sidebar as the center of your operations.
+                        </p>
+                      </div>
 
                     <div className="space-y-3">
                       <label htmlFor="honorific" className="font-label text-[10px] text-[#ffb3b5] uppercase tracking-[0.2em]">
@@ -251,6 +269,7 @@ export function Settings({
                 successParam={githubConnected}
                 errorParam={githubError}
                 onClearParams={onClearOAuthParams}
+                bossName={settings.fullName}
               />
             </motion.div>
           )}

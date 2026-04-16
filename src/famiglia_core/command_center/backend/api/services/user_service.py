@@ -82,11 +82,12 @@ class UserService:
         try:
             with context_store.db_session(commit=False) as cursor:
                 if cursor is None:
-                    return DEFAULT_SETTINGS.copy()
+                    return {**DEFAULT_SETTINGS.copy(), "fullName": "Don Jimmy"}
                 cursor.execute(
                     """
                     SELECT
-                    us.honorific,
+                        u.full_name,
+                        us.honorific,
                         us.famiglia_name,
                         us.notifications_enabled,
                         us.background_animations_enabled,
@@ -100,9 +101,15 @@ class UserService:
                 )
                 row = cursor.fetchone()
                 if not row:
-                    return DEFAULT_SETTINGS.copy()
+                    # Fallback to just the user if settings haven't been created yet
+                    don = self.get_don()
+                    return {
+                        **DEFAULT_SETTINGS.copy(),
+                        "fullName": don.get("full_name") if don else "Don Jimmy"
+                    }
 
                 return {
+                    "fullName": row.get("full_name") or "Don Jimmy",
                     "honorific": row.get("honorific") or DEFAULT_SETTINGS["honorific"],
                     "famigliaName": row.get("famiglia_name") or DEFAULT_SETTINGS["famigliaName"],
                     "notificationsEnabled": row.get("notifications_enabled")
@@ -116,11 +123,12 @@ class UserService:
                 }
         except Exception as e:
             print(f"[UserService] Error loading Don settings: {e}")
-            return DEFAULT_SETTINGS.copy()
+            return {**DEFAULT_SETTINGS.copy(), "fullName": "Don Jimmy"}
 
     def update_don_settings(self, settings: Dict[str, Any]) -> Dict[str, Any]:
         """Persist Command Center settings into the dedicated user_settings table."""
         normalized_settings = {
+            "fullName": settings.get("fullName", "Don Jimmy"),
             "honorific": settings.get("honorific", DEFAULT_SETTINGS["honorific"]),
             "famigliaName": settings.get("famigliaName", DEFAULT_SETTINGS["famigliaName"]),
             "notificationsEnabled": settings.get("notificationsEnabled", DEFAULT_SETTINGS["notificationsEnabled"]),
@@ -148,12 +156,18 @@ class UserService:
                         INSERT INTO users (full_name, username, role)
                         VALUES (%s, %s, 'don')
                         ON CONFLICT (username) DO UPDATE
-                        SET updated_at = NOW()
+                        SET full_name = EXCLUDED.full_name, updated_at = NOW()
                         RETURNING id;
                         """,
-                        ("Don Jimmy", "don_jimmy"),
+                        (normalized_settings["fullName"], "don_jimmy"),
                     )
                     don_row = cursor.fetchone()
+                else:
+                    # Update existing user profile name
+                    cursor.execute(
+                        "UPDATE users SET full_name = %s, updated_at = NOW() WHERE id = %s",
+                        (normalized_settings["fullName"], don_row["id"])
+                    )
 
                 if not don_row:
                     return normalized_settings

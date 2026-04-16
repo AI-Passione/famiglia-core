@@ -10,6 +10,7 @@ interface AgendaProps {
   tasks: Task[];
   recurringTasks: RecurringTask[];
   honorific: string;
+  fullName: string;
 }
 
 interface AgendaEntry {
@@ -678,6 +679,7 @@ export function Agenda({
   tasks,
   recurringTasks,
   honorific,
+  fullName,
 }: AgendaProps) {
   const [view, setView] = useState<AgendaView>('month');
   const [referenceDate, setReferenceDate] = useState(() => new Date());
@@ -715,7 +717,7 @@ export function Agenda({
             </p>
             <h2 className="mt-3 font-headline text-5xl tracking-tight text-[#f7f1f0]">The Agenda</h2>
             <p className="mt-3 max-w-2xl font-body text-base leading-7 text-[#b6abaa]">
-              Upcoming tasks, recurring agent routines, and the sharpest priorities for {honorific} Jimmy,
+              Upcoming tasks, recurring agent routines, and the sharpest priorities for {honorific} {fullName},
               organized in one local-first command view.
             </p>
           </div>

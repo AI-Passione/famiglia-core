@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { FamigliaAgent } from '../types';
 import { API_BASE, BACKEND_BASE } from '../config';
 import { AgentEditModal } from './AgentEditModal';
@@ -38,6 +39,7 @@ export function Famiglia() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingAgent, setEditingAgent] = useState<FamigliaAgent | null>(null);
+  const navigate = useNavigate();
 
   const loadRoster = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -91,12 +93,29 @@ export function Famiglia() {
             PostgreSQL-backed roster sourced from the `agents` table, enriched with linked skills, tools, workflows, and recent message history.
           </p>
         </div>
-        <div className="text-right">
-          <div className="font-label uppercase text-[11px] tracking-widest text-tertiary">
-            {activeCount} Active Agents
+        <div className="text-right flex items-end gap-6">
+          <div className="space-y-1">
+            <div className="font-label uppercase text-[11px] tracking-widest text-tertiary">
+              {activeCount} Active Agents
+            </div>
+            <div className="font-label uppercase text-[11px] tracking-widest text-outline">
+              {totalCount} Total Souls
+            </div>
           </div>
-          <div className="font-label uppercase text-[11px] tracking-widest text-outline mt-2">
-            {totalCount} Total Souls
+          
+          <div className="h-10 w-px bg-white/5 mx-2" />
+
+          <div className="space-y-1">
+            <div className="font-label uppercase text-[11px] tracking-widest text-[#ffb3b5]">
+              {agents.filter(a => a.is_slack_connected).length}/{totalCount} Connected
+            </div>
+            <button 
+              onClick={() => navigate('/settings?tab=integration')}
+              className="font-label uppercase text-[9px] tracking-[0.2em] text-outline hover:text-white transition-colors flex items-center gap-1 group"
+            >
+              Assemble Famiglia
+              <span className="material-symbols-outlined text-[14px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+            </button>
           </div>
         </div>
       </header>
@@ -155,14 +174,40 @@ export function Famiglia() {
                     </button>
                   </div>
                 </div>
-                <span
-                  className={`px-2 py-1 font-label text-[10px] uppercase tracking-widest border ${status === 'active'
-                      ? 'text-tertiary border-tertiary/40 bg-on-tertiary-fixed-variant/20'
-                      : 'text-outline border-outline/30'
+                <div className="flex flex-col items-end gap-2">
+                  <span
+                    className={`px-2 py-1 font-label text-[10px] uppercase tracking-widest border ${status === 'active'
+                        ? 'text-tertiary border-tertiary/40 bg-on-tertiary-fixed-variant/20'
+                        : 'text-outline border-outline/30'
+                      }`}
+                  >
+                    {status}
+                  </span>
+
+                  <div 
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 ${
+                      agent.is_slack_connected 
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                        : 'bg-white/5 border-white/10 text-outline grayscale opacity-60'
                     }`}
-                >
-                  {status}
-                </span>
+                    title={agent.is_slack_connected ? 'Live on Slack' : 'Slack Connection Pending'}
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.527 2.527 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.527 2.527 0 0 1 2.521 2.521 2.527 2.527 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.958 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.527 2.527 0 0 1-2.52 2.521h-2.522v-2.521zM17.688 8.834a2.527 2.527 0 0 1-2.521 2.521 2.527 2.527 0 0 1-2.521-2.521V2.522A2.528 2.528 0 0 1 15.167 0a2.528 2.528 0 0 1 2.521 2.522v6.312zM15.167 18.958a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.52 2.527 2.527 0 0 1-2.521-2.522v-2.52h2.521zM15.167 17.688a2.527 2.527 0 0 1-2.521-2.521 2.527 2.527 0 0 1 2.521-2.521h6.312a2.528 2.528 0 0 1 2.521 2.52 2.528 2.528 0 0 1-2.521 2.522h-6.312z" />
+                    </svg>
+                    <span className="font-label text-[9px] uppercase tracking-widest">
+                      {agent.is_slack_connected ? 'Connected' : 'Offline'}
+                    </span>
+                  </div>
+                  {!agent.is_slack_connected && (
+                    <button 
+                      onClick={() => navigate('/settings?tab=integration')}
+                      className="text-[9px] uppercase tracking-widest text-[#ffb3b5]/60 hover:text-[#ffb3b5] transition-colors border-b border-[#ffb3b5]/20 hover:border-[#ffb3b5] pb-0.5 ml-auto"
+                    >
+                      Provision
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

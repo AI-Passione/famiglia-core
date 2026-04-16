@@ -486,6 +486,17 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                 </div>
             </div>
 
+            <div className="p-8 bg-[#4A0404]/10 border border-[#4A0404]/20 rounded-2xl space-y-4 relative overflow-hidden">
+                <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#ffb3b5]/5 rounded-full blur-3xl" />
+                <div className="flex items-center gap-3 relative z-10">
+                    <span className="material-symbols-outlined text-[#ffb3b5] text-2xl">handshake</span>
+                    <h4 className="text-[12px] font-label font-bold uppercase text-[#ffb3b5] tracking-[0.3em]">The Final Handshake</h4>
+                </div>
+                <p className="text-sm font-body text-[#b6abaa] leading-relaxed relative z-10">
+                    {bossName}, the global network is initialized. Now, we must secure the unique credentials for each member of the Famiglia. Select an agent below, install their spirit into your workspace, and provide the secure tokens from your Slack dashboard.
+                </p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                 {provisionedApps.map(app => (
                     <button
@@ -517,14 +528,26 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                                     <h5 className="text-2xl font-headline font-black text-white">{app.name} Configuration</h5>
                                     <p className="text-xs font-body text-[#555]">App ID: <code className="text-[#a38b88]">{app.app_id}</code></p>
                                 </div>
-                                <a
-                                    href={app.install_url}
-                                    target="_blank"
-                                    className="flex items-center gap-3 px-6 py-3 bg-white text-black text-xs font-black font-label uppercase tracking-widest rounded hover:bg-[#ffb3b5] transition-all shadow-[0_4px_20px_rgba(255,179,181,0.1)]"
-                                >
-                                    <span className="material-symbols-outlined text-base">install_desktop</span>
-                                    Install App
-                                </a>
+                                <div className="flex flex-col items-end gap-2">
+                                    <a
+                                        href={app.install_url}
+                                        target="_blank"
+                                        className="flex items-center gap-3 px-6 py-3 bg-white text-black text-xs font-black font-label uppercase tracking-widest rounded hover:bg-[#ffb3b5] transition-all shadow-[0_4px_20px_rgba(255,179,181,0.1)]"
+                                    >
+                                        <span className="material-symbols-outlined text-base">install_desktop</span>
+                                        Install App
+                                    </a>
+                                    <span className="text-[9px] font-label font-bold text-[#444] uppercase tracking-tighter">Step 1: Manifest the Agent</span>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl flex items-start gap-4">
+                                <span className="material-symbols-outlined text-[#ffb3b5] text-lg mt-1">info</span>
+                                <div className="space-y-1">
+                                    <p className="text-[11px] font-body text-[#a38b88] leading-relaxed">
+                                        Once installed, go to your <a href={`https://api.slack.com/apps/${app.app_id}`} target="_blank" className="text-white underline">Slack App Settings</a> to retrieve the tokens below. This is the final link in the chain.
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

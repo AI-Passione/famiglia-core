@@ -145,7 +145,8 @@ async def get_slack_famiglia_status():
                 cdata = json.loads(creds_conn["access_token"])
                 transport = cdata.get("transport", "socket")
                 public_url = cdata.get("public_url")
-            except:
+            except (json.JSONDecodeError, KeyError, TypeError):
+                # Keep defaults when stored credentials are missing or malformed.
                 pass
 
         status[agent_id] = {

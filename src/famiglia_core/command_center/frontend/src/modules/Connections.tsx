@@ -399,7 +399,7 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
                    </p>
                 </div>
                 <p className="text-xs font-body text-[#a38b88] leading-relaxed mt-2">
-                  Paste the token (it usually starts with <code className="text-white">xoxp-</code> or <code className="text-white">xoxe-</code>) below.
+                  Paste the token (it usually starts with <code className="text-white">xoxe.xoxp-</code> or <code className="text-white">xoxe.xoxb-</code>) below.
                 </p>
             </div>
           </div>

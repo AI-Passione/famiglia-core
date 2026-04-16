@@ -55,8 +55,23 @@ class SlackProvisioningService:
                     continue
 
             print(f"📦 Provisioning {agent_id} in Slack...")
+            
+            # Diagnostic: Verify token identity (once per run)
+            if not getattr(self, '_auth_verified', False):
+                try:
+                    auth_res = client.auth_test()
+                    print(f"🕵️  Token Identity: Team='{auth_res.get('team')}' User='{auth_res.get('user')}' Identity='{auth_res.get('identity')}'")
+                    self._auth_verified = True
+                except Exception as auth_err:
+                    print(f"⚠️  auth.test failed: {auth_err}")
+
             try:
                 # Create the app
+                # Strip experimental/beta fields that might trigger 'not_allowed_token_type'
+                if 'settings' in manifest_data:
+                    manifest_data['settings'].pop('is_mcp_enabled', None)
+                
+                manifest_str = json.dumps(manifest_data)
                 response = client.apps_manifest_create(manifest=manifest_str)
                 
                 if response["ok"]:

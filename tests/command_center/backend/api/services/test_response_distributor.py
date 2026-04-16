@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import patch, ANY
 from famiglia_core.command_center.backend.api.services.response_distributor import response_distributor
 
 @patch("famiglia_core.command_center.backend.api.services.response_distributor.context_store")

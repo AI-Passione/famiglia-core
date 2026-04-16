@@ -282,7 +282,7 @@ function GitHubCard({ initialStatus, config, onFinish, bossName }: { initialStat
   );
 }
 
-function SlackFamigliaWizard({ bossName }: { bossName: string }) {
+function SlackFamigliaWizard({ bossName, onClose, onHardReset }: { bossName: string, onClose?: () => void, onHardReset?: () => void }) {
   const [step, setStep] = useState(1);
   const [appLevelToken, setAppLevelToken] = useState('');
   const [provisionedApps, setProvisionedApps] = useState<any[]>([]);
@@ -369,6 +369,25 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#ffb3b5]/10 rounded-full blur-[100px] pointer-events-none" />
           
           <div className="flex items-center gap-6 relative z-10">
+            {onClose && (
+              <button 
+                onClick={onClose}
+                className="absolute -top-4 -right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-[#555] hover:text-white transition-all"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            )}
+            
+            {onHardReset && (
+              <button 
+                onClick={onHardReset}
+                className="absolute -top-4 right-8 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-red-900/40 hover:text-red-500 transition-all"
+                title="Emergency Reset"
+              >
+                <span className="material-symbols-outlined text-sm">delete_forever</span>
+              </button>
+            )}
+
             <div className="p-5 bg-gradient-to-br from-[#4A0404] to-[#131313] rounded-2xl border border-white/20 shadow-[0_0_30px_rgba(74,4,4,0.3)]">
               <span className="material-symbols-outlined text-[#ffb3b5] text-4xl">bolt</span>
             </div>
@@ -733,7 +752,7 @@ function SlackCard({ initialStatus, onFinish, bossName, onToast }: { initialStat
       <div className="px-6 py-5">
         <AnimatePresence mode="wait">
           {showWizard ? (
-             <SlackFamigliaWizard bossName={bossName} />
+             <SlackFamigliaWizard bossName={bossName} onClose={() => setShowWizard(false)} onHardReset={handleHardPurge} />
           ) : (
             <div className="space-y-4">
                 <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
@@ -779,7 +798,7 @@ function SlackCard({ initialStatus, onFinish, bossName, onToast }: { initialStat
                               <button 
                                  disabled={loading}
                                  onClick={handleHardPurge} 
-                                 className="h-10 w-10 flex items-center justify-center text-[#4A0404] hover:text-[#ff1a1a] border border-transparent hover:border-[#4A0404]/20 rounded-lg transition-all disabled:opacity-30"
+                                 className="h-10 w-10 flex items-center justify-center text-red-900 hover:text-red-500 border border-transparent hover:border-red-900/20 rounded-lg transition-all disabled:opacity-30"
                                  title="Hard Reset: Drop all Slack integration"
                               >
                                  {loading ? (

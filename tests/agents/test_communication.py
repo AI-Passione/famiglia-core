@@ -12,12 +12,6 @@ from famiglia_core.command_center.backend.comms.slack.client import (
     PRIORITY_LOW
 )
 
-# Mattermost Imports
-from famiglia_core.command_center.backend.comms.mattermost.client import (
-    MattermostQueueClient,
-    PRIORITY_HIGH as MM_PRIORITY_HIGH
-)
-
 # --- Slack Tests ---
 
 def test_slack_queue_start_worker_no_args(mocker):

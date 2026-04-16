@@ -4,8 +4,8 @@ from famiglia_core.command_center.backend.api.services.response_distributor impo
 
 @patch("famiglia_core.command_center.backend.api.services.response_distributor.context_store")
 @patch("famiglia_core.command_center.backend.api.services.response_distributor.slack_queue")
-@patch("famiglia_core.command_center.backend.api.services.response_distributor.mattermost_queue")
-def test_response_distributor_dispatch_web_only(mock_mm_queue, mock_slack_queue, mock_store):
+@patch("famiglia_core.command_center.backend.api.services.response_distributor.slack_queue")
+def test_response_distributor_dispatch_web_only(mock_slack_queue, mock_store):
     # Setup
     agent_id = "alfredo"
     text = "Hello, I am ready."
@@ -26,7 +26,6 @@ def test_response_distributor_dispatch_web_only(mock_mm_queue, mock_slack_queue,
     
     # Verify no external dispatch if not configured in metadata
     mock_slack_queue.enqueue_message.assert_not_called()
-    mock_mm_queue.enqueue_message.assert_not_called()
 
 @patch("famiglia_core.command_center.backend.api.services.response_distributor.context_store")
 @patch("famiglia_core.command_center.backend.api.services.response_distributor.slack_queue")

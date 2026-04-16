@@ -112,15 +112,6 @@ class SlackQueueClient(CommsQueue):
         self.user_id = os.getenv("USER_SLACK_ID")
         self.user_name_cache: Dict[str, str] = {}
         
-        # Summary report
-        active = list(self.clients.keys())
-        all_agents = list(self.agent_tokens.keys())
-        print(f"\n[SlackQueue 🔌] Initialization Complete.")
-        print(f"[SlackQueue 🔌] Active Agents: {', '.join(active) if active else 'NONE (Mock Mode active)'}")
-        missing = [a for a in all_agents if a not in active]
-        if missing:
-            print(f"[SlackQueue 🔌] Mock Agents: {', '.join(missing)}")
-        print("")
         if self.user_id:
             configured_user_name = self._lookup_slack_user_name(self.user_id)
             if configured_user_name:

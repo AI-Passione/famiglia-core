@@ -554,15 +554,6 @@ class EngineRoomService:
                 detail=slack_status.get("username") or "Bot tokens or OAuth must be present.",
             ),
             self._tool_item(
-                slug="mattermost",
-                name="Mattermost",
-                category="Comms",
-                description="Local team chat channel for the famiglia runtime.",
-                configured=bool(os.getenv("MATTERMOST_URL")) or self._has_mattermost_tokens(),
-                connected=docker_by_service.get("mattermost", {}).get("reachable", False),
-                detail=os.getenv("MATTERMOST_URL", "http://localhost:8065"),
-            ),
-            self._tool_item(
                 slug="web_search",
                 name="Web Search",
                 category="Research",
@@ -665,16 +656,6 @@ class EngineRoomService:
                 "SLACK_BOT_TOKEN_SYSTEM",
                 "SLACK_BOT_TOKEN_ALFREDO",
                 "SLACK_BOT_TOKEN_ROSSINI",
-            ]
-        )
-
-    def _has_mattermost_tokens(self) -> bool:
-        return any(
-            os.getenv(key)
-            for key in [
-                "MATTERMOST_BOT_TOKEN_SYSTEM",
-                "MATTERMOST_BOT_TOKEN_ALFREDO",
-                "MATTERMOST_BOT_TOKEN_ROSSINI",
             ]
         )
 

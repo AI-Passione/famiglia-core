@@ -12,12 +12,6 @@ from famiglia_core.command_center.backend.comms.slack.client import (
     PRIORITY_LOW
 )
 
-# Mattermost Imports
-from famiglia_core.command_center.backend.comms.mattermost.client import (
-    MattermostQueueClient,
-    PRIORITY_HIGH as MM_PRIORITY_HIGH
-)
-
 # --- Slack Tests ---
 
 def test_slack_queue_start_worker_no_args(mocker):
@@ -150,50 +144,3 @@ def test_slack_resolve_sender_name(mocker):
 
     assert name == "Jimmy P"
     assert client.user_name_cache["U123456"] == "Jimmy P"
-
-# --- Mattermost Tests ---
-
-def test_mattermost_enqueue_message(mocker):
-    # Mock redis
-    mock_redis = mocker.MagicMock()
-    mocker.patch("redis.from_url", return_value=mock_redis)
-    
-    client = MattermostQueueClient()
-    
-    # Enqueue a message
-    client.enqueue_message("alfredo", "channel_id_123", "Hello Mattermost!", MM_PRIORITY_HIGH)
-    
-    # Verify redis rpush
-    assert mock_redis.rpush.call_count == 1
-    call_args = mock_redis.rpush.call_args[0]
-    assert call_args[0] == f"mattermost:queue:{MM_PRIORITY_HIGH}"
-    payload = json.loads(call_args[1])
-    assert payload["agent"] == "alfredo"
-    assert payload["message"] == "Hello Mattermost!"
-
-def test_mattermost_post_message_mock(mocker):
-    # Mock redis and Driver
-    mock_redis = mocker.MagicMock()
-    mock_driver = mocker.MagicMock()
-    
-    mocker.patch("redis.from_url", return_value=mock_redis)
-    mocker.patch("famiglia_core.command_center.backend.comms.mattermost.client.Driver", return_value=mock_driver)
-    
-    # Setup mock driver behavior
-    mock_driver.login.return_value = None
-    mock_driver.users.get_user.return_value = {"id": "user_id_123", "username": "alfredo_bot"}
-    mock_driver.posts.create_post.return_value = {"id": "post_id_456"}
-    
-    # Initialize client with alfredo token
-    with patch.dict("os.environ", {"MATTERMOST_BOT_TOKEN_ALFREDO": "fake-token"}):
-        client = MattermostQueueClient()
-        
-        # Post a message
-        post_id = client.post_message("alfredo", "channel_id_789", "Test message")
-        
-        assert post_id == "post_id_456"
-        mock_driver.posts.create_post.assert_called_once_with({
-            'channel_id': 'channel_id_789',
-            'message': 'Test message',
-            'root_id': None
-        })

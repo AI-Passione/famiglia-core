@@ -3,7 +3,6 @@ from typing import Optional, Dict, Any
 
 from famiglia_core.db.agents.context_store import context_store
 from famiglia_core.command_center.backend.comms.slack.client import slack_queue
-from famiglia_core.command_center.backend.comms.mattermost.client import mattermost_queue
 
 logger = logging.getLogger(__name__)
 
@@ -67,20 +66,5 @@ class ResponseDistributor:
                     )
                 except Exception as e:
                     logger.error(f"[Distributor] Failed to enqueue to Slack: {e}")
-
-        # 3. SECONDARY: Mattermost (Mirror)
-        mm_channel = metadata.get("mattermost_channel")
-        if mm_channel:
-            if mattermost_queue.drivers:
-                try:
-                    mattermost_queue.enqueue_message(
-                        agent=agent_id,
-                        channel=mm_channel,
-                        message=text,
-                        priority=metadata.get("priority", 2),
-                        root_id=metadata.get("mattermost_root_id")
-                    )
-                except Exception as e:
-                    logger.error(f"[Distributor] Failed to enqueue to Mattermost: {e}")
 
 response_distributor = ResponseDistributor()

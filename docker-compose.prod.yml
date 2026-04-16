@@ -42,12 +42,6 @@ services:
       - NOTION_API_KEY_ROSSINI=${NOTION_API_KEY_ROSSINI}
       - NOTION_API_KEY_KOWALSKI=${NOTION_API_KEY_KOWALSKI}
       - AGENT_CONTEXT_ENABLED=${AGENT_CONTEXT_ENABLED:-true}
-      - MATTERMOST_URL=${MATTERMOST_URL:-http://mattermost:8065}
-      - MATTERMOST_BOT_TOKEN_ALFREDO=${MATTERMOST_BOT_TOKEN_ALFREDO}
-      - MATTERMOST_BOT_TOKEN_RICCARDO=${MATTERMOST_BOT_TOKEN_RICCARDO}
-      - MATTERMOST_BOT_TOKEN_ROSSINI=${MATTERMOST_BOT_TOKEN_ROSSINI}
-      - MATTERMOST_BOT_TOKEN_KOWALSKI=${MATTERMOST_BOT_TOKEN_KOWALSKI}
-      - MATTERMOST_BOT_TOKEN_SYSTEM=${MATTERMOST_BOT_TOKEN_SYSTEM}
     ports:
       - "8000:8000"
     healthcheck:
@@ -62,8 +56,6 @@ services:
         condition: service_started
       ollama:
         condition: service_healthy
-      mattermost:
-        condition: service_started
 
 
   frontend:
@@ -105,7 +97,7 @@ services:
       - POSTGRES_USER=${DB_USER:-passione_admin}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-passione_password}
       - POSTGRES_DB=${DB_NAME:-passione_db}
-      - POSTGRES_MULTIPLE_DATABASES=langfuse,mattermost
+      - POSTGRES_MULTIPLE_DATABASES=langfuse
     ports:
       - "5432:5432"
     volumes:
@@ -275,33 +267,6 @@ services:
         reservations:
           memory: 512M
 
-  mattermost:
-    build:
-      context: .
-      dockerfile: Dockerfile.mattermost
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8065:8065"
-    environment:
-      - MM_SERVICESETTINGS_SITEURL=${MATTERMOST_URL:-http://localhost:8065}
-      - MM_SERVICESETTINGS_ENABLELOCALMODE=true
-      - MM_SQLSETTINGS_DRIVERNAME=postgres
-      - MM_SQLSETTINGS_DATASOURCE=postgres://${DB_USER:-passione_admin}:${DB_PASSWORD:-passione_password}@postgres:5432/mattermost?sslmode=disable&connect_timeout=10
-    volumes:
-      - mattermost_data:/mattermost/data
-      - mattermost_logs:/mattermost/logs
-      - mattermost_config:/mattermost/config
-      - mattermost_plugins:/mattermost/plugins
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
-
 volumes:
   redis_data:
   postgres_data:
@@ -310,7 +275,4 @@ volumes:
   promtail_positions:
   grafana_data:
   prometheus_data:
-  mattermost_data:
-  mattermost_logs:
-  mattermost_config:
-  mattermost_plugins:
+  langfuse_db_data:

@@ -17,11 +17,21 @@ class SlackProvisioningService:
             "app_manifest"
         )
 
-    def provision_famiglia(self, app_level_token: str) -> List[Dict[str, Any]]:
+    def provision_famiglia(self, app_level_token: str = None) -> List[Dict[str, Any]]:
         """
-        Creates all agent apps in the user's workspace using the provided token.
+        Creates all agent apps in the user's workspace using the provided token (or from DB).
         Returns a list of created apps with their credentials and install URLs.
         """
+        # Fallback to DB if token not provided
+        if not app_level_token:
+            conn = user_connections_store.get_connection("slack_bootstrap")
+            if conn:
+                app_level_token = conn["access_token"]
+        
+        if not app_level_token:
+            print("❌ No App-Level Token available for provisioning.")
+            return []
+
         client = WebClient(token=app_level_token)
         manifest_files = glob.glob(os.path.join(self.manifest_dir, "*.yaml"))
         
@@ -43,6 +53,7 @@ class SlackProvisioningService:
                     print(f"Error parsing manifest: {filename}")
                     continue
 
+            print(f"📦 Provisioning {agent_id} in Slack...")
             try:
                 # Create the app
                 response = client.apps_manifest_create(manifest=manifest_str)
@@ -66,10 +77,17 @@ class SlackProvisioningService:
                         "client_id": creds["client_id"],
                         "install_url": f"https://api.slack.com/apps/{app_id}/install-on-team"
                     })
+                    print(f"✅ Created Slack App: {agent_id} (App ID: {app_id})")
                 else:
-                    print(f"Failed to create {agent_id}: {response['error']}")
+                    print(f"❌ Failed to create {agent_id}: {response['error']}")
+                    if "errors" in response:
+                        print(f"   Manifest Errors: {response['errors']}")
             except SlackApiError as e:
-                print(f"Slack API Error during provisioning: {e}")
+                print(f"❌ Slack API Error for {agent_id}: {e.response['error']}")
+                if "errors" in e.response:
+                    print(f"   Details: {e.response['errors']}")
+            except Exception as e:
+                print(f"❌ Unexpected error manifesting {agent_id}: {e}")
                 
         return results
 

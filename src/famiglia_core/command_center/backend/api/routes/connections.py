@@ -87,6 +87,13 @@ async def provision_slack_famiglia(payload: Dict[str, str]):
     if not token:
         raise HTTPException(status_code=422, detail="App-Level Token is required.")
     
+    # Persist the token first so we can use it for retries/background tasks
+    user_connections_store.upsert_connection(
+        service="slack_bootstrap",
+        access_token=token,
+        username="Bootstrapper"
+    )
+    
     from famiglia_core.command_center.backend.comms.slack.provisioning import slack_provisioning
     try:
         apps = slack_provisioning.provision_famiglia(token)

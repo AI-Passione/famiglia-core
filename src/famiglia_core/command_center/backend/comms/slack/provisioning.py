@@ -83,7 +83,8 @@ class SlackProvisioningService:
                     
                     # 2. Set Redirect URI for OAuth bridge
                     # We always want this so we can use direct installation links
-                    base_url = (public_url or "http://localhost:3000").rstrip("/")
+                    # NOTE: Backend is on 8000, 3000 is Grafana.
+                    base_url = (public_url or "http://localhost:8000").rstrip("/")
                     callback_url = f"{base_url}/api/v1/connections/auth/slack/agent/callback"
                     
                     if 'oauth_config' not in manifest_data:
@@ -167,7 +168,7 @@ class SlackProvisioningService:
                     
                     if client_id:
                         # Direct OAuth logic: more straightforward than sending to API dashboard
-                        base_url = (public_url or "http://localhost:3000").rstrip("/")
+                        base_url = (public_url or "http://localhost:8000").rstrip("/")
                         redirect_uri = f"{base_url}/api/v1/connections/auth/slack/agent/callback"
                         install_url = (
                             f"https://slack.com/oauth/v2/authorize"

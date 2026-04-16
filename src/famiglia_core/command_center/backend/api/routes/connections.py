@@ -86,15 +86,21 @@ async def test_ollama_connection():
 async def provision_slack_famiglia(payload: Dict[str, str]):
     """Trigger bulk creation of Slack apps using an App-Level Token."""
     token = payload.get("app_level_token")
-    if not token:
-        raise HTTPException(status_code=422, detail="App-Level Token is required.")
     
-    # Persist the token first so we can use it for retries/background tasks
-    user_connections_store.upsert_connection(
-        service="slack_bootstrap",
-        access_token=token,
-        username="Bootstrapper"
-    )
+    if not token:
+        # Fallback: check if we have a stored bootstrap token
+        conn = user_connections_store.get_connection("slack_bootstrap")
+        if conn and conn.get("access_token"):
+            token = conn["access_token"]
+        else:
+            raise HTTPException(status_code=422, detail="App-Level Token is required.")
+    else:
+        # Persist the new token so we can use it for retries/background tasks
+        user_connections_store.upsert_connection(
+            service="slack_bootstrap",
+            access_token=token,
+            username="Bootstrapper"
+        )
     
     from famiglia_core.command_center.backend.comms.slack.provisioning import slack_provisioning
     try:

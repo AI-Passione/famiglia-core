@@ -289,15 +289,37 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('');
+  const [storedTokenExists, setStoredTokenExists] = useState(false);
+  const [checkingToken, setCheckingToken] = useState(true);
 
-  const handleProvision = async () => {
+  // On mount: check if a bootstrap token is already stored in the DB
+  useEffect(() => {
+    const checkStoredToken = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/connections/slack_bootstrap`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.connected) {
+            setStoredTokenExists(true);
+          }
+        }
+      } catch (e) {}
+      finally {
+        setCheckingToken(false);
+      }
+    };
+    checkStoredToken();
+  }, []);
+
+  const handleProvision = async (tokenOverride?: string) => {
+    const tokenToUse = tokenOverride ?? appLevelToken;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`${API_BASE}/connections/slack/provision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app_level_token: appLevelToken }),
+        body: JSON.stringify({ app_level_token: tokenToUse || undefined }),
       });
       let data;
       try {
@@ -333,6 +355,7 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
       if (res.ok) setFamigliaStatus(await res.json());
     } catch (e) {}
   };
+
 
   return (
     <div className="space-y-6">
@@ -399,8 +422,38 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
           </div>
 
           <div className="flex flex-col gap-5 relative z-10">
+
+            {/* Stored Token Banner — shown when DB already has a token */}
+            {!checkingToken && storedTokenExists && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-5 bg-emerald-950/20 border border-emerald-900/40 rounded-xl flex items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-400 text-xl">database</span>
+                  <div>
+                    <p className="text-xs font-label font-bold text-emerald-400 uppercase tracking-widest">Vault Key Found</p>
+                    <p className="text-[11px] font-body text-[#a38b88] mt-0.5">
+                      A Configuration Token is already stored. Click to re-use it — no need to paste again.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleProvision()}
+                  disabled={loading}
+                  className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-emerald-950/40 border border-emerald-900/60 text-emerald-400 text-[10px] font-black font-label uppercase tracking-widest rounded-lg hover:bg-emerald-900/30 transition-all disabled:opacity-30"
+                >
+                  {loading ? <span className="material-symbols-outlined animate-spin text-base">sync</span> : <span className="material-symbols-outlined text-base">bolt</span>}
+                  Resume Session
+                </button>
+              </motion.div>
+            )}
+
             <div className="space-y-2">
-                <label className="text-[10px] font-label font-bold text-[#ffb3b5]/60 uppercase tracking-[0.3em] ml-1">Bootstrap Token</label>
+                <label className="text-[10px] font-label font-bold text-[#ffb3b5]/60 uppercase tracking-[0.3em] ml-1">
+                  {storedTokenExists ? 'Or Enter a New Token' : 'Bootstrap Token'}
+                </label>
                 <input
                   type="password"
                   placeholder="xapp-1-A123..."
@@ -410,8 +463,8 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
                 />
             </div>
             <button
-               onClick={handleProvision}
-               disabled={loading || !appLevelToken}
+               onClick={() => handleProvision()}
+               disabled={loading || (!appLevelToken && !storedTokenExists)}
                className="group relative w-full py-5 bg-gradient-to-r from-[#ffb3b5] to-[#f472b6] text-[#131313] font-black font-label uppercase tracking-[0.2em] rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(255,179,181,0.2)] hover:shadow-[0_15px_40px_rgba(255,179,181,0.4)] transition-all disabled:opacity-30 active:scale-[0.98]"
             >
               <span className="relative z-10 flex items-center justify-center gap-3">
@@ -425,6 +478,7 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
               <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           </div>
+
           
         </motion.div>
       )}

@@ -15,6 +15,17 @@ export default defineConfig(({ mode }) => {
       port: 80,
       strictPort: true,
       allowedHosts: true,
+      proxy: {
+        '/api': {
+          target: 'http://app:8000',
+          changeOrigin: true,
+        },
+        '/ws': {
+          target: 'http://app:8000',
+          ws: true,
+          changeOrigin: true,
+        },
+      },
       hmr: {
         clientPort: 80,
       },

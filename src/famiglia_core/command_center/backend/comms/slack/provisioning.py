@@ -19,18 +19,29 @@ class SlackProvisioningService:
         )
 
     def _get_public_url(self) -> Optional[str]:
-        """Fetch the public URL from the ngrok container's API."""
+        """Fetch the public URL from environment or ngrok container's API."""
+        # 1. Check direct environment override first
+        env_url = os.getenv("PUBLIC_URL") or os.getenv("SLACK_REDIRECT_HOST")
+        if env_url:
+            return env_url.rstrip("/")
+
+        # 2. Try to detect from ngrok
         try:
             # We use 'ngrok' as the hostname since it's the service name in docker-compose
-            response = requests.get("http://ngrok:4040/api/tunnels", timeout=2)
-            if response.ok:
-                tunnels = response.json().get("tunnels", [])
-                # Look for the https tunnel
-                https_tunnel = next((t for t in tunnels if t.get("proto") == "https"), None)
-                if https_tunnel:
-                    return https_tunnel.get("public_url")
+            # But we also try 'localhost' if running on host
+            for host in ["ngrok", "localhost"]:
+                try:
+                    response = requests.get(f"http://{host}:4040/api/tunnels", timeout=1)
+                    if response.ok:
+                        tunnels = response.json().get("tunnels", [])
+                        # Look for the https tunnel
+                        https_tunnel = next((t for t in tunnels if t.get("proto") == "https"), None)
+                        if https_tunnel:
+                            return https_tunnel.get("public_url").rstrip("/")
+                except Exception:
+                    continue
         except Exception as e:
-            print(f"⚠️  Could not detect ngrok tunnel: {e}")
+            print(f"⚠️  Could not detect public URL: {e}")
         return None
 
     def provision_famiglia(self, app_level_token: str = None) -> List[Dict[str, Any]]:
@@ -149,11 +160,23 @@ class SlackProvisioningService:
                     )
 
                     # Construct Install URL
-                    if public_url:
-                        # Direct to our bridge
-                        install_url = f"https://slack.com/oauth/v2/authorize?client_id={creds.get('client_id')}&scope=app_mentions:read,chat:write,channels:history,groups:history,im:history,reactions:write&state={agent_id}"
+                    client_id = creds.get("client_id")
+                    scopes = "app_mentions:read,chat:write,channels:history,groups:history,im:history,reactions:write,channels:read,groups:read,im:read"
+                    if public_url and client_id:
+                        # HTTP Mode: use full OAuth flow with redirect back to our server
+                        redirect_uri = f"{public_url}/api/v1/connections/auth/slack/agent/callback"
+                        install_url = (
+                            f"https://slack.com/oauth/v2/authorize"
+                            f"?client_id={client_id}"
+                            f"&scope={scopes}"
+                            f"&state={agent_id}"
+                            f"&redirect_uri={redirect_uri}"
+                        )
                     else:
-                        install_url = f"https://api.slack.com/apps/{app_id}/install"
+                        # Socket Mode: the OAuth URL adds redirect_uri= (empty) which Slack rejects.
+                        # The direct app settings page has a built-in "Install to Workspace"
+                        # button that bypasses this entirely — this is the correct Dev flow.
+                        install_url = f"https://api.slack.com/apps/{app_id}"
 
                     app_info = {
                         "agent_id": agent_id,

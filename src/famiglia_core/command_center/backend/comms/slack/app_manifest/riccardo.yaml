@@ -1,9 +1,9 @@
 display_information:
-  name: Riccado
+  name: Riccardo
   description: Principal Data Engineer and DevOps master for the Passione Famiglia
 features:
   bot_user:
-    display_name: Riccado
+    display_name: Riccardo
     always_online: false
 oauth_config:
   scopes:

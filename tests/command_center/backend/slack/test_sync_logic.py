@@ -1,5 +1,4 @@
 import sys
-import os
 from unittest.mock import MagicMock, patch
 
 # Mock the database and slack_sdk before importing the service
@@ -61,10 +60,11 @@ def test_sync_workspace_logic():
             # conversations_invite should be called for riccardo in C123
             # and for alfredo in C999
             
-            invites = [call.args for call in mock_client.conversations_invite.call_args_list]
+            # Verifying keyword arguments
+            invites = [call.kwargs for call in mock_client.conversations_invite.call_args_list]
             print("Invites:", invites)
             
-            assert any(call[0] == "C123" and "U123" in call[1] for call in mock_client.conversations_invite.call_args_list)
+            assert any(call.kwargs.get("channel") == "C123" and "U123" in call.kwargs.get("users", "") for call in mock_client.conversations_invite.call_args_list)
 
     print("✅ Logic test passed!")
 

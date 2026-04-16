@@ -1,5 +1,6 @@
 import os
 import yaml
+import json
 import glob
 from typing import List, Dict, Any
 from slack_sdk import WebClient
@@ -47,8 +48,8 @@ class SlackProvisioningService:
             with open(manifest_path, 'r') as f:
                 try:
                     manifest_data = yaml.safe_load(f)
-                    # Convert to string for API
-                    manifest_str = yaml.dump(manifest_data)
+                    # Convert to JSON string for API (Slack's preferred format)
+                    manifest_str = json.dumps(manifest_data)
                 except yaml.YAMLError:
                     print(f"Error parsing manifest: {filename}")
                     continue
@@ -80,12 +81,10 @@ class SlackProvisioningService:
                     print(f"✅ Created Slack App: {agent_id} (App ID: {app_id})")
                 else:
                     print(f"❌ Failed to create {agent_id}: {response['error']}")
-                    if "errors" in response:
-                        print(f"   Manifest Errors: {response['errors']}")
+                    print(f"   Full Response: {response}")
             except SlackApiError as e:
                 print(f"❌ Slack API Error for {agent_id}: {e.response['error']}")
-                if "errors" in e.response:
-                    print(f"   Details: {e.response['errors']}")
+                print(f"   Full Error Details: {e.response}")
             except Exception as e:
                 print(f"❌ Unexpected error manifesting {agent_id}: {e}")
                 

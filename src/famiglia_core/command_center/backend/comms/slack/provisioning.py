@@ -118,8 +118,10 @@ class SlackProvisioningService:
                             "client_id": data.get("client_id"),
                             "client_secret": data.get("client_secret"),
                         }
-                    except Exception:
-                        pass
+                    except (KeyError, TypeError, json.JSONDecodeError) as e:
+                        print(f"⚠️ Invalid stored Slack credentials for {agent_id}; falling back to create flow: {e}")
+                        app_id = None
+                        creds = {}
 
                 if app_id:
                     print(f"🔄 Syncing existing {agent_id} (App ID: {app_id})...")

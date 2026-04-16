@@ -447,14 +447,38 @@ function SlackFamigliaWizard({ onFinish, bossName }: { onFinish: () => void; bos
 
             <div className="p-8 bg-[#4A0404]/10 border border-[#4A0404]/20 rounded-2xl space-y-4 relative overflow-hidden">
                 <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#ffb3b5]/5 rounded-full blur-3xl" />
-                <div className="flex items-center gap-3 relative z-10">
-                    <span className="material-symbols-outlined text-[#ffb3b5] text-2xl">handshake</span>
-                    <h4 className="text-[12px] font-label font-bold uppercase text-[#ffb3b5] tracking-[0.3em]">The Final Handshake</h4>
+                <div className="flex items-center justify-between relative z-10">
+                  <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[#ffb3b5] text-2xl">handshake</span>
+                      <h4 className="text-[12px] font-label font-bold uppercase text-[#ffb3b5] tracking-[0.3em] font-black italic">The Manifestation</h4>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full">
+                    <span className="text-[10px] font-label font-bold text-white uppercase tracking-widest">
+                       {provisionedApps.length} Agents Initiated
+                    </span>
+                  </div>
                 </div>
-                <p className="text-sm font-body text-[#b6abaa] leading-relaxed relative z-10">
-                    {bossName}, the global network is initialized. Now, we must secure the unique credentials for each member of the Famiglia. Select an agent below, install their spirit into your workspace, and provide the secure tokens from your Slack dashboard.
-                </p>
-            </div>
+
+                <div className="space-y-4 relative z-10">
+                   <div className="flex items-center justify-between text-[11px] font-label font-black text-[#a38b88] uppercase tracking-widest px-1">
+                      <span>Global Synchronizing</span>
+                      <span className="text-[#ffb3b5]">Ready for Securing</span>
+                   </div>
+                   <div className="h-2 w-full bg-[#0d0d0d] rounded-full overflow-hidden border border-white/5 shadow-inner p-[1px]">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: '100%' }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className="h-full rounded-full bg-gradient-to-r from-[#6366f1] via-[#a855f7] to-[#ffb3b5] relative"
+                      >
+                         <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                      </motion.div>
+                   </div>
+                   <p className="text-[11px] font-body text-[#555] italic text-center">
+                     {bossName}, the network has been mapped. Secure the unique spirits of each agent to finalize the integration.
+                   </p>
+                </div>
+              </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                 {provisionedApps.map(app => (

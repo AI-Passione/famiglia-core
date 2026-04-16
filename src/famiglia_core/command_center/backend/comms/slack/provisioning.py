@@ -105,13 +105,37 @@ class SlackProvisioningService:
                     continue
 
             try:
-                response = client.apps_manifest_create(manifest=manifest_str)
+                # DEDUPLICATION: Check if this agent has already been provisioned
+                existing_creds = user_connections_store.get_connection(f"slack_creds:{agent_id}")
+                app_id = None
+                creds = {}
+                
+                if existing_creds:
+                    try:
+                        data = json.loads(existing_creds["access_token"])
+                        app_id = data.get("app_id")
+                        creds = {
+                            "client_id": data.get("client_id"),
+                            "client_secret": data.get("client_secret"),
+                        }
+                    except Exception:
+                        pass
+
+                if app_id:
+                    print(f"🔄 Syncing existing {agent_id} (App ID: {app_id})...")
+                    response = client.apps_manifest_update(app_id=app_id, manifest=manifest_str)
+                else:
+                    print(f"📦 Manifesting new {agent_id}...")
+                    response = client.apps_manifest_create(manifest=manifest_str)
                 
                 if response["ok"]:
-                    app_id = response["app_id"]
-                    creds = response.get("credentials", {})
+                    # Create case returns app_id and credentials
+                    # Update case only returned ok: True
+                    if not app_id:
+                        app_id = response["app_id"]
+                        creds = response.get("credentials", {})
                     
-                    # SECURE STORAGE: Save IDs and Secrets
+                    # SECURE STORAGE: Save/Update IDs and Secrets
                     user_connections_store.upsert_connection(
                         service=f"slack_creds:{agent_id}",
                         access_token=json.dumps({
@@ -136,9 +160,10 @@ class SlackProvisioningService:
                         "install_url": install_url
                     }
                     provisioned_apps.append(app_info)
-                    print(f"✅ Created {agent_id} (App ID: {app_id})")
+                    status_icon = "✅ Updated" if existing_creds else "✅ Created"
+                    print(f"{status_icon} {agent_id} (App ID: {app_id})")
                 else:
-                    print(f"❌ Failed to create {agent_id}: {response['error']}")
+                    print(f"❌ Failed to process {agent_id}: {response['error']}")
                     print(f"   Full Response: {response}")
             except SlackApiError as e:
                 print(f"❌ Slack API Error for {agent_id}: {e.response['error']}")

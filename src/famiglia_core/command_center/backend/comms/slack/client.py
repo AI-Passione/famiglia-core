@@ -42,31 +42,20 @@ class SlackQueueClient(CommsQueue):
         super().__init__(platform="slack", redis_url=redis_url)
         # Ensure dot‑env file is read as early as possible.
         load_dotenv()
-        
-        # Multi-bot support
-        # 1. Load from environment first (legacy / override)
+               # 1. Initialize from Environment (Fallback/Legacy)
         self.agent_tokens = {
-            "alfredo": os.getenv("SLACK_BOT_TOKEN_ALFREDO"),
-            "vito": os.getenv("SLACK_BOT_TOKEN_VITO"),
-            "riccardo": os.getenv("SLACK_BOT_TOKEN_RICCARDO"),
-            "rossini": os.getenv("SLACK_BOT_TOKEN_ROSSINI"),
-            "tommy": os.getenv("SLACK_BOT_TOKEN_TOMMY"),
-            "bella": os.getenv("SLACK_BOT_TOKEN_BELLA"),
-            "kowalski": os.getenv("SLACK_BOT_TOKEN_KOWALSKI"),
+            agent: os.getenv(f"SLACK_BOT_TOKEN_{agent.upper()}")
+            for agent in AGENT_EMOJIS.keys() if agent != "system"
         }
         
         self.agent_app_tokens = {
-            "alfredo": os.getenv("SLACK_APP_TOKEN_ALFREDO"),
-            "vito": os.getenv("SLACK_APP_TOKEN_VITO"),
-            "riccardo": os.getenv("SLACK_APP_TOKEN_RICCARDO"),
-            "rossini": os.getenv("SLACK_APP_TOKEN_ROSSINI"),
-            "tommy": os.getenv("SLACK_APP_TOKEN_TOMMY"),
-            "bella": os.getenv("SLACK_APP_TOKEN_BELLA"),
-            "kowalski": os.getenv("SLACK_APP_TOKEN_KOWALSKI"),
+            agent: os.getenv(f"SLACK_APP_TOKEN_{agent.upper()}")
+            for agent in AGENT_EMOJIS.keys() if agent != "system"
         }
 
-        # 2. Overlay tokens from database (Dynamic Self-Service)
+        # 2. Overlay from Database (The Soul of the Famiglia)
         from famiglia_core.db.tools.user_connections_store import user_connections_store
+        
         db_bot_tokens = user_connections_store.list_connections("slack_bot:")
         for service, conn in db_bot_tokens.items():
             agent_id = service.replace("slack_bot:", "")

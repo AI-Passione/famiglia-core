@@ -655,7 +655,6 @@ function SlackCard({ initialStatus, onFinish, bossName, onToast }: { initialStat
   const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
   const [showWizard, setShowWizard] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<any>(null);
 
   useEffect(() => {
     fetchFamigliaStatus();
@@ -681,11 +680,9 @@ function SlackCard({ initialStatus, onFinish, bossName, onToast }: { initialStat
 
   const handleSync = async () => {
     setSyncing(true);
-    setSyncResult(null);
     try {
       const res = await fetch(`${API_BASE}/connections/slack/sync-workspace`, { method: 'POST' });
       const data = await res.json();
-      setSyncResult(data);
       if (res.ok) {
         onToast('Workspace synchronization complete.', 'success');
       } else {

@@ -160,11 +160,31 @@ class SlackProvisioningService:
                     )
 
                     # Construct Install URL
-                    if public_url:
-                        # Direct to our bridge
-                        install_url = f"https://slack.com/oauth/v2/authorize?client_id={creds.get('client_id')}&scope=app_mentions:read,chat:write,channels:history,groups:history,im:history,reactions:write&state={agent_id}"
+                    # NOTE: api.slack.com/apps/{id}/install is DEPRECATED by Slack.
+                    # We always use the OAuth v2 authorize flow — works for both
+                    # Socket Mode and HTTP Mode apps.
+                    client_id = creds.get("client_id")
+                    scopes = "app_mentions:read,chat:write,channels:history,groups:history,im:history,reactions:write,channels:read,groups:read,im:read"
+                    if public_url and client_id:
+                        redirect_uri = f"{public_url}/api/v1/connections/auth/slack/agent/callback"
+                        install_url = (
+                            f"https://slack.com/oauth/v2/authorize"
+                            f"?client_id={client_id}"
+                            f"&scope={scopes}"
+                            f"&state={agent_id}"
+                            f"&redirect_uri={redirect_uri}"
+                        )
+                    elif client_id:
+                        # Socket Mode: no redirect URI, Slack handles install UI
+                        install_url = (
+                            f"https://slack.com/oauth/v2/authorize"
+                            f"?client_id={client_id}"
+                            f"&scope={scopes}"
+                            f"&state={agent_id}"
+                        )
                     else:
-                        install_url = f"https://api.slack.com/apps/{app_id}/install"
+                        # Last resort: app management settings page (always works)
+                        install_url = f"https://api.slack.com/apps/{app_id}"
 
                     app_info = {
                         "agent_id": agent_id,

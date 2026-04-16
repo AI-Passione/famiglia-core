@@ -655,6 +655,7 @@ function SlackCard({ initialStatus, onFinish, bossName, onToast }: { initialStat
   const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
   const [showWizard, setShowWizard] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchFamigliaStatus();
@@ -667,16 +668,6 @@ function SlackCard({ initialStatus, onFinish, bossName, onToast }: { initialStat
     } catch (e) {}
   };
 
-  const handleDisconnect = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/connections/slack`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to disconnect.');
-      fetchFamigliaStatus();
-      onFinish();
-    } catch (e: any) {
-      console.error(e.message || 'Unknown error');
-    }
-  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -695,6 +686,25 @@ function SlackCard({ initialStatus, onFinish, bossName, onToast }: { initialStat
     }
   };
 
+  const handleHardPurge = async () => {
+    if (!window.confirm("🔴 DANGER: This will delete ALL Slack credentials and reset the integration. You will need to start over. Continue?")) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/connections/slack/purge/all`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Purge failed.');
+      onToast('All Slack credentials purged. Starting fresh.', 'success');
+      setShowWizard(false);
+      onFinish(); // Refresh parent status
+    } catch (e) {
+      console.error(e);
+      onToast('Failed to purge credentials.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isAnyConnected = Object.values(famigliaStatus).some(s => s.connected);
+  const alfredoConnected = famigliaStatus.alfredo?.connected;
   const allConnected = Object.values(famigliaStatus).every(s => s.connected) && Object.keys(famigliaStatus).length > 0;
 
   return (
@@ -739,32 +749,47 @@ function SlackCard({ initialStatus, onFinish, bossName, onToast }: { initialStat
                    <p className="font-body text-[#6b6b6b] text-sm leading-relaxed max-w-sm">
                         {allConnected ? 'All agents have been provisioned and secured. The famiglia is ready for directives.' : 'The family needs assembly. Enter the secure portal to provision your agent bots.'}
                    </p>
-                   {allConnected ? (
-                      <div className="flex items-center gap-4">
-                        <button
-                          disabled={syncing}
-                          onClick={handleSync}
-                          className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-label uppercase tracking-widest bg-emerald-950/40 text-emerald-400 border border-emerald-900/60 rounded hover:bg-emerald-950/30 transition-all disabled:opacity-50"
-                        >
-                          {syncing ? (
-                            <span className="material-symbols-outlined animate-spin text-base">sync</span>
-                          ) : (
-                            <span className="material-symbols-outlined text-base">account_tree</span>
-                          )}
-                          {syncing ? 'Syncing...' : 'Sync Workspace'}
-                        </button>
-                        <button onClick={handleDisconnect} className="text-[10px] font-label font-bold uppercase text-[#4A0404] hover:text-[#ff1a1a]">Purge credentials</button>
-                      </div>
-                    ) : (
-                        <button
-                          disabled={syncing}
-                          onClick={() => setShowWizard(true)}
-                          className="flex items-center gap-3 px-6 py-3 text-xs font-bold font-label uppercase tracking-widest bg-[#122e23] text-[#42d392] border border-[#42d392]/20 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
-                        >
-                          <span className="material-symbols-outlined text-base font-black">bolt</span>
-                          Assemble the Family
-                        </button>
-                    )}
+                   <div className="flex items-center gap-4">
+                        {alfredoConnected && (
+                            <button
+                                disabled={syncing}
+                                onClick={handleSync}
+                                className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-label uppercase tracking-widest bg-emerald-950/40 text-emerald-400 border border-emerald-900/60 rounded hover:bg-emerald-900/30 transition-all disabled:opacity-50"
+                            >
+                                {syncing ? (
+                                    <span className="material-symbols-outlined animate-spin text-base">sync</span>
+                                ) : (
+                                    <span className="material-symbols-outlined text-base">account_tree</span>
+                                )}
+                                {syncing ? 'Syncing...' : 'Sync with Slack'}
+                            </button>
+                        )}
+                        
+                        {!allConnected && (
+                            <button
+                                onClick={() => setShowWizard(true)}
+                                className="flex items-center gap-3 px-6 py-3 text-xs font-bold font-label uppercase tracking-widest bg-[#122e23] text-[#42d392] border border-[#42d392]/20 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
+                            >
+                                <span className="material-symbols-outlined text-base font-black">bolt</span>
+                                Assemble the Family
+                            </button>
+                        )}
+
+                         {isAnyConnected && (
+                              <button 
+                                 disabled={loading}
+                                 onClick={handleHardPurge} 
+                                 className="h-10 w-10 flex items-center justify-center text-[#4A0404] hover:text-[#ff1a1a] border border-transparent hover:border-[#4A0404]/20 rounded-lg transition-all disabled:opacity-30"
+                                 title="Hard Reset: Drop all Slack integration"
+                              >
+                                 {loading ? (
+                                     <span className="material-symbols-outlined text-xl animate-spin">sync</span>
+                                 ) : (
+                                     <span className="material-symbols-outlined text-xl">delete_forever</span>
+                                 )}
+                              </button>
+                         )}
+                   </div>
                 </div>
             </div>
           )}

@@ -186,3 +186,11 @@ async def disconnect_service(service: str):
     if deleted:
         return {"success": True, "message": f"{service.capitalize()} account disconnected."}
     raise HTTPException(status_code=500, detail=f"Failed to disconnect {service} account.")
+
+@router.delete("/slack/purge/all")
+async def purge_all_slack_connections():
+    """Purge ALL Slack-related credentials (bootstrap, bots, sockets, credentials)."""
+    success = user_connections_store.delete_connections_by_prefix("slack")
+    if success:
+        return {"success": True, "message": "All Slack credentials have been purged."}
+    raise HTTPException(status_code=500, detail="Failed to purge Slack credentials.")

@@ -219,6 +219,22 @@ class UserConnectionsStore:
             print(f"[UserConnectionsStore] Error deleting connection for '{service}': {e}")
             return False
 
+    def delete_connections_by_prefix(self, prefix: str) -> bool:
+        """Remove all connections starting with a prefix."""
+        try:
+            with context_store.db_session() as cursor:
+                if cursor is None:
+                    return False
+                cursor.execute(
+                    "DELETE FROM user_connections WHERE service LIKE %s;",
+                    (f"{prefix}%",),
+                )
+            print(f"[UserConnectionsStore] Deleted connections with prefix='{prefix}%'")
+            return True
+        except Exception as e:
+            print(f"[UserConnectionsStore] Error deleting connections for prefix '{prefix}': {e}")
+            return False
+
 
 # Singleton
 user_connections_store = UserConnectionsStore()

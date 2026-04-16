@@ -564,16 +564,14 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
                                     <h5 className="text-2xl font-headline font-black text-white">{app.name} Configuration</h5>
                                     <p className="text-xs font-body text-[#555]">App ID: <code className="text-[#a38b88]">{app.app_id}</code></p>
                                 </div>
-                                <div className="flex flex-col items-end gap-2">
-                                    <a
-                                        href={app.install_url}
-                                        target="_blank"
-                                        className="flex items-center gap-3 px-6 py-3 bg-white text-black text-xs font-black font-label uppercase tracking-widest rounded hover:bg-[#ffb3b5] transition-all shadow-[0_4px_20px_rgba(255,179,181,0.1)]"
-                                    >
-                                        <span className="material-symbols-outlined text-base">install_desktop</span>
-                                        Install App
-                                    </a>
-                                    <span className="text-[9px] font-label font-bold text-[#444] uppercase tracking-tighter">Step 1: Manifest the Agent</span>
+                                <div className="flex flex-col items-end gap-1">
+                                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-label font-bold uppercase tracking-widest ${
+                                        famigliaStatus[app.agent_id]?.connected ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-400' : 'border-white/5 bg-white/5 text-[#555]'
+                                    }`}>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${famigliaStatus[app.agent_id]?.connected ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-[#444]'}`} />
+                                        {famigliaStatus[app.agent_id]?.connected ? 'Secured' : 'Pending'}
+                                    </div>
+                                    <span className="text-[9px] font-label font-bold text-[#444] uppercase tracking-tighter">Identity: {app.agent_id}</span>
                                 </div>
                             </div>
 

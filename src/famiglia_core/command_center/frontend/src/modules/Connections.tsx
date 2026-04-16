@@ -566,11 +566,20 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                     <div className="flex items-center gap-2">
-                                        {famigliaStatus[app.agent_id]?.connected && !famigliaStatus[app.agent_id]?.socket_connected && (
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-950/20 border border-amber-900/40 rounded-full text-[9px] font-label font-bold uppercase text-amber-400 tracking-tighter">
-                                                <span className="material-symbols-outlined text-[11px]">bolt_slash</span>
-                                                Socket Offline
-                                            </div>
+                                        {famigliaStatus[app.agent_id]?.connected && (
+                                            <>
+                                                {famigliaStatus[app.agent_id]?.transport === 'http' ? (
+                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-950/20 border border-emerald-900/40 rounded-full text-[9px] font-label font-bold uppercase text-emerald-500/80 tracking-tighter">
+                                                        <span className="material-symbols-outlined text-[11px]">webhook</span>
+                                                        Webhook Active
+                                                    </div>
+                                                ) : !famigliaStatus[app.agent_id]?.socket_connected && (
+                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-950/20 border border-amber-900/40 rounded-full text-[9px] font-label font-bold uppercase text-amber-400 tracking-tighter">
+                                                        <span className="material-symbols-outlined text-[11px]">bolt_slash</span>
+                                                        Socket Offline
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
                                         <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-label font-bold uppercase tracking-widest ${
                                             famigliaStatus[app.agent_id]?.connected ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-400' : 'border-white/5 bg-white/5 text-[#555]'

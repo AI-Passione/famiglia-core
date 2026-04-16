@@ -157,7 +157,9 @@ class SlackProvisioningService:
                         access_token=json.dumps({
                             "client_id": creds.get("client_id"),
                             "client_secret": creds.get("client_secret"),
-                            "app_id": app_id
+                            "app_id": app_id,
+                            "transport": "http" if public_url else "socket",
+                            "public_url": public_url
                         }),
                         username=manifest_data["display_information"]["name"]
                     )

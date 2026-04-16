@@ -55,12 +55,8 @@ def main():
     raw_dev_channel = os.getenv("DEV_CHANNEL_ID")
     dev_channel_id = slack_queue.resolve_channel_id(raw_dev_channel)
     
-    print(
-        f"[{app_env.upper()} MODE] Initialized with DEV_CHANNEL_ID={raw_dev_channel} "
-        f"(resolved={dev_channel_id})"
-    )
     if app_env != "development" and not dev_channel_id:
-        print("[PRODUCTION MODE] DEV channel ID unresolved; using runtime channel-name guard for #_dev.")
+        pass
 
     # 0. Wait for Ollama service to be truly ready across the Docker network
     print("\n[Startup] Synchronizing with Ollama service...")

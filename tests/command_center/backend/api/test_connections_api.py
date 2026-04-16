@@ -179,3 +179,47 @@ class TestDisconnectService:
         mock_store.delete_connection.return_value = False
         response = client.delete("/api/v1/connections/ollama")
         assert response.status_code == 500
+
+
+# ─── GET /connections/slack/status ───────────────────────────────────────────
+
+class TestGetSlackFamigliaStatus:
+    @patch(CONNECTIONS_STORE)
+    def test_status_reports_http_transport(self, mock_store):
+        # Mock connections: bot connected, no socket, but transport is HTTP
+        import json
+        def get_conn_side_effect(service):
+            if service == "slack_bot:alfredo":
+                return {"access_token": "token"}
+            if service == "slack_creds:alfredo":
+                return {"access_token": json.dumps({"transport": "http", "public_url": "https://tunnel.me"})}
+            return None
+            
+        mock_store.get_connection.side_effect = get_conn_side_effect
+        mock_store.get_connection_status.side_effect = lambda s: {"connected": True} if "bot:alfredo" in s else {"connected": False}
+
+        response = client.get("/api/v1/connections/slack/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["alfredo"]["connected"] is True
+        assert data["alfredo"]["transport"] == "http"
+        assert data["alfredo"]["public_url"] == "https://tunnel.me"
+        assert data["alfredo"]["socket_connected"] is False
+
+    @patch(CONNECTIONS_STORE)
+    def test_status_reports_socket_transport(self, mock_store):
+        import json
+        def get_conn_side_effect(service):
+            if "bot:riccardo" in service: return {"access_token": "token"}
+            if service == "slack_creds:riccardo":
+                return {"access_token": json.dumps({"transport": "socket"})}
+            return None
+            
+        mock_store.get_connection.side_effect = get_conn_side_effect
+        mock_store.get_connection_status.return_value = {"connected": True}
+
+        response = client.get("/api/v1/connections/slack/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["riccardo"]["transport"] == "socket"
+        assert data["riccardo"]["socket_connected"] is True

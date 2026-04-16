@@ -3,6 +3,7 @@ Tests for UserConnectionsStore — Fernet encryption, upsert, get, delete.
 All DB calls and Fernet key loading are mocked to keep tests hermetic.
 """
 import pytest
+import json
 from unittest.mock import patch, MagicMock
 from cryptography.fernet import Fernet
 
@@ -119,6 +120,26 @@ class TestUpsertConnection:
         with patch("famiglia_core.db.tools.user_connections_store.context_store.db_session", return_value=cm):
             result = store.upsert_connection(service="ollama", access_token="key")
         assert result is False
+
+    def test_on_conflict_targets_service(self, store, mock_db_session):
+        _, cursor = mock_db_session
+        store.upsert_connection(service="slack_bot:alfredo", access_token="token")
+        sql = cursor.execute.call_args[0][0].upper()
+        # Verify the ON CONFLICT clause targets only the service column now
+        assert "ON CONFLICT (SERVICE)" in sql
+        assert "USER_ID" not in sql.split("ON CONFLICT")[1]
+
+    def test_stores_metadata_as_scopes(self, store, mock_db_session):
+        _, cursor = mock_db_session
+        metadata = {"transport": "http", "public_url": "https://ngrok.io"}
+        store.upsert_connection(
+            service="slack_creds:alfredo", 
+            access_token="{}", 
+            scopes=json.dumps(metadata)
+        )
+        call_args = cursor.execute.call_args[0][1]
+        stored_metadata = call_args[4] # scopes is the 5th param
+        assert json.loads(stored_metadata)["transport"] == "http"
 
 
 # ─── get_connection ───────────────────────────────────────────────────────────

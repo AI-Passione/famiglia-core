@@ -565,11 +565,19 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
                                     <p className="text-xs font-body text-[#555]">App ID: <code className="text-[#a38b88]">{app.app_id}</code></p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
-                                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-label font-bold uppercase tracking-widest ${
-                                        famigliaStatus[app.agent_id]?.connected ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-400' : 'border-white/5 bg-white/5 text-[#555]'
-                                    }`}>
-                                        <span className={`h-1.5 w-1.5 rounded-full ${famigliaStatus[app.agent_id]?.connected ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-[#444]'}`} />
-                                        {famigliaStatus[app.agent_id]?.connected ? 'Secured' : 'Pending'}
+                                    <div className="flex items-center gap-2">
+                                        {famigliaStatus[app.agent_id]?.connected && !famigliaStatus[app.agent_id]?.socket_connected && (
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-950/20 border border-amber-900/40 rounded-full text-[9px] font-label font-bold uppercase text-amber-400 tracking-tighter">
+                                                <span className="material-symbols-outlined text-[11px]">bolt_slash</span>
+                                                Socket Offline
+                                            </div>
+                                        )}
+                                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-label font-bold uppercase tracking-widest ${
+                                            famigliaStatus[app.agent_id]?.connected ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-400' : 'border-white/5 bg-white/5 text-[#555]'
+                                        }`}>
+                                            <span className={`h-1.5 w-1.5 rounded-full ${famigliaStatus[app.agent_id]?.connected ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-[#444]'}`} />
+                                            {famigliaStatus[app.agent_id]?.connected ? 'Authorized' : 'Pending'}
+                                        </div>
                                     </div>
                                     <span className="text-[9px] font-label font-bold text-[#444] uppercase tracking-tighter">Identity: {app.agent_id}</span>
                                 </div>
@@ -594,7 +602,12 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
                                         <div className="w-16 h-16 rounded-full bg-[#1cbb8c]/10 border border-[#1cbb8c]/20 flex items-center justify-center">
                                             <span className="material-symbols-outlined text-[#1cbb8c] text-3xl">check_circle</span>
                                         </div>
-                                        <span className="text-[10px] font-label font-black text-[#1cbb8c] uppercase tracking-[0.2em]">Connection Secured</span>
+                                        <div className="text-center">
+                                            <p className="text-[10px] font-label font-black text-[#1cbb8c] uppercase tracking-[0.2em]">Connection Authorized</p>
+                                            {!famigliaStatus[app.agent_id]?.socket_connected && (
+                                                <p className="text-[9px] font-body text-amber-400 opacity-60 mt-1 italic">Choice B (HTTP) active / Socket Offline</p>
+                                            )}
+                                        </div>
                                     </motion.div>
                                 ) : (
                                     <div className="flex flex-col items-center gap-4 w-full">

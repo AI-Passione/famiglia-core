@@ -136,7 +136,7 @@ async def get_slack_famiglia_status():
         bot_connected = bool(bot_check.get("connected"))
         socket_connected = bool(socket_check.get("connected"))
         status[agent_id] = {
-            "connected": bot_connected and socket_connected,
+            "connected": bot_connected,  # Installation is successful if bot token exists
             "bot_connected": bot_connected,
             "socket_connected": socket_connected,
             "name": agent_id.capitalize()

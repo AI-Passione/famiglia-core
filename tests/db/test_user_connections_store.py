@@ -98,7 +98,7 @@ class TestUpsertConnection:
         store.upsert_connection(service="s", access_token="t", scopes=json.dumps(meta))
         assert cursor.execute.called
         call_args = cursor.execute.call_args[0][1]
-        assert json.loads(call_args[6]) == meta
+        assert json.loads(call_args[4]) == meta
 
 class TestGetConnection:
     def test_decrypts_token_on_retrieval(self, store, mock_db_session, stable_fernet):

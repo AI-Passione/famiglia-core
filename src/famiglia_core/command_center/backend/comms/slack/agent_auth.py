@@ -59,12 +59,14 @@ async def agent_oauth_callback(
 
     # 3. Save the Bot Token
     # We store it in 'slack_bot:{agent_id}'
+    # We also keep the app_id as a first-class citizen now.
     bot_token = res_data.get("access_token")
     user_connections_store.upsert_connection(
         service=f"slack_bot:{agent_id}",
         access_token=bot_token,
         username=res_data.get("bot_user_id"),
-        scopes=res_data.get("scope")
+        scopes=res_data.get("scope"),
+        app_id=data.get("app_id") # Extracted from the creds JSON blob earlier
     )
 
     # 4. Capture the installer/owner ID if present

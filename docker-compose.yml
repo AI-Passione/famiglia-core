@@ -236,19 +236,19 @@ services:
           memory: 1G
         reservations:
           memory: 512M
-  # ngrok:
-  #   image: ngrok/ngrok:latest
-  #   restart: always
-  #   environment:
-  #     - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:-}
-  #   command:
-  #     - "http"
-  #     - "app:8000"
-  #   ports:
-  #     - "4040:4040"
-  #   depends_on:
-  #     app:
-  #       condition: service_healthy
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: always
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:-}
+    command:
+      - "http"
+      - "app:8000"
+    ports:
+      - "4040:4040"
+    depends_on:
+      app:
+        condition: service_healthy
 
 volumes:
   redis_data:

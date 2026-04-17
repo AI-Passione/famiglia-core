@@ -62,6 +62,7 @@ class UserConnectionsStore:
         username: Optional[str] = None,
         avatar_url: Optional[str] = None,
         scopes: Optional[str] = None,
+        app_id: Optional[str] = None,
     ) -> bool:
         """Encrypt and persist (or update) an OAuth connection for a service."""
         try:
@@ -74,18 +75,19 @@ class UserConnectionsStore:
                 cursor.execute(
                     """
                     INSERT INTO user_connections
-                        (service, username, avatar_url, access_token, scopes, connected_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+                        (service, username, avatar_url, access_token, scopes, app_id, connected_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
                     ON CONFLICT (service) DO UPDATE SET
                         username     = EXCLUDED.username,
                         avatar_url   = EXCLUDED.avatar_url,
                         access_token = EXCLUDED.access_token,
                         scopes       = EXCLUDED.scopes,
+                        app_id       = COALESCE(EXCLUDED.app_id, user_connections.app_id),
                         updated_at   = NOW();
                     """,
-                    (service, username, avatar_url, encrypted_token, scopes),
+                    (service, username, avatar_url, encrypted_token, scopes, app_id),
                 )
-            print(f"[UserConnectionsStore] Upserted connection for service='{service}' user='{username}'")
+            print(f"[UserConnectionsStore] Upserted connection for service='{service}' user='{username}' app_id='{app_id}'")
             return True
         except Exception as e:
             print(f"[UserConnectionsStore] Error upserting connection for '{service}': {e}")
@@ -103,7 +105,7 @@ class UserConnectionsStore:
                     return None
                 cursor.execute(
                     """
-                    SELECT service, username, avatar_url, access_token, scopes, connected_at, updated_at
+                    SELECT service, username, avatar_url, access_token, scopes, app_id, connected_at, updated_at
                     FROM user_connections
                     WHERE service = %s;
                     """,
@@ -127,6 +129,7 @@ class UserConnectionsStore:
                 "avatar_url": row["avatar_url"],
                 "access_token": decrypted_token,
                 "scopes": row["scopes"],
+                "app_id": row["app_id"],
                 "connected_at": row["connected_at"].isoformat() if row["connected_at"] else None,
                 "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
             }
@@ -142,7 +145,7 @@ class UserConnectionsStore:
                     return {"connected": False}
                 cursor.execute(
                     """
-                    SELECT username, avatar_url, scopes, connected_at
+                    SELECT username, avatar_url, scopes, app_id, connected_at
                     FROM user_connections
                     WHERE service = %s;
                     """,
@@ -158,6 +161,7 @@ class UserConnectionsStore:
                 "username": row["username"],
                 "avatar_url": row["avatar_url"],
                 "scopes": row["scopes"],
+                "app_id": row["app_id"],
                 "connected_at": row["connected_at"].isoformat() if row["connected_at"] else None,
             }
         except Exception as e:
@@ -172,7 +176,7 @@ class UserConnectionsStore:
                     return {}
                 cursor.execute(
                     """
-                    SELECT service, username, avatar_url, access_token, scopes, connected_at
+                    SELECT service, username, avatar_url, access_token, scopes, app_id, connected_at
                     FROM user_connections
                     WHERE service LIKE %s;
                     """,
@@ -190,6 +194,7 @@ class UserConnectionsStore:
                         "avatar_url": row["avatar_url"],
                         "access_token": decrypted_token,
                         "scopes": row["scopes"],
+                        "app_id": row["app_id"],
                         "connected_at": row["connected_at"].isoformat() if row["connected_at"] else None,
                     }
                 except Exception:

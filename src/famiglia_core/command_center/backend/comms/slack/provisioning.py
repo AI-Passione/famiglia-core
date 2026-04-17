@@ -248,7 +248,8 @@ class SlackProvisioningService:
                             "transport": "http" if public_url else "socket",
                             "public_url": public_url
                         }),
-                        username=manifest_data["display_information"]["name"]
+                        username=manifest_data["display_information"]["name"],
+                        app_id=app_id
                     )
 
                     client_id = creds.get("client_id")
@@ -292,16 +293,31 @@ class SlackProvisioningService:
         """
         Stores the final tokens for an agent and activates the connection.
         """
+        # Resolve app_id from creds if possible
+        app_id = None
+        creds_conn = user_connections_store.get_connection(f"slack_creds:{agent_id}")
+        if creds_conn:
+            try:
+                # Prioritize new app_id column, fallback to JSON parsing
+                app_id = creds_conn.get("app_id")
+                if not app_id:
+                     data = json.loads(creds_conn["access_token"])
+                     app_id = data.get("app_id")
+            except Exception:
+                pass
+
         # Store Bot Token
         bot_success = user_connections_store.upsert_connection(
             service=f"slack_bot:{agent_id}",
-            access_token=bot_token
+            access_token=bot_token,
+            app_id=app_id
         )
         
-        # Store App-Level Token (for Socket Mode)
+        # Store App/Socket Token
         app_success = user_connections_store.upsert_connection(
             service=f"slack_socket:{agent_id}",
-            access_token=app_token
+            access_token=app_token,
+            app_id=app_id
         )
         
         return bot_success and app_success

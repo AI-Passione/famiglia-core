@@ -10,7 +10,8 @@ from famiglia_core.command_center.backend.comms.slack.provisioning import SlackP
 
 def test_sync_workspace_logic():
     service = SlackProvisioningService()
-    
+    # Mock context_store
+    service._seed_agent_greetings = MagicMock()
     # Mock user_connections_store
     with patch('famiglia_core.command_center.backend.comms.slack.provisioning.user_connections_store') as mock_store:
         # 1. Mock Alfredo's token and others

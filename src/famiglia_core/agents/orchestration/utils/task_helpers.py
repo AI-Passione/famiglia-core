@@ -28,6 +28,7 @@ TASK_TYPE_CODING_CODE_ANALYSIS = "coding_code_analysis"
 TASK_TYPE_CODING_IMPLEMENTATION = "coding_implementation"
 TASK_TYPE_ALFREDO_GREETING = "alfredo_greeting"
 TASK_TYPE_PRD_AUTOSCAN = "prd_review_autoscan"
+TASK_TYPE_AGENT_GREETING = "agent_greeting"
 
 SCHEDULED_TASK_TYPES = tuple(_CONFIG.get("scheduled_task_types", []))
 
@@ -165,6 +166,9 @@ class Task:
         # Specific overrides or hardcoded fallback for reminders
         if self.task_type == TASK_TYPE_REMINDER:
             return self.safe_metadata.get("slack_channel")
+        
+        if self.task_type == TASK_TYPE_AGENT_GREETING:
+            return self.safe_metadata.get("channel_id")
         
         # General Fallback
         return "C0AGFEBPBJ8" # Coordination Channel

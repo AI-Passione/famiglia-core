@@ -20,23 +20,64 @@ class SlackProvisioningService:
         self.registry = {
             "COMMAND_CENTER": {
                 "name": "command-center",
+                "primary": "alfredo",
                 "agents": ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski", "giuseppina"]
             },
-            "TECH": {"name": "tech", "agents": ["riccardo"]},
-            "ANALYTICS": {"name": "analytics", "agents": ["kowalski"]},
-            "OPERATIONS": {"name": "operations", "agents": ["tommy"]},
-            "ALERTS": {"name": "alerts", "agents": ["riccardo"]},
-            "INCIDENTS": {"name": "incidents", "agents": ["riccardo"]},
-            "FINANCE": {"name": "finance", "agents": ["vito"]},
-            "ADMIN": {"name": "admin", "agents": ["bella"]},
-            "PROJECTS": {"name": "projects", "agents": ["riccardo", "rossini"]},
-            "RESEARCH_INSIGHTS": {"name": "research-insights", "agents": ["rossini"]},
-            "PRODUCT_STRATEGY": {"name": "product", "agents": ["rossini"]},
+            "TECH": {"name": "tech", "primary": "riccardo", "agents": ["riccardo"]},
+            "ANALYTICS": {"name": "analytics", "primary": "kowalski", "agents": ["kowalski"]},
+            "OPERATIONS": {"name": "operations", "primary": "tommy", "agents": ["tommy"]},
+            "ALERTS": {"name": "alerts", "primary": "riccardo", "agents": ["riccardo"]},
+            "INCIDENTS": {"name": "incidents", "primary": "riccardo", "agents": ["riccardo"]},
+            "FINANCE": {"name": "finance", "primary": "vito", "agents": ["vito"]},
+            "ADMIN": {"name": "admin", "primary": "bella", "agents": ["bella"]},
+            "PROJECTS": {"name": "projects", "primary": "rossini", "agents": ["riccardo", "rossini"]},
+            "RESEARCH_INSIGHTS": {"name": "research-insights", "primary": "rossini", "agents": ["rossini"]},
+            "PRODUCT_STRATEGY": {"name": "product", "primary": "rossini", "agents": ["rossini"]},
             "CORE_FAMIGLIA": {
                 "name": "the-famiglia",
+                "primary": "giuseppina",
                 "agents": ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski", "giuseppina"]
             }
         }
+
+    def _seed_agent_greetings(self):
+        """Seed daily greeting tasks for each primary agent in their channel."""
+        print("🌱 Seeding daily agent greetings...")
+        from famiglia_core.db.agents.context_store import context_store
+        from famiglia_core.agents.orchestration.utils.task_helpers import TASK_TYPE_AGENT_GREETING
+
+        recurring_tasks = context_store.list_recurring_tasks()
+        
+        for code, config in self.registry.items():
+            primary_agent = config.get("primary")
+            if not primary_agent:
+                continue
+            
+            # Fetch the actual channel ID from storage
+            stored_ref = context_store.get_connection(f"slack_channel:{code}")
+            if not stored_ref:
+                continue
+            channel_id = stored_ref["access_token"]
+            
+            title = f"Initial Greeting: {primary_agent.capitalize()} in #{config['name']}"
+            
+            # For 1-off tasks, we check task_instances to see if it was ever queued/run
+            # This prevents spamming greetings every time the sync button is clicked.
+            existing_tasks = context_store.list_scheduled_tasks(limit=100)
+            if not any(t["title"] == title for t in existing_tasks):
+                print(f"  + Scheduling 1-off greeting: {title} for {channel_id}")
+                context_store.create_scheduled_task(
+                    title=title,
+                    task_payload=f"You are the primary agent for #{config['name']}. Introduce yourself to the channel and mention your core focus. Finish with 'The Famiglia is operational.'",
+                    priority="low",
+                    expected_agent=primary_agent,
+                    created_by_name="SlackProvisioningService",
+                    metadata={
+                        "task_type": TASK_TYPE_AGENT_GREETING,
+                        "channel_id": channel_id,
+                        "channel_name": config["name"]
+                    }
+                )
 
     def _get_public_url(self) -> Optional[str]:
         """Fetch the public URL from environment or ngrok container's API."""
@@ -430,6 +471,9 @@ class SlackProvisioningService:
                     "agents": actual_agents_joined
                 })
 
+        # 5. Seed greetings if needed
+        self._seed_agent_greetings()
+        
         return results
 
 slack_provisioning = SlackProvisioningService()

@@ -156,7 +156,7 @@ class UserConnectionsStore:
                     return {"connected": False}
                 cursor.execute(
                     """
-                    SELECT username, avatar_url, scopes, app_id, connected_at
+                    SELECT username, avatar_url, scopes, app_id, refresh_token, connected_at
                     FROM user_connections
                     WHERE service = %s;
                     """,

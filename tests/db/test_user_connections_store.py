@@ -17,14 +17,16 @@ _TEST_KEY_STR = _TEST_KEY.decode()
 # ─── _get_fernet ──────────────────────────────────────────────────────────────
 
 class TestGetFernet:
-    def test_uses_env_var_when_set(self):
+    @patch("famiglia_core.db.tools.user_connections_store._get_fernet", side_effect=_get_fernet)
+    def test_uses_env_var_when_set(self, mock_func):
         with patch.dict("os.environ", {"FERNET_SECRET": _TEST_KEY_STR}):
             f = _get_fernet()
         # Should be able to encrypt/decrypt a round-trip
         token = f.encrypt(b"hello")
         assert f.decrypt(token) == b"hello"
 
-    def test_reads_existing_key_file(self, tmp_path):
+    @patch("famiglia_core.db.tools.user_connections_store._get_fernet", side_effect=_get_fernet)
+    def test_reads_existing_key_file(self, mock_func, tmp_path):
         key_file = tmp_path / "fernet.key"
         key_file.write_text(_TEST_KEY_STR)
 
@@ -38,7 +40,8 @@ class TestGetFernet:
         token = f.encrypt(b"data")
         assert f.decrypt(token) == b"data"
 
-    def test_generates_and_persists_key_when_file_missing(self, tmp_path):
+    @patch("famiglia_core.db.tools.user_connections_store._get_fernet", side_effect=_get_fernet)
+    def test_generates_and_persists_key_when_file_missing(self, mock_func, tmp_path):
         key_file = tmp_path / "fernet.key"
 
         with patch("famiglia_core.db.tools.user_connections_store._FERNET_KEY_FILE", str(key_file)):
@@ -56,11 +59,12 @@ class TestGetFernet:
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 @pytest.fixture
-def store():
+def store(stable_fernet):
+    """Fixture providing a real UserConnectionsStore instance."""
     return UserConnectionsStore()
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def stable_fernet():
     """Pin Fernet to a stable test key so encryption is deterministic."""
     fernet_instance = Fernet(_TEST_KEY)
@@ -138,7 +142,7 @@ class TestUpsertConnection:
             scopes=json.dumps(metadata)
         )
         call_args = cursor.execute.call_args[0][1]
-        stored_metadata = call_args[4] # scopes is the 5th param
+        stored_metadata = call_args[6] # scopes is now index 6
         assert json.loads(stored_metadata)["transport"] == "http"
 
 
@@ -154,6 +158,8 @@ class TestGetConnection:
             "avatar_url": None,
             "access_token": encrypted,
             "scopes": None,
+            "app_id": None,
+            "refresh_token": None,
             "connected_at": None,
             "updated_at": None,
         }
@@ -176,6 +182,8 @@ class TestGetConnection:
             "avatar_url": None,
             "access_token": "not-valid-ciphertext",
             "scopes": None,
+            "app_id": None,
+            "refresh_token": None,
             "connected_at": None,
             "updated_at": None,
         }
@@ -202,6 +210,8 @@ class TestGetConnectionStatus:
             "username": "don_jimmy",
             "avatar_url": None,
             "scopes": None,
+            "app_id": "test_app",
+            "refresh_token": None,
             "connected_at": ts,
         }
         status = store.get_connection_status("ollama")

@@ -282,14 +282,16 @@ function GitHubCard({ initialStatus, config, onFinish, bossName }: { initialStat
   );
 }
 
-function SlackFamigliaWizard({ bossName }: { bossName: string }) {
+function SlackFamigliaWizard({ bossName, onClose, onHardReset }: { bossName: string, onClose?: () => void, onHardReset?: () => void }) {
   const [step, setStep] = useState(1);
   const [appLevelToken, setAppLevelToken] = useState('');
+  const [refreshToken, setRefreshToken] = useState('');
   const [provisionedApps, setProvisionedApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('');
   const [storedTokenExists, setStoredTokenExists] = useState(false);
+  const [storedIsRotatable, setStoredIsRotatable] = useState(false);
   const [checkingToken, setCheckingToken] = useState(true);
 
   // On mount: check if a bootstrap token is already stored in the DB
@@ -301,6 +303,7 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
           const data = await res.json();
           if (data.connected) {
             setStoredTokenExists(true);
+            setStoredIsRotatable(data.rotatable || false);
           }
         }
       } catch (e) {}
@@ -319,7 +322,10 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
       const res = await fetch(`${API_BASE}/connections/slack/provision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app_level_token: tokenToUse || undefined }),
+        body: JSON.stringify({ 
+            app_level_token: tokenToUse || undefined,
+            refresh_token: refreshToken || undefined
+        }),
       });
       let data;
       try {
@@ -369,6 +375,25 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#ffb3b5]/10 rounded-full blur-[100px] pointer-events-none" />
           
           <div className="flex items-center gap-6 relative z-10">
+            {onClose && (
+              <button 
+                onClick={onClose}
+                className="absolute -top-4 -right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-[#555] hover:text-white transition-all"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            )}
+            
+            {onHardReset && (
+              <button 
+                onClick={onHardReset}
+                className="absolute -top-4 right-8 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-red-900/40 hover:text-red-500 transition-all"
+                title="Emergency Reset"
+              >
+                <span className="material-symbols-outlined text-sm">delete_forever</span>
+              </button>
+            )}
+
             <div className="p-5 bg-gradient-to-br from-[#4A0404] to-[#131313] rounded-2xl border border-white/20 shadow-[0_0_30px_rgba(74,4,4,0.3)]">
               <span className="material-symbols-outlined text-[#ffb3b5] text-4xl">bolt</span>
             </div>
@@ -416,8 +441,12 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
                    </p>
                 </div>
                 <p className="text-xs font-body text-[#a38b88] leading-relaxed mt-2">
-                  Paste the token (it usually starts with <code className="text-white">xoxe.xoxp-</code> or <code className="text-white">xoxe.xoxb-</code>) below.
+                  Paste the token below. For <strong>automated refresh</strong>, ensure you also provide the <strong>Refresh Token</strong>.
                 </p>
+                <div className="flex items-center gap-2 text-[9px] font-label font-bold text-amber-500/80 uppercase tracking-tighter bg-amber-950/20 px-3 py-1.5 rounded-lg border border-amber-900/30">
+                  <span className="material-symbols-outlined text-sm">info</span>
+                  Standard tokens expire in 12h. Rotatable tokens last indefinitely if we have the refresh key.
+                </div>
             </div>
           </div>
 
@@ -433,9 +462,17 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-emerald-400 text-xl">database</span>
                   <div>
-                    <p className="text-xs font-label font-bold text-emerald-400 uppercase tracking-widest">Vault Key Found</p>
+                    <p className="text-xs font-label font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                      Vault Key Found
+                      {storedIsRotatable && (
+                        <span className="px-1.5 py-0.5 bg-emerald-400 text-emerald-950 rounded text-[8px] font-black lowercase tracking-tighter">rotatable</span>
+                      )}
+                    </p>
                     <p className="text-[11px] font-body text-[#a38b88] mt-0.5">
-                      A Configuration Token is already stored. Click to re-use it — no need to paste again.
+                      {storedIsRotatable 
+                        ? "A secure, rotatable key is already stored. The Famiglia will auto-refresh it."
+                        : "A Configuration Token is already stored. Click to re-use it — no need to paste again."
+                      }
                     </p>
                   </div>
                 </div>
@@ -450,17 +487,31 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
               </motion.div>
             )}
 
-            <div className="space-y-2">
-                <label className="text-[10px] font-label font-bold text-[#ffb3b5]/60 uppercase tracking-[0.3em] ml-1">
-                  {storedTokenExists ? 'Or Enter a New Token' : 'Bootstrap Token'}
-                </label>
-                <input
-                  type="password"
-                  placeholder="xapp-1-A123..."
-                  value={appLevelToken}
-                  onChange={e => setAppLevelToken(e.target.value)}
-                  className="w-full bg-[#0d0d0d]/80 border border-white/5 rounded-xl px-6 py-4 text-sm font-mono text-white placeholder-[#333] focus:outline-none focus:ring-2 focus:ring-[#ffb3b5]/30 focus:border-[#ffb3b5]/40 transition-all shadow-inner"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                  <label className="text-[10px] font-label font-bold text-[#ffb3b5]/60 uppercase tracking-[0.3em] ml-1">
+                    {storedTokenExists ? 'New Access Token' : 'Bootstrap Token'}
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="xoxe-1-..."
+                    value={appLevelToken}
+                    onChange={e => setAppLevelToken(e.target.value)}
+                    className="w-full bg-[#0d0d0d]/80 border border-white/5 rounded-xl px-6 py-4 text-sm font-mono text-white placeholder-[#333] focus:outline-none focus:ring-2 focus:ring-[#ffb3b5]/30 focus:border-[#ffb3b5]/40 transition-all shadow-inner"
+                  />
+              </div>
+              <div className="space-y-2">
+                  <label className="text-[10px] font-label font-bold text-[#ffb3b5]/60 uppercase tracking-[0.3em] ml-1">
+                    Refresh Token (Optional)
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="xoxe-1-..."
+                    value={refreshToken}
+                    onChange={e => setRefreshToken(e.target.value)}
+                    className="w-full bg-[#0d0d0d]/80 border border-white/5 rounded-xl px-6 py-4 text-sm font-mono text-white placeholder-[#333] focus:outline-none focus:ring-2 focus:ring-[#ffb3b5]/30 focus:border-[#ffb3b5]/40 transition-all shadow-inner"
+                  />
+              </div>
             </div>
             <button
                onClick={() => handleProvision()}
@@ -651,9 +702,11 @@ function SlackFamigliaWizard({ bossName }: { bossName: string }) {
   );
 }
 
-function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: SlackStatus; config: SlackConfig, onFinish: () => void; bossName: string }) {
+function SlackCard({ initialStatus, onFinish, bossName, onToast }: { initialStatus: SlackStatus; config: SlackConfig, onFinish: () => void; bossName: string, onToast: (m: string, type: 'success' | 'error') => void }) {
   const [famigliaStatus, setFamigliaStatus] = useState<Record<string, any>>({});
   const [showWizard, setShowWizard] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchFamigliaStatus();
@@ -666,17 +719,43 @@ function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: Slack
     } catch (e) {}
   };
 
-  const handleDisconnect = async () => {
+
+  const handleSync = async () => {
+    setSyncing(true);
     try {
-      const res = await fetch(`${API_BASE}/connections/slack`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to disconnect.');
-      fetchFamigliaStatus();
-      onFinish();
-    } catch (e: any) {
-      console.error(e.message || 'Unknown error');
+      const res = await fetch(`${API_BASE}/connections/slack/sync-workspace`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        onToast('Workspace synchronization complete.', 'success');
+      } else {
+        onToast(data.detail || 'Sync failed.', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSyncing(false);
     }
   };
 
+  const handleHardPurge = async () => {
+    if (!window.confirm("🔴 DANGER: This will delete ALL Slack credentials and reset the integration. You will need to start over. Continue?")) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/connections/slack/purge/all`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Purge failed.');
+      onToast('All Slack credentials purged. Starting fresh.', 'success');
+      setShowWizard(false);
+      onFinish(); // Refresh parent status
+    } catch (e) {
+      console.error(e);
+      onToast('Failed to purge credentials.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isAnyConnected = Object.values(famigliaStatus).some(s => s.connected);
+  const alfredoConnected = famigliaStatus.alfredo?.connected;
   const allConnected = Object.values(famigliaStatus).every(s => s.connected) && Object.keys(famigliaStatus).length > 0;
 
   return (
@@ -705,7 +784,7 @@ function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: Slack
       <div className="px-6 py-5">
         <AnimatePresence mode="wait">
           {showWizard ? (
-             <SlackFamigliaWizard bossName={bossName} />
+             <SlackFamigliaWizard bossName={bossName} onClose={() => setShowWizard(false)} onHardReset={handleHardPurge} />
           ) : (
             <div className="space-y-4">
                 <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
@@ -721,17 +800,47 @@ function SlackCard({ initialStatus, onFinish, bossName }: { initialStatus: Slack
                    <p className="font-body text-[#6b6b6b] text-sm leading-relaxed max-w-sm">
                         {allConnected ? 'All agents have been provisioned and secured. The famiglia is ready for directives.' : 'The family needs assembly. Enter the secure portal to provision your agent bots.'}
                    </p>
-                   {allConnected ? (
-                       <button onClick={handleDisconnect} className="text-[10px] font-label font-bold uppercase text-[#4A0404] hover:text-[#ff1a1a]">Purge credentials</button>
-                   ) : (
-                       <button
-                         onClick={() => setShowWizard(true)}
-                         className="flex items-center gap-3 px-6 py-3 text-xs font-bold font-label uppercase tracking-widest bg-[#122e23] text-[#42d392] border border-[#42d392]/20 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
-                       >
-                         <span className="material-symbols-outlined text-base font-black">bolt</span>
-                         Assemble the Family
-                       </button>
-                   )}
+                   <div className="flex items-center gap-4">
+                        {alfredoConnected && (
+                            <button
+                                disabled={syncing}
+                                onClick={handleSync}
+                                className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-label uppercase tracking-widest bg-emerald-950/40 text-emerald-400 border border-emerald-900/60 rounded hover:bg-emerald-900/30 transition-all disabled:opacity-50"
+                            >
+                                {syncing ? (
+                                    <span className="material-symbols-outlined animate-spin text-base">sync</span>
+                                ) : (
+                                    <span className="material-symbols-outlined text-base">account_tree</span>
+                                )}
+                                {syncing ? 'Syncing...' : 'Sync with Slack'}
+                            </button>
+                        )}
+                        
+                        {!allConnected && (
+                            <button
+                                onClick={() => setShowWizard(true)}
+                                className="flex items-center gap-3 px-6 py-3 text-xs font-bold font-label uppercase tracking-widest bg-[#122e23] text-[#42d392] border border-[#42d392]/20 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
+                            >
+                                <span className="material-symbols-outlined text-base font-black">bolt</span>
+                                Assemble the Family
+                            </button>
+                        )}
+
+                         {isAnyConnected && (
+                              <button 
+                                 disabled={loading}
+                                 onClick={handleHardPurge} 
+                                 className="h-10 w-10 flex items-center justify-center text-red-900 hover:text-red-500 border border-transparent hover:border-red-900/20 rounded-lg transition-all disabled:opacity-30"
+                                 title="Hard Reset: Drop all Slack integration"
+                              >
+                                 {loading ? (
+                                     <span className="material-symbols-outlined text-xl animate-spin">sync</span>
+                                 ) : (
+                                     <span className="material-symbols-outlined text-xl">delete_forever</span>
+                                 )}
+                              </button>
+                         )}
+                   </div>
                 </div>
             </div>
           )}
@@ -1199,6 +1308,7 @@ export function Connections({ successParam, errorParam, onClearParams, bossName 
             config={config.slack || { configured: false, redirect_uri: '' }}
             onFinish={() => fetchData()}
             bossName={bossName}
+            onToast={(m, type) => setToast({ m, type })}
           />
         </section>
 

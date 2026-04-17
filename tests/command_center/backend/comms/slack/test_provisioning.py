@@ -43,16 +43,17 @@ class TestSlackProvisioningService:
     def test_finalize_agent(self, mock_store):
         mock_store.upsert_connection.return_value = True
         
-        result = self.service.finalize_agent("test_agent", "xoxb-123", "xapp-456")
+        # Pass app_id as the 4th argument to bypass internal lookup
+        result = self.service.finalize_agent("test_agent", "xoxb-123", "xapp-socket-token", "A_TEST_APP_ID")
         
         assert result is True
         assert mock_store.upsert_connection.call_count == 2
         
         mock_store.upsert_connection.assert_any_call(
-            service="slack_bot:test_agent", access_token="xoxb-123"
+            service="slack_bot:test_agent", access_token="xoxb-123", app_id="A_TEST_APP_ID", username="system"
         )
         mock_store.upsert_connection.assert_any_call(
-            service="slack_socket:test_agent", access_token="xapp-456"
+            service="slack_socket:test_agent", access_token="xapp-socket-token", app_id="A_TEST_APP_ID", username="system"
         )
 
     @patch("famiglia_core.command_center.backend.comms.slack.provisioning.WebClient")

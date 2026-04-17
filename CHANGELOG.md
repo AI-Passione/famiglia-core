@@ -1,3 +1,13 @@
+# [1.15.0](https://github.com/AI-Passione/famiglia-core/compare/v1.14.0...v1.15.0) (2026-04-17)
+
+### Slack Workspace Organization 2.0
+* **Channel Consolidation**: Simplified the agent-specialized roster by merging Tech (DevOps, Code Reviews, Data Engineering), Analytics (Data Science), and Operations (Logistics) into focused channels.
+* **Automatic Provisioning**: 
+    * Implemented programmatic **Owner Discovery** to identify and invite the Primary Workspace Owner to all managed channels.
+    * Added **Automatic Archiving** to purge deprecated channels from the workspace sidebar and database.
+    * Renamed `#alfredo-command` to `#command-center` and standardizing agent assignments.
+* **Specialized Roster**: Introduced dedicated `#admin`, `#alerts`, and `#incidents` channels for core Famiglia operations.
+
 # [1.14.0](https://github.com/AI-Passione/famiglia-core/compare/v1.13.1...v1.14.0) (2026-04-14)
 
 

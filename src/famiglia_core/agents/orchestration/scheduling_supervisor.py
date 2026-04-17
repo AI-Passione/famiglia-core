@@ -56,6 +56,8 @@ class SchedulingMasterSupervisor:
             state["routing_mode"] = "market_research"
         elif tt == "coding_code_analysis" or tt == "coding_implementation":
             state["routing_mode"] = "operations"
+        elif tt == "agent_greeting":
+            state["routing_mode"] = "greeting"
         else:
             state["routing_mode"] = "support"
             
@@ -103,6 +105,30 @@ class SchedulingMasterSupervisor:
         state["final_response"] = "Scheduled operations check complete. All systems nominal."
         return state
 
+    def handle_greeting(self, state: AgentState) -> AgentState:
+        print(f"[{self.name}] SchedulingMasterSupervisor: Generating Agent Greeting")
+        from famiglia_core.agents.llm.client import client
+        
+        task_data = state.get("metadata", {}).get("task_record") or {}
+        task_meta = task_data.get("metadata") or {}
+        channel_name = task_meta.get("channel_name", "the-famiglia")
+        
+        prompt = (
+            f"Role: {self.agent.soul_profile}\n"
+            f"Context: You are the primary agent in charge of the #{channel_name} Slack channel.\n"
+            f"Directive: Greet the Famiglia members in this channel. Briefly mention your focus for the day or provide a professional status update. "
+            f"Keep it concise (1-2 sentences) and maintain your unique 'Famiglia' persona."
+        )
+        
+        # Use pre-resolved model from state
+        model_config = self.model_config.copy()
+        model_config["primary"] = state.get("model_to_use") or self.model_config.get("primary")
+        
+        res, used_model = client.complete(prompt, model_config, agent_name=self.name)
+        state["final_response"] = res
+        state["used_model"] = used_model
+        return state
+
     def setup_graph(self):
         workflow = StateGraph(AgentState)
         
@@ -110,6 +136,7 @@ class SchedulingMasterSupervisor:
         workflow.add_node("prd_drafting", self.call_prd_drafting)
         workflow.add_node("prd_review", self.call_prd_review)
         workflow.add_node("market_research", self.call_market_research)
+        workflow.add_node("greeting", self.handle_greeting)
         workflow.add_node("support", self.handle_support)
         workflow.add_node("operations", self.handle_operations)
         
@@ -122,6 +149,7 @@ class SchedulingMasterSupervisor:
                 "prd_drafting": "prd_drafting",
                 "prd_review": "prd_review",
                 "market_research": "market_research",
+                "greeting": "greeting",
                 "support": "support",
                 "operations": "operations"
             }
@@ -130,6 +158,7 @@ class SchedulingMasterSupervisor:
         workflow.add_edge("prd_drafting", END)
         workflow.add_edge("prd_review", END)
         workflow.add_edge("market_research", END)
+        workflow.add_edge("greeting", END)
         workflow.add_edge("support", END)
         workflow.add_edge("operations", END)
         

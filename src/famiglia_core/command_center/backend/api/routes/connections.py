@@ -87,6 +87,7 @@ async def test_ollama_connection():
 async def provision_slack_famiglia(payload: Dict[str, str]):
     """Trigger bulk creation of Slack apps using an App-Level Token."""
     token = payload.get("app_level_token")
+    refresh_token = payload.get("refresh_token")
     
     if not token:
         # Fallback: check if we have a stored bootstrap token
@@ -96,10 +97,11 @@ async def provision_slack_famiglia(payload: Dict[str, str]):
         else:
             raise HTTPException(status_code=422, detail="App-Level Token is required.")
     else:
-        # Persist the new token so we can use it for retries/background tasks
+        # Persist the new token(s) so we can use them for retries/background tasks
         user_connections_store.upsert_connection(
             service="slack_bootstrap",
             access_token=token,
+            refresh_token=refresh_token,
             username="Bootstrapper"
         )
     
@@ -125,6 +127,18 @@ async def finalize_slack_agent(payload: Dict[str, str]):
     if success:
         return {"success": True}
     raise HTTPException(status_code=500, detail="Failed to save tokens.")
+
+@router.post("/slack/sync-workspace")
+async def sync_slack_workspace():
+    """Trigger the creation and configuration of Slack channels and bot memberships."""
+    from famiglia_core.command_center.backend.comms.slack.provisioning import slack_provisioning
+    try:
+        results = slack_provisioning.sync_workspace_structure()
+        if not results.get("success", True):
+             raise HTTPException(status_code=400, detail=results.get("error", "Sync failed"))
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/slack/status")
 async def get_slack_famiglia_status():
@@ -174,3 +188,11 @@ async def disconnect_service(service: str):
     if deleted:
         return {"success": True, "message": f"{service.capitalize()} account disconnected."}
     raise HTTPException(status_code=500, detail=f"Failed to disconnect {service} account.")
+
+@router.delete("/slack/purge/all")
+async def purge_all_slack_connections():
+    """Purge ALL Slack-related credentials (bootstrap, bots, sockets, credentials)."""
+    success = user_connections_store.delete_connections_by_prefix("slack")
+    if success:
+        return {"success": True, "message": "All Slack credentials have been purged."}
+    raise HTTPException(status_code=500, detail="Failed to purge Slack credentials.")

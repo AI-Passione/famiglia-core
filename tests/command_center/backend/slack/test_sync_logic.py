@@ -99,7 +99,7 @@ def test_sync_workspace_logic():
                 "slack_owner": None # Force discovery
             }.get(service)
             
-            results2 = service.sync_workspace_structure()
+            service.sync_workspace_structure()
             invites2 = [call.kwargs for call in mock_client.conversations_invite.call_args_list]
             
             # Should have discovered and invited U_PRIMARY (from users_list mock)

@@ -94,7 +94,6 @@ async def provision_slack_famiglia(payload: Dict[str, str]):
         conn = user_connections_store.get_connection("slack_bootstrap")
         if conn and conn.get("access_token"):
             token = conn["access_token"]
-            refresh_token = conn.get("refresh_token")
         else:
             raise HTTPException(status_code=422, detail="App-Level Token is required.")
     else:

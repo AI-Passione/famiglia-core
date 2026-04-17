@@ -130,8 +130,13 @@ class UserConnectionsStore:
             if row.get("refresh_token"):
                 try:
                     decrypted_refresh = fernet.decrypt(row["refresh_token"].encode()).decode()
-                except Exception:
-                    pass
+                except Exception as e:
+                    # Non-fatal: keep connection usable even if refresh token is stale/corrupt.
+                    print(
+                        f"[UserConnectionsStore] Failed to decrypt refresh token for '{service}' "
+                        f"(continuing without refresh token): {e}"
+                    )
+                    decrypted_refresh = None
 
             return {
                 "service": row["service"],

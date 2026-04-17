@@ -210,8 +210,11 @@ class UserConnectionsStore:
                     if row.get("refresh_token"):
                          try:
                              decrypted_refresh = fernet.decrypt(row["refresh_token"].encode()).decode()
-                         except Exception:
-                             pass
+                         except Exception as e:
+                             print(
+                                 f"[UserConnectionsStore] Failed to decrypt refresh token for service "
+                                 f"'{row.get('service', '<unknown>')}': {e}"
+                             )
                              
                     results[row["service"]] = {
                         "username": row["username"],

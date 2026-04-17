@@ -39,6 +39,16 @@ TASK_TYPE_TO_PRIORITY = {
     k: v.get("priority") for k, v in _TYPES_CONFIG.items() if v.get("priority")
 }
 
+TASK_TYPE_TO_CHANNEL_CODE = {
+    TASK_TYPE_ALFREDO_GREETING: "COMMAND_CENTER",
+    TASK_TYPE_MARKET_RESEARCH: "RESEARCH_INSIGHTS",
+    TASK_TYPE_PRD_DRAFTING: "PROJECTS",
+    TASK_TYPE_FEATURE_REQUEST: "PRODUCT_STRATEGY",
+    TASK_TYPE_CODING_CODE_ANALYSIS: "TECH",
+    TASK_TYPE_CODING_IMPLEMENTATION: "TECH",
+    TASK_TYPE_PRD_AUTOSCAN: "PRODUCT_STRATEGY",
+}
+
 def get_task_type_config(task_type: str) -> Dict[str, Any]:
     """Retrieve full configuration for a specific task type."""
     return _TYPES_CONFIG.get(task_type, {})
@@ -158,20 +168,35 @@ class Task:
         return any(re.search(pattern, lower) for pattern in failure_patterns)
 
     def get_output_channel(self) -> Optional[str]:
+        # 1. Explicit Metadata Priority (e.g., dynamic greetings)
+        meta_id = self.safe_metadata.get("channel_id")
+        if meta_id:
+            return meta_id
+
+        # 2. Config Override (if tasks.yml ever has live IDs)
         config = get_task_type_config(self.task_type)
         direct_id = config.get("output_channel_id")
         if direct_id:
             return direct_id
         
-        # Specific overrides or hardcoded fallback for reminders
-        if self.task_type == TASK_TYPE_REMINDER:
-            return self.safe_metadata.get("slack_channel")
+        # 3. Dynamic Logic Lookup via DB-backed Routing Map
+        from famiglia_core.db.tools.user_connections_store import user_connections_store
         
-        if self.task_type == TASK_TYPE_AGENT_GREETING:
-            return self.safe_metadata.get("channel_id")
+        channel_code = TASK_TYPE_TO_CHANNEL_CODE.get(self.task_type)
+        if channel_code:
+            # Check if we have a resolved channel ID for this code
+            stored_ref = user_connections_store.get_connection(f"slack_channel:{channel_code}")
+            if stored_ref:
+                return stored_ref["access_token"]
+
+        # 4. Fallback: Command Center
+        # Use the Registry code to find the live ID of #command-center
+        cc_ref = user_connections_store.get_connection("slack_channel:COMMAND_CENTER")
+        if cc_ref:
+            return cc_ref["access_token"]
         
-        # General Fallback
-        return "C0AGFEBPBJ8" # Coordination Channel
+        # 5. Ultimate Fallback (None means don't post or it will likely fail later)
+        return None
 
     def get_completion_status(self, is_failure: bool) -> str:
         if is_failure:

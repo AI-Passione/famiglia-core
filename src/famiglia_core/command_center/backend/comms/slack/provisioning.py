@@ -2,6 +2,7 @@ import os
 import yaml
 import json
 import requests
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -54,7 +55,7 @@ class SlackProvisioningService:
                 continue
             
             # Fetch the actual channel ID from storage
-            stored_ref = context_store.get_connection(f"slack_channel:{code}")
+            stored_ref = user_connections_store.get_connection(f"slack_channel:{code}")
             if not stored_ref:
                 continue
             channel_id = stored_ref["access_token"]
@@ -105,12 +106,45 @@ class SlackProvisioningService:
             print(f"⚠️  Could not detect public URL: {e}")
         return None
 
+    def cleanup_orphaned_apps(self, client: WebClient) -> Dict[str, Any]:
+        """
+        Deletes Slack apps that are tracked in our database but no longer in the agent registry.
+        """
+        print("🧹 Scanning for orphaned Slack apps...")
+        results = {"deleted": [], "errors": []}
+        
+        # Get all agents currently defined in the registry
+        active_agents = set()
+        for config in self.registry.values():
+            active_agents.update(config.get("agents", []))
+        
+        # Find all stored credentials
+        all_creds = user_connections_store.list_connections("slack_creds:")
+        for service, conn in all_creds.items():
+            agent_id = service.replace("slack_creds:", "")
+            if agent_id not in active_agents:
+                try:
+                    data = json.loads(conn["access_token"])
+                    app_id = data.get("app_id")
+                    if app_id:
+                        print(f"📦 Deleting orphaned bot: {agent_id} (App ID: {app_id})")
+                        client.apps_manifest_delete(app_id=app_id)
+                        user_connections_store.delete_connection(service)
+                        # Also delete bot and socket connections if they exist
+                        user_connections_store.delete_connection(f"slack_bot:{agent_id}")
+                        user_connections_store.delete_connection(f"slack_socket:{agent_id}")
+                        results["deleted"].append({"agent_id": agent_id, "app_id": app_id})
+                except Exception as e:
+                    print(f"⚠️ Failed to delete orphaned bot {agent_id}: {e}")
+                    results["errors"].append(f"Failed to delete {agent_id}: {str(e)}")
+        
+        return results
+
     def provision_famiglia(self, app_level_token: str = None) -> List[Dict[str, Any]]:
         """
-        Create Slack apps for the entire Famiglia roster.
+        Create or update Slack apps for the entire Famiglia roster.
         """
         if not app_level_token:
-            # Fallback to DB stored token if not provided in payload
             conn = user_connections_store.get_connection("slack_bootstrap")
             if conn:
                 app_level_token = conn["access_token"]
@@ -118,10 +152,14 @@ class SlackProvisioningService:
         if not app_level_token:
             raise ValueError("No Slack App Configuration Token found. Please provide one in the setup.")
 
+        client = WebClient(token=app_level_token)
+        
+        # 1. Cleanup Phase: Delete apps owned by the system that are no longer in registry
+        self.cleanup_orphaned_apps(client)
+
         manifest_dir = os.path.join(os.path.dirname(__file__), "app_manifest")
         manifest_files = [os.path.join(manifest_dir, f) for f in os.listdir(manifest_dir) if f.endswith(".yaml") or f.endswith(".yml")]
         
-        client = WebClient(token=app_level_token)
         provisioned_apps = []
 
         # Detect public URL for Choice B (Total Automation)
@@ -133,7 +171,7 @@ class SlackProvisioningService:
 
         for manifest_path in manifest_files:
             filename = os.path.basename(manifest_path)
-            if filename == "passione_famiglia.yaml": # Global manifest, skip for individual agents
+            if filename == "passione_famiglia.yaml":
                 continue
                 
             agent_id = filename.replace(".yaml", "").replace(".yml", "")
@@ -141,10 +179,6 @@ class SlackProvisioningService:
             with open(manifest_path, 'r') as f:
                 try:
                     manifest_data = yaml.safe_load(f)
-                    
-                    # 2. Set Redirect URI for OAuth bridge
-                    # We always want this so we can use direct installation links
-                    # NOTE: Backend is on 8000, 3000 is Grafana.
                     base_url = (public_url or "http://localhost:8000").rstrip("/")
                     callback_url = f"{base_url}/api/v1/connections/auth/slack/agent/callback"
                     
@@ -152,14 +186,11 @@ class SlackProvisioningService:
                          manifest_data['oauth_config'] = {}
                     manifest_data['oauth_config']['redirect_urls'] = [callback_url]
 
-                    # Choice B: HTTP Mode Configuration (if public URL is present)
                     if public_url:
-                        # 1. Disable Socket Mode
                         if 'settings' not in manifest_data:
                             manifest_data['settings'] = {}
                         manifest_data['settings']['socket_mode_enabled'] = False
                         
-                        # 3. Set Request URLs for Events & Interactivity
                         events_url = f"{public_url}/api/v1/comms/slack/events/{agent_id}"
                         if 'event_subscriptions' not in manifest_data['settings']:
                             manifest_data['settings']['event_subscriptions'] = {}
@@ -169,11 +200,9 @@ class SlackProvisioningService:
                              manifest_data['settings']['interactivity'] = {}
                         manifest_data['settings']['interactivity']['request_url'] = events_url
 
-                    # Strip experimental/beta fields that might trigger 'not_allowed_token_type'
                     if 'settings' in manifest_data:
                         manifest_data['settings'].pop('is_mcp_enabled', None)
 
-                    # Convert to JSON string for API
                     manifest_str = json.dumps(manifest_data)
                 except yaml.YAMLError:
                     print(f"Error parsing manifest: {filename}")
@@ -206,13 +235,10 @@ class SlackProvisioningService:
                     response = client.apps_manifest_create(manifest=manifest_str)
                 
                 if response["ok"]:
-                    # Create case returns app_id and credentials
-                    # Update case only returned ok: True
                     if not app_id:
                         app_id = response["app_id"]
                         creds = response.get("credentials", {})
                     
-                    # SECURE STORAGE: Save/Update IDs and Secrets
                     user_connections_store.upsert_connection(
                         service=f"slack_creds:{agent_id}",
                         access_token=json.dumps({
@@ -225,7 +251,6 @@ class SlackProvisioningService:
                         username=manifest_data["display_information"]["name"]
                     )
 
-                    # Construct Install URL
                     client_id = creds.get("client_id")
                     scopes = (
                         "app_mentions:read,chat:write,channels:history,groups:history,im:history,"
@@ -233,7 +258,6 @@ class SlackProvisioningService:
                     )
                     
                     if client_id:
-                        # Direct OAuth logic: more straightforward than sending to API dashboard
                         base_url = (public_url or "http://localhost:8000").rstrip("/")
                         redirect_uri = f"{base_url}/api/v1/connections/auth/slack/agent/callback"
                         install_url = (
@@ -244,7 +268,6 @@ class SlackProvisioningService:
                             f"&redirect_uri={redirect_uri}"
                         )
                     else:
-                        # Fallback (shouldn't happen with Manifest API)
                         install_url = f"https://api.slack.com/apps/{app_id}"
 
                     app_info = {
@@ -258,7 +281,6 @@ class SlackProvisioningService:
                     print(f"{status_icon} {agent_id} (App ID: {app_id})")
                 else:
                     print(f"❌ Failed to process {agent_id}: {response['error']}")
-                    print(f"   Full Response: {response}")
             except SlackApiError as e:
                 print(f"❌ Slack API Error for {agent_id}: {e.response['error']}")
             except Exception as e:
@@ -284,11 +306,37 @@ class SlackProvisioningService:
         
         return bot_success and app_success
 
+    def _sync_registry_to_db(self):
+        """
+        Synchronizes the hardcoded registry to PostgreSQL as a baseline.
+        This allows other parts of the system (like routing) to be dynamic.
+        """
+        print("💾 Synchronizing Slack Registry to PostgreSQL...")
+        from famiglia_core.db.agents.context_store import context_store
+        
+        # Store the current registry as the authoritative 'baseline'
+        # We store it in agent_memories under agent_name='system'
+        context_store.upsert_memory(
+            agent_name="system",
+            memory_key="slack_agent_registry",
+            memory_value=json.dumps(self.registry),
+            metadata={"type": "slack_configuration", "updated_at": datetime.now(timezone.utc).isoformat()}
+        )
+        
+        # Also store a flat routing map for faster lookups in task_helpers
+        routing_map = {}
+        # We infer routing from the 'primary' agent assignments and common patterns
+        # But for now, we'll just store the registry and let task_helpers use the hardcoded mapping
+        # unless we specifically want to override it in DB.
+
     def sync_workspace_structure(self) -> Dict[str, Any]:
         """
         Synchronizes Slack channels and memberships based on the registry.
         Uses Alfredo's token as the primary administrative client.
         """
+        # 0. Baseline Sync
+        self._sync_registry_to_db()
+
         # 1. Get Alfredo's token
         alfredo_token_conn = user_connections_store.get_connection("slack_bot:alfredo")
         if not alfredo_token_conn:

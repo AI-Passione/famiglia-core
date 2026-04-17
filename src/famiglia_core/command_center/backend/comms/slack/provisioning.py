@@ -399,7 +399,6 @@ class SlackProvisioningService:
         )
         
         # Also store a flat routing map for faster lookups in task_helpers
-        routing_map = {}
         # We infer routing from the 'primary' agent assignments and common patterns
         # But for now, we'll just store the registry and let task_helpers use the hardcoded mapping
         # unless we specifically want to override it in DB.

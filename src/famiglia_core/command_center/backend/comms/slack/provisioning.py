@@ -31,7 +31,7 @@ class SlackProvisioningService:
             "ADMIN": {"name": "admin", "agents": ["bella"]},
             "PROJECTS": {"name": "projects", "agents": ["riccardo", "rossini"]},
             "RESEARCH_INSIGHTS": {"name": "research-insights", "agents": ["rossini"]},
-            "PRODUCT_STRATEGY": {"name": "product-strategy", "agents": ["rossini"]},
+            "PRODUCT_STRATEGY": {"name": "product", "agents": ["rossini"]},
             "CORE_FAMIGLIA": {
                 "name": "the-famiglia",
                 "agents": ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski", "giuseppina"]

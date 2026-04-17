@@ -22,9 +22,10 @@ class TestGetFernet:
         key_file = tmp_path / "fernet.key"
         key_file.write_text(_TEST_KEY_STR)
 
-        with patch("famiglia_core.db.tools.user_connections_store._FERNET_KEY_FILE", str(key_file)):
-            # Ensure env var doesn't interfere
+        with patch.object(store_mod, "_FERNET_KEY_FILE", str(key_file)):
             with patch.dict("os.environ", {}, clear=True):
+                # Ensure no cached secret
+                os.environ.pop("FERNET_SECRET", None)
                 f = store_mod._get_fernet()
 
         token = f.encrypt(b"data")
@@ -32,8 +33,11 @@ class TestGetFernet:
 
     def test_generates_and_persists_key_when_file_missing(self, tmp_path):
         key_file = tmp_path / "fernet.key"
-        with patch("famiglia_core.db.tools.user_connections_store._FERNET_KEY_FILE", str(key_file)):
+        # We must also mock the SECRETS_DIR if we want to be truly safe, 
+        # but patching _FERNET_KEY_FILE directly is usually enough if _get_fernet uses it.
+        with patch.object(store_mod, "_FERNET_KEY_FILE", str(key_file)):
             with patch.dict("os.environ", {}, clear=True):
+                os.environ.pop("FERNET_SECRET", None)
                 f = store_mod._get_fernet()
 
         assert key_file.exists()
@@ -45,23 +49,29 @@ class TestGetFernet:
 @pytest.fixture
 def stable_fernet():
     fernet_instance = Fernet(_TEST_KEY)
-    with patch("famiglia_core.db.tools.user_connections_store._get_fernet", return_value=fernet_instance):
+    # Patch the function called by the Store
+    with patch.object(store_mod, "_get_fernet", return_value=fernet_instance):
         yield fernet_instance
 
 @pytest.fixture
 def mock_cursor():
-    return MagicMock()
+    cursor = MagicMock()
+    # Ensure fetchone defaults to None so it doesn't return a truthy Mock
+    cursor.fetchone.return_value = None
+    return cursor
 
 @pytest.fixture
 def mock_db_session(mock_cursor):
     cm = MagicMock()
     cm.__enter__.return_value = mock_cursor
     cm.__exit__.return_value = False
-    with patch("famiglia_core.db.tools.user_connections_store.context_store.db_session", return_value=cm):
+    # Patch the singleton's method
+    with patch.object(store_mod.context_store, "db_session", return_value=cm):
         yield cm, mock_cursor
 
 @pytest.fixture
 def store(stable_fernet):
+    """Return a fresh instance of the store."""
     return store_mod.UserConnectionsStore()
 
 class TestUpsertConnection:
@@ -69,6 +79,7 @@ class TestUpsertConnection:
         _, cursor = mock_db_session
         result = store.upsert_connection(service="ollama", access_token="plain-key")
         assert result is True
+        assert cursor.execute.called
         call_args = cursor.execute.call_args[0][1]
         stored_token = call_args[3]
         assert stored_token != "plain-key"
@@ -77,6 +88,7 @@ class TestUpsertConnection:
     def test_on_conflict_targets_service(self, store, mock_db_session):
         _, cursor = mock_db_session
         store.upsert_connection(service="slack", access_token="token")
+        assert cursor.execute.called
         sql = cursor.execute.call_args[0][0].upper()
         assert "ON CONFLICT (SERVICE)" in sql
 
@@ -84,6 +96,7 @@ class TestUpsertConnection:
         _, cursor = mock_db_session
         meta = {"a": 1}
         store.upsert_connection(service="s", access_token="t", scopes=json.dumps(meta))
+        assert cursor.execute.called
         call_args = cursor.execute.call_args[0][1]
         assert json.loads(call_args[6]) == meta
 
@@ -96,6 +109,7 @@ class TestGetConnection:
             "scopes": None, "app_id": None, "refresh_token": None, "connected_at": None, "updated_at": None
         }
         res = store.get_connection("s")
+        assert res is not None
         assert res["access_token"] == "secret"
 
     def test_returns_none_when_no_row(self, store, mock_db_session):
@@ -122,4 +136,5 @@ class TestDeleteConnection:
     def test_deletes_returns_true(self, store, mock_db_session):
         _, cursor = mock_db_session
         assert store.delete_connection("s") is True
+        assert cursor.execute.called
         assert "DELETE FROM user_connections" in cursor.execute.call_args[0][0]

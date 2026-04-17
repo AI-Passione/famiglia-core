@@ -18,23 +18,20 @@ class SlackProvisioningService:
             "app_manifest"
         )
         self.registry = {
-            "ALFREDO_COMMAND": {"name": "alfredo-command", "agents": ["alfredo"]},
-            "CODE_REVIEWS": {"name": "code-reviews", "agents": ["riccardo"]},
-            "DATA_ENGINEERING": {"name": "data-engineering", "agents": ["riccardo"]},
-            "DEV_OPS": {"name": "devops", "agents": ["riccardo"]},
-            "PROJECTS": {"name": "projects", "agents": ["bella"]},
-            "WEEKLY_UPDATES": {"name": "weekly-updates", "agents": ["bella"]},
+            "COMMAND_CENTER": {
+                "name": "command-center",
+                "agents": ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski", "giuseppina"]
+            },
+            "TECH": {"name": "tech", "agents": ["riccardo"]},
+            "ANALYTICS": {"name": "analytics", "agents": ["kowalski"]},
+            "OPERATIONS": {"name": "operations", "agents": ["tommy"]},
+            "ALERTS": {"name": "alerts", "agents": ["riccardo"]},
+            "INCIDENTS": {"name": "incidents", "agents": ["riccardo"]},
+            "FINANCE": {"name": "finance", "agents": ["vito"]},
+            "ADMIN": {"name": "admin", "agents": ["bella"]},
+            "PROJECTS": {"name": "projects", "agents": ["riccardo", "rossini"]},
             "RESEARCH_INSIGHTS": {"name": "research-insights", "agents": ["rossini"]},
             "PRODUCT_STRATEGY": {"name": "product-strategy", "agents": ["rossini"]},
-            "MARKETING": {"name": "marketing", "agents": ["rossini", "giuseppina"]},
-            "FINANCE": {"name": "finance", "agents": ["vito"]},
-            "INVESTMENTS": {"name": "investments", "agents": ["vito"]},
-            "OPERATIONS": {"name": "operations", "agents": ["tommy"]},
-            "LOGISTICS": {"name": "logistics", "agents": ["tommy"]},
-            "ANALYTICS": {"name": "analytics", "agents": ["kowalski"]},
-            "DATA_SCIENCE": {"name": "data-science", "agents": ["kowalski"]},
-            "TOWNHALL": {"name": "townhall", "agents": ["giuseppina"]},
-            "SOCIAL": {"name": "social", "agents": ["giuseppina"]},
             "CORE_FAMIGLIA": {
                 "name": "the-famiglia",
                 "agents": ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski", "giuseppina"]
@@ -293,8 +290,31 @@ class SlackProvisioningService:
             if owner_id:
                 print(f"🏠 Fallback to environment USER_SLACK_ID: {owner_id}")
 
-        results = {"channels": [], "errors": []}
+        results = {"channels": [], "archived": [], "errors": []}
         
+        # --- CLEANUP PHASE ---
+        try:
+            print("🧹 Scanning for deprecated channels to archive...")
+            all_connections = user_connections_store.list_connections("slack_channel:")
+            for service, conn in all_connections.items():
+                code = service.replace("slack_channel:", "")
+                if code not in self.registry:
+                    channel_id = conn["access_token"]
+                    channel_name = conn.get("username", "unknown")
+                    try:
+                        print(f"📦 Archiving deprecated channel: #{channel_name} ({code})")
+                        client.conversations_archive(channel=channel_id)
+                        user_connections_store.delete_connection(service)
+                        results["archived"].append({"code": code, "name": channel_name, "id": channel_id})
+                    except SlackApiError as e:
+                        if e.response["error"] == "already_archived":
+                            user_connections_store.delete_connection(service)
+                        else:
+                            print(f"⚠️ Failed to archive #{channel_name}: {e.response['error']}")
+                            results["errors"].append(f"Failed to archive #{channel_name}: {e.response['error']}")
+        except Exception as e:
+            print(f"⚠️ Cleanup failed: {e}")
+
         # 2. Map Agent IDs to Bot User IDs (needed for invitations)
         agent_user_ids = {}
         for agent_id in ["alfredo", "vito", "riccardo", "rossini", "tommy", "bella", "kowalski", "giuseppina"]:

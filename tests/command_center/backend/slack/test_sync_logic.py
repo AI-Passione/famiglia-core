@@ -18,9 +18,15 @@ def test_sync_workspace_logic():
             "slack_bot:alfredo": {"access_token": "xoxb-alfredo"},
             "slack_bot:riccardo": {"access_token": "xoxb-riccardo"},
             "slack_owner": {"access_token": "U_OWNER"},
-            "slack_channel:ALFREDO_COMMAND": None, # Force creation
-            "slack_channel:CODE_REVIEWS": {"access_token": "C123", "username": "old-name"} # Force rename
+            "slack_channel:COMMAND_CENTER": None, # Force creation
+            "slack_channel:TECH": {"access_token": "C123", "username": "old-name"} # Force rename
         }.get(service)
+
+        # Mock list_connections to include a STALE channel
+        mock_store.list_connections.return_value = {
+            "slack_channel:TECH": {"access_token": "C123", "username": "old-name"},
+            "slack_channel:STALE_CHANNEL": {"access_token": "C404", "username": "stale"}
+        }
 
         # 2. Mock WebClient
         mock_client = MagicMock()
@@ -49,7 +55,7 @@ def test_sync_workspace_logic():
             # conversations_create returns new channel
             mock_client.conversations_create.return_value = {
                 "ok": True,
-                "channel": {"id": "C999", "name": "alfredo-command"}
+                "channel": {"id": "C999", "name": "command-center"}
             }
 
             # Run sync
@@ -58,11 +64,15 @@ def test_sync_workspace_logic():
             # Verifications
             print("Sync Results:", results)
             
-            # Check if create was called for ALFREDO_COMMAND
-            mock_client.conversations_create.assert_any_call(name="alfredo-command")
+            # Check if archive was called for STALE_CHANNEL
+            mock_client.conversations_archive.assert_called_with(channel="C404")
+            mock_store.delete_connection.assert_any_call("slack_channel:STALE_CHANNEL")
+
+            # Check if create was called for COMMAND_CENTER
+            mock_client.conversations_create.assert_any_call(name="command-center")
             
-            # Check if rename was called for CODE_REVIEWS (since it had 'old-name')
-            mock_client.conversations_rename.assert_called_with(channel="C123", name="code-reviews")
+            # Check if rename was called for TECH (since it had 'old-name')
+            mock_client.conversations_rename.assert_called_with(channel="C123", name="tech")
             
             # Check if invite was called (Alfredo invites Owner, then Riccardo, etc.)
             invites = [call.kwargs for call in mock_client.conversations_invite.call_args_list]

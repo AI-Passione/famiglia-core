@@ -47,8 +47,6 @@ class SlackProvisioningService:
         from famiglia_core.db.agents.context_store import context_store
         from famiglia_core.agents.orchestration.utils.task_helpers import TASK_TYPE_AGENT_GREETING
 
-        recurring_tasks = context_store.list_recurring_tasks()
-        
         for code, config in self.registry.items():
             primary_agent = config.get("primary")
             if not primary_agent:

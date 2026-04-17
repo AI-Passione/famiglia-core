@@ -252,17 +252,46 @@ class SlackProvisioningService:
         Uses Alfredo's token as the primary administrative client.
         """
         # 1. Get Alfredo's token
-        alfredo_token = user_connections_store.get_connection("slack_bot:alfredo")
-        if not alfredo_token:
+        alfredo_token_conn = user_connections_store.get_connection("slack_bot:alfredo")
+        if not alfredo_token_conn:
             return {"success": False, "error": "Alfredo is not connected. Please install Alfredo first."}
         
-        client = WebClient(token=alfredo_token["access_token"])
+        alfredo_token = alfredo_token_conn["access_token"]
+        client = WebClient(token=alfredo_token)
         try:
             auth = client.auth_test()
             print(f"📡 Syncing with Slack Workspace: {auth.get('team')} ({auth.get('url')})")
         except Exception as e:
             print(f"❌ Slack Auth Test failed: {e}")
             return {"success": False, "error": f"Slack Auth Test failed: {e}"}
+
+        # --- OWNER DISCOVERY ---
+        owner_id = None
+        owner_conn = user_connections_store.get_connection("slack_owner")
+        if owner_conn:
+            owner_id = owner_conn["access_token"]
+        
+        # Fallback 1: Programmatic Discovery via Primary Owner
+        if not owner_id:
+            try:
+                print("🔍 Programmatically identifying workspace owner...")
+                users_resp = client.users_list()
+                if users_resp["ok"]:
+                    for member in users_resp["members"]:
+                        if member.get("is_primary_owner"):
+                            owner_id = member["id"]
+                            print(f"👑 Found Primary Owner: {member.get('real_name')} ({owner_id})")
+                            # Cache it
+                            user_connections_store.upsert_connection(service="slack_owner", access_token=owner_id)
+                            break
+            except Exception as e:
+                print(f"⚠️ Programmatic owner discovery failed: {e}")
+
+        # Fallback 2: Environment Variable
+        if not owner_id:
+            owner_id = os.getenv("USER_SLACK_ID")
+            if owner_id:
+                print(f"🏠 Fallback to environment USER_SLACK_ID: {owner_id}")
 
         results = {"channels": [], "errors": []}
         
@@ -346,9 +375,18 @@ class SlackProvisioningService:
                     except SlackApiError as e:
                         results["errors"].append(f"Failed to rename #{desired_name}: {e.response['error']}")
 
-            # Join bots
+            # Join bots & owner
             if channel_id:
                 actual_agents_joined = []
+                
+                # Invite Owner first
+                if owner_id:
+                    try:
+                        client.conversations_invite(channel=channel_id, users=owner_id)
+                    except SlackApiError as e:
+                        if e.response["error"] not in ["already_in_channel", "cant_invite_self"]:
+                            print(f"⚠️ Failed to invite owner {owner_id} to #{desired_name}: {e.response['error']}")
+
                 for agent_id in required_agents:
                     bot_user_id = agent_user_ids.get(agent_id)
                     if not bot_user_id:

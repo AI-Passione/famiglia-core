@@ -67,6 +67,14 @@ async def agent_oauth_callback(
         scopes=res_data.get("scope")
     )
 
+    # 4. Capture the installer/owner ID if present
+    authed_user_id = res_data.get("authed_user", {}).get("id")
+    if authed_user_id:
+        user_connections_store.upsert_connection(
+            service="slack_owner",
+            access_token=authed_user_id
+        )
+
     # Note: For HTTP mode, we don't strictly need the xapp- token.
     # If the user is in Choice B (HTTP Mode), we are done here!
     

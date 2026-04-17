@@ -63,11 +63,13 @@ class UserConnectionsStore:
         avatar_url: Optional[str] = None,
         scopes: Optional[str] = None,
         app_id: Optional[str] = None,
+        refresh_token: Optional[str] = None,
     ) -> bool:
         """Encrypt and persist (or update) an OAuth connection for a service."""
         try:
             fernet = _get_fernet()
             encrypted_token = fernet.encrypt(access_token.encode()).decode()
+            encrypted_refresh = fernet.encrypt(refresh_token.encode()).decode() if refresh_token else None
 
             with context_store.db_session() as cursor:
                 if cursor is None:
@@ -75,17 +77,18 @@ class UserConnectionsStore:
                 cursor.execute(
                     """
                     INSERT INTO user_connections
-                        (service, username, avatar_url, access_token, scopes, app_id, connected_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+                        (service, username, avatar_url, access_token, scopes, app_id, refresh_token, connected_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                     ON CONFLICT (service) DO UPDATE SET
                         username     = EXCLUDED.username,
                         avatar_url   = EXCLUDED.avatar_url,
                         access_token = EXCLUDED.access_token,
                         scopes       = EXCLUDED.scopes,
                         app_id       = COALESCE(EXCLUDED.app_id, user_connections.app_id),
+                        refresh_token = COALESCE(EXCLUDED.refresh_token, user_connections.refresh_token),
                         updated_at   = NOW();
                     """,
-                    (service, username, avatar_url, encrypted_token, scopes, app_id),
+                    (service, username, avatar_url, encrypted_token, scopes, app_id, encrypted_refresh),
                 )
             print(f"[UserConnectionsStore] Upserted connection for service='{service}' user='{username}' app_id='{app_id}'")
             return True
@@ -105,7 +108,7 @@ class UserConnectionsStore:
                     return None
                 cursor.execute(
                     """
-                    SELECT service, username, avatar_url, access_token, scopes, app_id, connected_at, updated_at
+                    SELECT service, username, avatar_url, access_token, scopes, app_id, refresh_token, connected_at, updated_at
                     FROM user_connections
                     WHERE service = %s;
                     """,
@@ -123,11 +126,19 @@ class UserConnectionsStore:
                 print(f"[UserConnectionsStore] Failed to decrypt token for '{service}' — token may be stale.")
                 return None
 
+            decrypted_refresh = None
+            if row.get("refresh_token"):
+                try:
+                    decrypted_refresh = fernet.decrypt(row["refresh_token"].encode()).decode()
+                except Exception:
+                    pass
+
             return {
                 "service": row["service"],
                 "username": row["username"],
                 "avatar_url": row["avatar_url"],
                 "access_token": decrypted_token,
+                "refresh_token": decrypted_refresh,
                 "scopes": row["scopes"],
                 "app_id": row["app_id"],
                 "connected_at": row["connected_at"].isoformat() if row["connected_at"] else None,
@@ -162,6 +173,7 @@ class UserConnectionsStore:
                 "avatar_url": row["avatar_url"],
                 "scopes": row["scopes"],
                 "app_id": row["app_id"],
+                "rotatable": bool(row.get("refresh_token")),
                 "connected_at": row["connected_at"].isoformat() if row["connected_at"] else None,
             }
         except Exception as e:
@@ -176,7 +188,7 @@ class UserConnectionsStore:
                     return {}
                 cursor.execute(
                     """
-                    SELECT service, username, avatar_url, access_token, scopes, app_id, connected_at
+                    SELECT service, username, avatar_url, access_token, scopes, app_id, refresh_token, connected_at
                     FROM user_connections
                     WHERE service LIKE %s;
                     """,
@@ -189,10 +201,18 @@ class UserConnectionsStore:
             for row in rows:
                 try:
                     decrypted_token = fernet.decrypt(row["access_token"].encode()).decode()
+                    decrypted_refresh = None
+                    if row.get("refresh_token"):
+                         try:
+                             decrypted_refresh = fernet.decrypt(row["refresh_token"].encode()).decode()
+                         except Exception:
+                             pass
+                             
                     results[row["service"]] = {
                         "username": row["username"],
                         "avatar_url": row["avatar_url"],
                         "access_token": decrypted_token,
+                        "refresh_token": decrypted_refresh,
                         "scopes": row["scopes"],
                         "app_id": row["app_id"],
                         "connected_at": row["connected_at"].isoformat() if row["connected_at"] else None,

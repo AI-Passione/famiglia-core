@@ -254,6 +254,7 @@ CREATE TABLE IF NOT EXISTS user_connections (
   username     VARCHAR(255),
   avatar_url   TEXT,
   access_token TEXT         NOT NULL,   -- Fernet-encrypted
+  refresh_token TEXT,                    -- Fernet-encrypted
   scopes       TEXT,
   connected_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at   TIMESTAMPTZ DEFAULT NOW(),

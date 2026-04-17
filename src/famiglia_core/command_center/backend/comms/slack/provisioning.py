@@ -140,6 +140,33 @@ class SlackProvisioningService:
         
         return results
 
+    def _rotate_bootstrap_token(self, refresh_token: str) -> Optional[str]:
+        """Rotates the Slack App Configuration Token using the tooling.tokens.rotate API."""
+        print("🔄 Rotating Slack App Configuration Token...")
+        try:
+            response = requests.post(
+                "https://slack.com/api/tooling.tokens.rotate",
+                data={"refresh_token": refresh_token},
+                timeout=10
+            )
+            data = response.json()
+            if data.get("ok"):
+                new_token = data.get("token")
+                new_refresh = data.get("refresh_token")
+                user_connections_store.upsert_connection(
+                    service="slack_bootstrap",
+                    access_token=new_token,
+                    refresh_token=new_refresh,
+                    username="Bootstrapper"
+                )
+                print("✅ Token rotated successfully.")
+                return new_token
+            else:
+                print(f"❌ Token rotation failed: {data.get('error')}")
+        except Exception as e:
+            print(f"❌ Error during token rotation: {e}")
+        return None
+
     def provision_famiglia(self, app_level_token: str = None) -> List[Dict[str, Any]]:
         """
         Create or update Slack apps for the entire Famiglia roster.
@@ -148,6 +175,19 @@ class SlackProvisioningService:
             conn = user_connections_store.get_connection("slack_bootstrap")
             if conn:
                 app_level_token = conn["access_token"]
+                refresh_token = conn.get("refresh_token")
+                updated_at_str = conn.get("updated_at")
+                
+                # Auto-Rotation Check: If token is > 10 hours old and we have a refresh token, rotate it.
+                if refresh_token and updated_at_str:
+                    try:
+                        updated_at = datetime.fromisoformat(updated_at_str)
+                        if (datetime.now(timezone.utc) - updated_at).total_seconds() > 36000: # 10 hours
+                             rotated_token = self._rotate_bootstrap_token(refresh_token)
+                             if rotated_token:
+                                 app_level_token = rotated_token
+                    except Exception as e:
+                        print(f"⚠️ Failed to auto-check token rotation: {e}")
         
         if not app_level_token:
             raise ValueError("No Slack App Configuration Token found. Please provide one in the setup.")
@@ -283,7 +323,26 @@ class SlackProvisioningService:
                 else:
                     print(f"❌ Failed to process {agent_id}: {response['error']}")
             except SlackApiError as e:
-                print(f"❌ Slack API Error for {agent_id}: {e.response['error']}")
+                error_code = e.response['error']
+                print(f"❌ Slack API Error for {agent_id}: {error_code}")
+                
+                # If token expired during the loop, try ONE rotation and retry this agent
+                if error_code == "token_expired":
+                    conn = user_connections_store.get_connection("slack_bootstrap")
+                    if conn and conn.get("refresh_token"):
+                        new_token = self._rotate_bootstrap_token(conn["refresh_token"])
+                        if new_token:
+                            print(f"🔄 Retrying {agent_id} with new token...")
+                            client = WebClient(token=new_token)
+                            # Simple one-time retry
+                            try:
+                                if app_id:
+                                    client.apps_manifest_update(app_id=app_id, manifest=manifest_str)
+                                else:
+                                    client.apps_manifest_create(manifest=manifest_str)
+                                print(f"✅ Retry successful for {agent_id}")
+                            except Exception as re:
+                                print(f"❌ Retry failed for {agent_id}: {re}")
             except Exception as e:
                 print(f"❌ Unexpected error manifesting {agent_id}: {e}")
                 

@@ -84,14 +84,8 @@ def test_format_agent_message_minimalist(client):
 
 def test_user_connections_store_decryption_error_logging(mocker):
     """Verify that decryption errors are logged to stdout."""
-    import importlib
-    from famiglia_core.db.tools import user_connections_store as ucs_module
-    
-    # Force reload to clear any potential mocks from other tests
-    importlib.reload(ucs_module)
-    UserConnectionsStore = ucs_module.UserConnectionsStore
-    context_store = ucs_module.context_store
-    
+    from famiglia_core.db.tools.user_connections_store import UserConnectionsStore, _get_fernet
+    from famiglia_core.db.agents.context_store import AgentContextStore, context_store
     from contextlib import contextmanager
     
     # 1. Force context_store to be enabled
@@ -100,11 +94,12 @@ def test_user_connections_store_decryption_error_logging(mocker):
     # 2. Mock the encryption provider to force a failure
     mock_fernet = MagicMock()
     mock_fernet.decrypt.side_effect = Exception("Mock decryption error")
-    mocker.patch.object(ucs_module, "_get_fernet", return_value=mock_fernet)
+    mocker.patch("famiglia_core.db.tools.user_connections_store._get_fernet", return_value=mock_fernet)
     
     # 3. Mock print
     mock_print = mocker.patch("builtins.print")
-    mocker.patch.object(ucs_module, "print", mock_print)
+    # Also patch it in the module just in case it was already bound
+    mocker.patch("famiglia_core.db.tools.user_connections_store.print", mock_print)
     
     # 4. Create a mock cursor with a row to "decrypt"
     mock_cursor = MagicMock()
@@ -120,18 +115,22 @@ def test_user_connections_store_decryption_error_logging(mocker):
         }
     ]
     
-    # 5. Mock the db_session context manager on the actual instance
+    # 5. Mock the db_session context manager on the class level to ensure it affects all instances
     @contextmanager
     def mock_db_session(*args, **kwargs):
         yield mock_cursor
         
-    mocker.patch.object(context_store, "db_session", side_effect=mock_db_session)
+    mocker.patch.object(AgentContextStore, "db_session", side_effect=mock_db_session)
     
     store = UserConnectionsStore()
     results = store.list_connections("slack_bot:")
     
     # 6. Verify that print was called with the failure message
-    found = any("Failed to decrypt service" in str(call) and "slack_bot:broken" in str(call) for call in mock_print.call_args_list)
+    mock_print.assert_called()
+    found = any(
+        "Failed to decrypt service" in str(call) and "slack_bot:broken" in str(call)
+        for call in mock_print.call_args_list
+    )
     
     assert found
     assert "slack_bot:broken" not in results

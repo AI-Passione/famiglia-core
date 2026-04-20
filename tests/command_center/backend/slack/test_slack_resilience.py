@@ -82,9 +82,10 @@ def test_format_agent_message_minimalist(client):
         assert "Agent: Rossini" not in footer_text
         assert "La Famiglia Core" in footer_text
 
-def test_user_connections_store_decryption_error_logging(mocker):
-    """Verify that decryption errors are logged to stdout."""
-    from famiglia_core.db.tools.user_connections_store import UserConnectionsStore, _get_fernet
+def test_user_connections_store_decryption_error_logging(capsys, mocker):
+    """Verify that decryption errors are logged to stdout using capsys."""
+    from famiglia_core.db.tools.user_connections_store import UserConnectionsStore
+    import famiglia_core.db.tools.user_connections_store as ucs_module
     from famiglia_core.db.agents.context_store import AgentContextStore, context_store
     from contextlib import contextmanager
     
@@ -94,14 +95,9 @@ def test_user_connections_store_decryption_error_logging(mocker):
     # 2. Mock the encryption provider to force a failure
     mock_fernet = MagicMock()
     mock_fernet.decrypt.side_effect = Exception("Mock decryption error")
-    mocker.patch("famiglia_core.db.tools.user_connections_store._get_fernet", return_value=mock_fernet)
+    mocker.patch.object(ucs_module, "_get_fernet", return_value=mock_fernet)
     
-    # 3. Mock print
-    mock_print = mocker.patch("builtins.print")
-    # Also patch it in the module just in case it was already bound
-    mocker.patch("famiglia_core.db.tools.user_connections_store.print", mock_print)
-    
-    # 4. Create a mock cursor with a row to "decrypt"
+    # 3. Create a mock cursor with a row to "decrypt"
     mock_cursor = MagicMock()
     mock_cursor.fetchall.return_value = [
         {
@@ -115,7 +111,7 @@ def test_user_connections_store_decryption_error_logging(mocker):
         }
     ]
     
-    # 5. Mock the db_session context manager on the class level to ensure it affects all instances
+    # 4. Mock the db_session context manager on the class level
     @contextmanager
     def mock_db_session(*args, **kwargs):
         yield mock_cursor
@@ -125,12 +121,7 @@ def test_user_connections_store_decryption_error_logging(mocker):
     store = UserConnectionsStore()
     results = store.list_connections("slack_bot:")
     
-    # 6. Verify that print was called with the failure message
-    mock_print.assert_called()
-    found = any(
-        "Failed to decrypt service" in str(call) and "slack_bot:broken" in str(call)
-        for call in mock_print.call_args_list
-    )
-    
-    assert found
+    # 5. Capture stdout and verify the message
+    captured = capsys.readouterr()
+    assert "Failed to decrypt service 'slack_bot:broken'" in captured.out
     assert "slack_bot:broken" not in results

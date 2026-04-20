@@ -77,6 +77,8 @@ class SlackProvisioningService:
                         "channel_name": config["name"]
                     }
                 )
+            else:
+                print(f"  - Skipping greeting (already exists): {title}")
 
     def _get_public_url(self) -> Optional[str]:
         """Fetch the public URL from environment or ngrok container's API."""
@@ -579,6 +581,14 @@ class SlackProvisioningService:
                         )
                     except SlackApiError as e:
                         results["errors"].append(f"Failed to rename #{desired_name}: {e.response['error']}")
+
+            # Persist resolved ID if it wasn't already in DB
+            if channel_id and not stored_ref:
+                user_connections_store.upsert_connection(
+                    service=f"slack_channel:{code}",
+                    access_token=channel_id,
+                    username=desired_name
+                )
 
             # Join bots & owner
             if channel_id:

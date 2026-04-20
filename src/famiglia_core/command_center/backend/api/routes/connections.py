@@ -206,26 +206,37 @@ async def handle_slack_event(agent_id: str, request: Request):
         print(f"[SlackBridge] Verifying URL for agent: {agent_id}")
         return {"challenge": body.get("challenge")}
 
-    # 2. De-duplicate or basic validation
+    # 2. Extract Event
     event = body.get("event")
     if not event:
-        # Could be an interactive action or command if not wrapped in 'event'
-        # but the manifest currently points here for 'event_subscriptions'
+        # Check if it is an challenge request (handled above) or some other type
+        event_type = body.get("type", "unknown")
+        print(f"[SlackBridge] ℹ️ Non-event payload received: {event_type}", flush=True)
         return {"ok": True}
 
+    event_ts = event.get("event_ts") or event.get("ts")
+    event_type = event.get("type")
+    
     # 3. Resolve the bot_id for this agent (needed for mention filtering)
     bot_id = slack_queue.bot_ids.get(agent_id)
     if not bot_id:
         # Try to resolve on the fly if missing from cache
-        conn = user_connections_store.get_connection(f"slack_bot:{agent_id}")
-        if conn:
-            bot_id = conn.get("username") # In our store, username is the bot_user_id
+        print(f"[SlackBridge] 🔍 Resolving bot_id for {agent_id}...", flush=True)
+        bot_id = slack_queue.refresh_bot_id(agent_id)
+        if not bot_id:
+            # Try DB fallback if API call failed
+            conn = user_connections_store.get_connection(f"slack_bot:{agent_id}")
+            if conn:
+                bot_id = conn.get("username")
+                if bot_id:
+                    slack_queue.bot_ids[agent_id] = bot_id
+                    slack_queue.bot_id_to_name[bot_id] = agent_id
     
     if not bot_id:
-        print(f"[SlackBridge] WARNING: Could not resolve bot_id for {agent_id}. Event may be misrouted.")
+        print(f"[SlackBridge] ⚠️ WARNING: Could not resolve bot_id for {agent_id}. Event will be enqueued but may be ignored by filter.", flush=True)
 
-    # 4. Enqueue for the shared Slack Worker (main.py's thread)
-    print(f"[SlackBridge] 📨 Dequeued {event.get('type')} for {agent_id} (TS: {event.get('ts')})")
+    # 4. Enqueue for the shared Slack Worker
+    print(f"[SlackBridge] 📨 Dequeued '{event_type}' for {agent_id} (TS: {event_ts})", flush=True)
     payload = {
         "event": event,
         "agent_id": agent_id,

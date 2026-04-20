@@ -282,6 +282,27 @@ class SlackQueueClient(CommsQueue):
         self.user_name_cache[user_id] = fallback_name
         return fallback_name
 
+    def refresh_bot_id(self, agent_id: str) -> Optional[str]:
+        """Manually refresh the bot_id for a specific agent by calling auth_test."""
+        token = self.agent_tokens.get(agent_id)
+        if not token:
+            print(f"[SlackQueue] 🔍 Refresh failed: No token found for {agent_id}")
+            return None
+            
+        try:
+            client = WebClient(token=token)
+            auth = client.auth_test()
+            user_id = auth.get("user_id")
+            if user_id:
+                self.clients[agent_id] = client
+                self.bot_ids[agent_id] = user_id
+                self.bot_id_to_name[user_id] = agent_id
+                print(f"[SlackQueue 🔄] Refreshed {agent_id} bot_id: {user_id}")
+                return user_id
+        except Exception as e:
+            print(f"[SlackQueue 🔄] Error refreshing {agent_id}: {e}")
+        return None
+
     def _lookup_slack_user_name(self, user_id: str) -> Optional[str]:
         """Try to resolve a Slack user's display/real name via users.info."""
         for client in self.clients.values():

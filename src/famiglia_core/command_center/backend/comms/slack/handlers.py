@@ -102,8 +102,10 @@ def should_process_message_event(
 
     should_handle = is_direct_message or is_direct_mention or is_dev_thread_reply
     
-    if should_handle:
-        print(f"[Filter] Bot {current_bot_id}: handle={should_handle} (DM={is_direct_message}, Mention={is_direct_mention}, DevThread={is_dev_thread_reply})")
+    if not should_handle:
+        print(f"[Filter] ⏩ Ignored event for bot {current_bot_id}: DM={is_direct_message}, Mention={is_direct_mention}, DevThread={is_dev_thread_reply}", flush=True)
+    else:
+        print(f"[Filter] ✅ Processing event for bot {current_bot_id}: (Type: {event.get('type')})", flush=True)
 
     return should_handle
 
@@ -161,13 +163,15 @@ def process_incoming_event(
                     print(f"[Acknowledge] {agent_obj.name} join failed (might be private/already in): {je}")
 
             # 3b. Add reaction
-            print(f"[Acknowledge] {agent_obj.name} reacting with :{ack_emoji}: to msg {ts} in {channel}")
+            print(f"[Acknowledge] {agent_obj.name} reacting with :{ack_emoji}: to msg {ts} in {channel}", flush=True)
             client_to_use.reactions_add(
                 name=ack_emoji,
                 channel=channel,
                 timestamp=ts
             )
+            print(f"[Acknowledge] ✅ {agent_obj.name} successfully reacted.", flush=True)
         except Exception as e:
+            print(f"[Acknowledge] ❌ {agent_obj.name} reaction failed: {e}", flush=True)
             if "already_reacted" not in str(e):
                 print(f"[Acknowledge] {agent_obj.name} failed to add reaction/join: {e}")
     else:

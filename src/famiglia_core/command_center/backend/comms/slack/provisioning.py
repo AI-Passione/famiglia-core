@@ -238,7 +238,7 @@ class SlackProvisioningService:
                             manifest_data['settings'] = {}
                         manifest_data['settings']['socket_mode_enabled'] = False
                         
-                        events_url = f"{public_url}/api/v1/comms/slack/events/{agent_id}"
+                        events_url = f"{public_url}/api/v1/connections/slack/events/{agent_id}"
                         if 'event_subscriptions' not in manifest_data['settings']:
                             manifest_data['settings']['event_subscriptions'] = {}
                         manifest_data['settings']['event_subscriptions']['request_url'] = events_url

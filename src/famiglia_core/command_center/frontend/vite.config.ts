@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
       },
       hmr: {
         protocol: env.VITE_HMR_PROTOCOL || 'ws',
-        clientPort: env.VITE_HMR_PROTOCOL === 'wss' ? 443 : (env.VITE_HMR_PORT || 80),
+        clientPort: env.VITE_HMR_PROTOCOL === 'wss' ? 443 : Number(env.VITE_HMR_PORT || 80),
       },
       watch: {
         usePolling: true,

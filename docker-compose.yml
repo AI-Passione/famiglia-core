@@ -120,7 +120,7 @@ services:
   ollama:
     image: ollama/ollama:latest
     ports:
-      - "127.0.0.1:11434:11434"
+      - "127.0.0.1:11435:11434"
     environment:
       # Relaxed settings for Docker compatibility with local models
       - OLLAMA_KEEP_ALIVE=0 # Unload instantly to prevent cross-agent RAM collision

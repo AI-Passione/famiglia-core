@@ -83,7 +83,7 @@ def test_format_agent_message_minimalist(client):
         assert "La Famiglia Core" in footer_text
 
 @patch("famiglia_core.db.tools.user_connections_store.pool.SimpleConnectionPool")
-def test_user_connections_store_decryption_error_logging(mock_pool_class, capsys):
+def test_user_connections_store_decryption_error_logging(mock_pool_class, mocker):
     """Verify that decryption errors are logged to stdout."""
     from famiglia_core.db.tools.user_connections_store import UserConnectionsStore
     
@@ -93,6 +93,9 @@ def test_user_connections_store_decryption_error_logging(mock_pool_class, capsys
     mock_cursor = MagicMock()
     mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
     
+    # Mock print
+    mock_print = mocker.patch("builtins.print")
+    
     # Simulate a row that will fail decryption
     mock_cursor.fetchall.return_value = [
         {"service": "slack_bot:broken", "access_token": "not-encrypted-garbage", "app_id": "A123", "connected_at": None}
@@ -101,6 +104,12 @@ def test_user_connections_store_decryption_error_logging(mock_pool_class, capsys
     store = UserConnectionsStore()
     results = store.list_connections("slack_bot:")
     
-    captured = capsys.readouterr()
-    assert "❌ Failed to decrypt service 'slack_bot:broken'" in captured.out
+    # Verify that print was called with the failure message
+    # Filter calls to find our decryption failure message
+    found = False
+    for call in mock_print.call_args_list:
+        if "❌ Failed to decrypt service 'slack_bot:broken'" in call[0][0]:
+            found = True
+            break
+    assert found
     assert "broken" not in results

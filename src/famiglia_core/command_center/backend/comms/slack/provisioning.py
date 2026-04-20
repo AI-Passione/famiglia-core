@@ -82,35 +82,45 @@ class SlackProvisioningService:
 
     def _get_public_url(self) -> Optional[str]:
         """Fetch the public URL from environment or ngrok container's API."""
+        print("🔍 Attempting to detect Public Tunnel...")
         # 1. Check direct environment overrides first (including NGROK_DOMAIN)
         env_url = (
             os.getenv("PUBLIC_URL") or 
-            os.getenv("SLACK_REDIRECT_HOST") or
-            os.getenv("NGROK_DOMAIN")
+            os.getenv("SLACK_REDIRECT_HOST")
         )
+        # NGROK_DOMAIN might be set but we prefer detecting the active dynamic tunnel if NGROK_DOMAIN is empty
+        static_domain = os.getenv("NGROK_DOMAIN")
+        if static_domain and not env_url:
+            env_url = static_domain
+
         if env_url:
             # If NGROK_DOMAIN is just 'foo.ngrok-free.app', prefix it
             if "://" not in env_url:
                 env_url = f"https://{env_url}"
+            print(f"📍 Using configured Public URL: {env_url}")
             return env_url.rstrip("/")
 
-        # 2. Try to detect from ngrok's local API
-        try:
-            # We use 'ngrok' as the hostname since it's the service name in docker-compose
-            for host in ["ngrok", "localhost"]:
-                try:
-                    response = requests.get(f"http://{host}:4040/api/tunnels", timeout=1)
-                    if response.ok:
-                        tunnels = response.json().get("tunnels", [])
-                        # Prioritize https, then http
-                        for proto in ["https", "http"]:
-                            tunnel = next((t for t in tunnels if t.get("proto") == proto), None)
-                            if tunnel:
-                                return tunnel.get("public_url").rstrip("/")
-                except Exception:
-                    continue
-        except Exception as e:
-            print(f"⚠️  Could not detect public URL: {e}")
+        # 2. Try to detect from ngrok's local API (inside Docker network or local)
+        # Service name 'ngrok' is and '127.0.0.1' are prime candidates
+        for host in ["ngrok", "127.0.0.1", "localhost"]:
+            try:
+                url = f"http://{host}:4040/api/tunnels"
+                print(f"📡 Checking ngrok API at {url}...")
+                response = requests.get(url, timeout=2)
+                if response.ok:
+                    tunnels = response.json().get("tunnels", [])
+                    # Prioritize https, then http
+                    for proto in ["https", "http"]:
+                        tunnel = next((t for t in tunnels if t.get("proto") == proto), None)
+                        if tunnel:
+                            public_url = tunnel.get("public_url").rstrip("/")
+                            print(f"🌐 SUCCESS: Detected dynamic tunnel: {public_url}")
+                            return public_url
+            except Exception as e:
+                # Silently continue to next host candidate
+                continue
+                
+        print("⚠️  No public tunnel detected via API.")
         return None
 
     def cleanup_orphaned_apps(self, client: WebClient) -> Dict[str, Any]:
@@ -238,7 +248,7 @@ class SlackProvisioningService:
                             manifest_data['settings'] = {}
                         manifest_data['settings']['socket_mode_enabled'] = False
                         
-                        events_url = f"{public_url}/api/v1/comms/slack/events/{agent_id}"
+                        events_url = f"{public_url}/api/v1/connections/slack/events/{agent_id}"
                         if 'event_subscriptions' not in manifest_data['settings']:
                             manifest_data['settings']['event_subscriptions'] = {}
                         manifest_data['settings']['event_subscriptions']['request_url'] = events_url

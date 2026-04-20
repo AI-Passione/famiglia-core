@@ -133,6 +133,12 @@ class PaginatedConversations(BaseModel):
     conversations: List[ConversationLog]
     total: int
 
+@app.post("/api/v1/comms/slack/events/{agent_id}")
+async def legacy_slack_event_bridge(agent_id: str, request: Request):
+    """Legacy compatibility bridge for Slack events."""
+    from famiglia_core.command_center.backend.api.routes.connections import handle_slack_event
+    return await handle_slack_event(agent_id, request)
+
 # --- Core Informational Routes ---
 
 @app.get("/")

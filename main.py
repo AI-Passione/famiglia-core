@@ -9,9 +9,7 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
 
-# Load configuration from .env as early as possible so that any module
-# importing slack_queue (which constructs their singletons immediately)
-# can read the proper tokens.
+# Load configuration from .env as early as possible
 load_dotenv()
 
 from famiglia_core.command_center.backend.comms.slack.client import slack_queue
@@ -40,16 +38,12 @@ from famiglia_core.command_center.backend.comms.slack.handlers import (
     should_handle_message
 )
 
-# load_dotenv() moved to the top of the file for early availability.
-
 apps = {} # Global registry for Socket Mode apps
-
 
 def main():
     print("🎩 Starting Passione Inc. Agent Famiglia...")
     global apps
     
-    # load_dotenv() called at module level
     ack_emoji = os.getenv("SLACK_ACK_EMOJI", "eyes")
     app_env = os.getenv("APP_ENV", "production").lower()
     raw_dev_channel = os.getenv("DEV_CHANNEL_ID")
@@ -58,7 +52,7 @@ def main():
     if app_env != "development" and not dev_channel_id:
         pass
 
-    # 0. Wait for Ollama service to be truly ready across the Docker network
+    # 0. Wait for Ollama service
     print("\n[Startup] Synchronizing with Ollama service...")
     max_wait = 30
     ready = False
@@ -70,11 +64,10 @@ def main():
         time.sleep(1)
     
     if not ready:
-        print("[Startup] WARNING: Ollama service not reachable. Continuing with limited capabilities.")
+        print("[Startup] WARNING: Ollama service not reachable.")
 
     # 1. Ensure local Ollama fallback is ready
     client.ensure_ollama_ready(auto_pull=True)
-
 
     # 2. Initialize DB
     init_db()
@@ -90,200 +83,98 @@ def main():
         "kowalski": Kowalski()
     }
     
-    # Register the Weekday Greeting task if it doesn't exist
+    # Register recurring tasks
     recurring_tasks = context_store.list_recurring_tasks()
     if not any(t["title"].startswith("Daily Greeting") for t in recurring_tasks):
         context_store.create_recurring_task(
             title="Daily Greeting & Status Overview",
             task_payload="Greet Don Jimmy and show the latest scheduled task status.",
-            schedule_config={"days": [0, 1, 2, 3, 4], "hour": 9, "minute": 0}, # Mon-Fri 9am
+            schedule_config={"days": [0, 1, 2, 3, 4], "hour": 9, "minute": 0},
             expected_agent="alfredo",
             priority="high",
             metadata={"task_type": TASK_TYPE_ALFREDO_GREETING}
         )
         
-    if not any(t["title"].startswith("Weekly Competitive Intelligence") for t in recurring_tasks):
-        context_store.create_recurring_task(
-            title="Weekly Competitive Intelligence & Market Trends",
-            task_payload="Perform market research on the latest trends in autonomous AI agents for enterprise efficiency.",
-            schedule_config={"days": [0], "hour": 10, "minute": 0}, # Mondays at 10am
-            expected_agent="rossini",
-            priority="medium",
-            metadata={"task_type": TASK_TYPE_MARKET_RESEARCH}
-        )
     print(f"Registered {len(agents)} agents: {', '.join(agents.keys())}")
-    
-    if not any(t["title"].startswith("Daily PRD Feedback Scan") for t in recurring_tasks):
-        context_store.create_recurring_task(
-            title="Daily PRD Feedback Scan",
-            task_payload="Scan all Notion PRDs for unaddressed comments (where the last comment is from a human) and address them.",
-            schedule_config={"days": [0, 1, 2, 3, 4], "hour": 9, "minute": 30},
-            expected_agent="rossini",
-            priority="medium",
-            metadata={"task_type": TASK_TYPE_PRD_AUTOSCAN}
-        )
 
-    # 3.25 Start autonomous scheduled task execution + control panel
-    scheduled_enabled = os.getenv(
-        "SCHEDULED_TASKS_ENABLED",
-        os.getenv("BATCHED_TASKS_ENABLED", "true"),
-    ).strip().lower() not in {
-        "0",
-        "false",
-        "no",
-    }
+    # Start autonomous orchestration
+    scheduled_enabled = os.getenv("SCHEDULED_TASKS_ENABLED", "true").lower() == "true"
     if scheduled_enabled:
         task_orchestrator.configure(agents)
-        # Deferred: task_orchestrator.start() moved to end of setup
-    else:
-        print("[ScheduledTasks] Disabled by configuration.")
 
-    
-    # 3.5 Pre-pull agent fallback models
-    print("Ensuring agent local models are allocated and pulled if RAM permits...")
-    client.allocate_resources(list(agents.values()))
-
-    # 3.5b Pull ALL models declared in models.json (registry-driven)
-    # This ensures newly-added models (e.g. gemma4:e2b) are installed on
-    # first boot without any manual ollama pull.
+    # 3.5 Pull models
     print("\n[Registry] Ensuring all registered models are installed...")
-    
     if client._is_ollama_service_available():
         for model_entry in get_all_models():
             tag = model_entry["tag"]
-            desc = model_entry.get("description", "")
-            print(f"[Registry]   Checking {tag} ({desc})")
             client._ensure_model_pulled(tag, host=client.ollama_host)
-            
-            if client._is_remote_ollama_available():
-                client._ensure_model_pulled(tag, host=client.ollama_remote_host)
-    else:
-        print("[Registry] WARNING: Ollama service not reachable. Startup pulls deferred.")
-
-    # Create readiness sentinel for entrypoint.sh / Command Center API
+    
+    # Emission of readiness signal
     try:
         with open("/tmp/famiglia_engine_ready", "w") as f:
             f.write("ready")
-        print("[Startup] Engine readiness signal emitted.")
-    except Exception as e:
-        print(f"[Startup] Warning: Could not write readiness signal: {e}")
+    except OSError as e:
+        print(f"[Warning] Could not write readiness signal to /tmp/famiglia_engine_ready: {e}")
 
-
-
-
-    
-    # 3.6 Display Famiglia Model Readiness Report
-    print("\n" + "="*52)
-    print("      🇮🇹  FAMIGLIA MODEL READINESS REPORT  🇮🇹")
-    print("="*52)
-    report = client.get_model_status_report()
-    for model, status in report.items():
-        local_s  = "✅ INSTALLED" if status["local"]  else "❌ MISSING"
-        remote_s = "✅ INSTALLED" if status["remote"] else "❌ MISSING"
-        print(f"Model: {model:25} | Local: {local_s:12} | Remote: {remote_s:12}")
-    print("="*52)
-
-    # 3.7 Display Task Routing Table (driven by models_registry)
-    print("\n      ⚙️   TASK ROUTING TABLE  ⚙️")
-    print("-"*52)
-    registered = {m["tag"]: m["description"] for m in get_all_models()}
-    for task_mode, model_tag in TASK_ROUTING.items():
-        desc = registered.get(model_tag, "")
-        print(f"  {task_mode:<8} → {model_tag:<25} {desc}")
-    print("="*52 + "\n")
-    
     # 4. Start Slack Worker
     print("Starting Slack message queue worker...")
     slack_queue.start_worker()
     
-    # 5. Start Socket Mode Handlers for all bots
+    # 5. Start Socket Mode Handlers
     app_token = slack_queue.app_token
     handlers = []
     
-    # 4a. Start Agent Listeners
-    for agent_id, token in slack_queue.agent_tokens.items():
-        # Get specific app token for this agent, fallback to global one
-        agent_app_token = slack_queue.agent_app_tokens.get(agent_id) or app_token
+    def setup_agent_events(current_app, current_agent_id, current_bot_id):
+        def enqueue_event(event):
+            print(f"[{current_agent_id}] Received event {event.get('ts')}, enqueuing...")
+            payload = {
+                "event": event,
+                "agent_id": current_agent_id,
+                "bot_id": current_bot_id
+            }
+            slack_queue.enqueue_incoming(payload)
+
+        @current_app.event("app_mention")
+        def handle_mention(event, say):
+            enqueue_event(event)
+
+        @current_app.event("message")
+        def handle_messages(event, say):
+            enqueue_event(event)
         
-        if not token:
-            print(f"[{agent_id}] no bot token found; listener will not start.")
-            continue
-        if not agent_app_token:
-            print(f"[{agent_id}] no app token found; listener will not start.")
-            continue
+        @current_app.action(re.compile(".*"))
+        def handle_actions(ack, body, say):
+            ack()
+            payload = {"event": body, "agent_id": current_agent_id, "bot_id": current_bot_id, "event_type": "action"}
+            slack_queue.enqueue_incoming(payload)
+    
+    # 4a. Initial Listeners
+    for agent_id, token in slack_queue.agent_tokens.items():
+        agent_app_token = slack_queue.agent_app_tokens.get(agent_id) or app_token
+        if not token or not agent_app_token: continue
             
         bot_id = slack_queue.bot_ids.get(agent_id)
-        if not bot_id:
-            print(f"[{agent_id}] authentication failed or bot_id missing; listener will not start.")
+        if not bot_id: continue
+            
+        transport = slack_queue.agent_transports.get(agent_id, "socket")
+        if transport == "http":
+            print(f"[{agent_id}] HTTP Mode active. skipping socket listener.")
             continue
 
-        print(f"Initializing listener for {agent_id} ({bot_id})...")
+        print(f"Initializing listener for {agent_id}...")
         app = App(token=token)
+        setup_agent_events(app, agent_id, bot_id)
+        apps[agent_id] = app
         
-        # Route mentions to the specific agent
-        agent_obj = agents.get(agent_id)
-        if agent_obj:
-            def setup_agent_events(current_app, current_agent_id, current_bot_id):
-                def enqueue_event(event):
-                    # Enqueue for background processing. 
-                    # We return as fast as possible to Slack to avoid dropping events.
-                    # Reactions and processing happen in the worker thread pool.
-                    print(f"[{current_agent_id}] Received event {event.get('ts')}, enqueuing...")
-                    payload = {
-                        "event": event,
-                        "agent_id": current_agent_id,
-                        "bot_id": current_bot_id
-                    }
-                    slack_queue.enqueue_incoming(payload)
-
-                # Register for both app_mention and message
-                # Purely non-blocking: just enqueue everything to Redis.
-                @current_app.event("app_mention")
-                def handle_mention(event, say):
-                    enqueue_event(event)
-
-                @current_app.event("message")
-                def handle_messages(event, say):
-                    enqueue_event(event)
-                
-                @current_app.action(re.compile(".*"))
-                def handle_actions(ack, body, say):
-                    ack()
-                    print(f"[{current_agent_id}] Received action, enqueuing...")
-                    payload = {
-                        "event": body,
-                        "agent_id": current_agent_id,
-                        "bot_id": current_bot_id,
-                        "event_type": "action"
-                    }
-                    slack_queue.enqueue_incoming(payload)
-                
-                @current_app.command(re.compile("/.*"))
-                def handle_commands(ack, body, say):
-                    ack()
-                    print(f"[{current_agent_id}] Received command {body.get('command')}, enqueuing...")
-                    payload = {
-                        "event": body,
-                        "agent_id": current_agent_id,
-                        "bot_id": current_bot_id,
-                        "event_type": "command"
-                    }
-                    slack_queue.enqueue_incoming(payload)
-
-            setup_agent_events(app, agent_id, bot_id)
-            apps[agent_id] = app
-
-            handler = SocketModeHandler(app, agent_app_token)
-            handler.connect()
-            handlers.append(handler)
+        handler = SocketModeHandler(app, agent_app_token)
+        handler.connect()
+        handlers.append(handler)
 
     def dynamic_listener_watcher():
-        """Background thread to detect new tokens in DB and start listeners."""
         nonlocal handlers
         while True:
-            time.sleep(10) # Check every 10s
+            time.sleep(10)
             try:
-                # Refresh tokens from DB
                 from famiglia_core.db.tools.user_connections_store import user_connections_store
                 db_bot_tokens = user_connections_store.list_connections("slack_bot:")
                 db_socket_tokens = user_connections_store.list_connections("slack_socket:")
@@ -293,76 +184,61 @@ def main():
                     token = conn["access_token"]
                     socket_token = db_socket_tokens.get(f"slack_socket:{agent_id}", {}).get("access_token")
                     
-                    if not socket_token: continue
+                    if not socket_token or agent_id in apps:
+                        continue
                     
-                    # If we don't have a listener for this agent yet, start one
-                    if agent_id not in apps:
-                        print(f"[DynamicWatcher] New token detected for {agent_id}. Starting listener...")
-                        
-                        # We need to update slack_queue as well so outgoing messages work
+                    creds_conn = user_connections_store.get_connection(f"slack_creds:{agent_id}")
+                    transport = "socket"
+                    if creds_conn:
+                        try:
+                            cdata = json.loads(creds_conn["access_token"])
+                            transport = cdata.get("transport", "socket")
+                        except (json.JSONDecodeError, KeyError, TypeError):
+                            # Invalid/missing stored creds payload: keep default "socket" transport.
+                            pass
+                    
+                    if transport == "http":
+                        print(f"[DynamicWatcher] {agent_id} is in HTTP mode.")
                         slack_queue.agent_tokens[agent_id] = token
-                        slack_queue.agent_app_tokens[agent_id] = socket_token
-                        
-                        # Auth check
-                        client_tmp = WebClient(token=token)
-                        auth = client_tmp.auth_test()
-                        bot_id = auth["user_id"]
-                        
-                        slack_queue.clients[agent_id] = client_tmp
-                        slack_queue.bot_ids[agent_id] = bot_id
-                        slack_queue.bot_id_to_name[bot_id] = agent_id
+                        apps[agent_id] = "bridge_active"
+                        continue
 
-                        # Start listener
-                        app = App(token=token)
-                        setup_agent_events(app, agent_id, bot_id)
-                        apps[agent_id] = app
-                        
-                        handler = SocketModeHandler(app, socket_token)
-                        handler.connect()
-                        handlers.append(handler)
-                        print(f"[DynamicWatcher] {agent_id.capitalize()} is now ONLINE.")
+                    print(f"[DynamicWatcher] Starting listener for {agent_id}...")
+                    slack_queue.agent_tokens[agent_id] = token
+                    slack_queue.agent_app_tokens[agent_id] = socket_token
+                    
+                    from slack_sdk import WebClient
+                    client_tmp = WebClient(token=token)
+                    auth = client_tmp.auth_test()
+                    bot_id = auth["user_id"]
+                    
+                    slack_queue.clients[agent_id] = client_tmp
+                    slack_queue.bot_ids[agent_id] = bot_id
+                    
+                    app = App(token=token)
+                    setup_agent_events(app, agent_id, bot_id)
+                    apps[agent_id] = app
+                    
+                    handler = SocketModeHandler(app, socket_token)
+                    handler.connect()
+                    handlers.append(handler)
             except Exception as e:
-                # Silently catch to keep thread alive
-                pass
+                print(f"[DynamicWatcher] Error while updating listeners: {e}")
 
     watcher_thread = threading.Thread(target=dynamic_listener_watcher, daemon=True)
     watcher_thread.start()
 
-    if handlers:
-        print(f"Successfully started {len(handlers)} bot listeners.")
-        
-        # Start the background worker for incoming events
-        incoming_worker_thread = threading.Thread(
-            target=slack_worker,
-            args=(agents, apps, ack_emoji, app_env, dev_channel_id),
-            daemon=True
-        )
-        incoming_worker_thread.start()
-        
-        env_label = "(Dev)" if app_env.lower() == "development" else "(Prod)"
-        startup_msg = f"{env_label} Alfredo is here, Don Jimmy. The famiglia is ready."
-        
-        # In development, announce ONLY in the dev channel if provided
-        if app_env.lower() == "development" and dev_channel_id:
-            print(f"[Alfredo] Announcing in dev channel {dev_channel_id}...")
-            slack_queue.enqueue_message("alfredo", dev_channel_id, startup_msg)
-        else:
-            # In production or if no dev channel is configured, use command-center
-            print(f"[Alfredo] Announcing in command-center...")
-            slack_queue.enqueue_message("alfredo", "#command-center", startup_msg)
-
-    # Step 7. Activate agent orchestration (final step before main loop)
+    # Incoming Worker
+    incoming_worker_thread = threading.Thread(
+        target=slack_worker,
+        args=(agents, apps, ack_emoji, app_env, dev_channel_id),
+        daemon=True
+    )
+    incoming_worker_thread.start()
+    
     if scheduled_enabled:
-        print("\n[Startup] All local brain-models verified. Activating agent orchestration...")
         task_orchestrator.start()
-        print("🚀 Famiglia Core is FULLY OPERATIONAL. Listening for directives...")
 
-
-    if not handlers:
-        print("No Slack tokens found. Running in PROPOSAL mode.")
-        slack_queue.enqueue_message("alfredo", "system", "Alfredo initialized (Mock mode).")
-
-    # 6. Keep the main thread alive
     try:
         while True:
             time.sleep(1)
@@ -370,7 +246,6 @@ def main():
         print("Shutting down...")
         for h in handlers:
             h.disconnect()
-        # Note: Worker stop is inside finally or handled separately
         task_orchestrator.stop()
         slack_queue.stop_worker()
 

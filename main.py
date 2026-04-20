@@ -113,7 +113,8 @@ def main():
     try:
         with open("/tmp/famiglia_engine_ready", "w") as f:
             f.write("ready")
-    except: pass
+    except OSError:
+        pass
 
     # 4. Start Slack Worker
     print("Starting Slack message queue worker...")
@@ -192,7 +193,9 @@ def main():
                         try:
                             cdata = json.loads(creds_conn["access_token"])
                             transport = cdata.get("transport", "socket")
-                        except: pass
+                        except (json.JSONDecodeError, KeyError, TypeError):
+                            # Invalid/missing stored creds payload: keep default "socket" transport.
+                            pass
                     
                     if transport == "http":
                         print(f"[DynamicWatcher] {agent_id} is in HTTP mode.")
@@ -219,7 +222,8 @@ def main():
                     handler = SocketModeHandler(app, socket_token)
                     handler.connect()
                     handlers.append(handler)
-            except: pass
+            except Exception as e:
+                print(f"[DynamicWatcher] Error while updating listeners: {e}")
 
     watcher_thread = threading.Thread(target=dynamic_listener_watcher, daemon=True)
     watcher_thread.start()

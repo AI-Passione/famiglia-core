@@ -2,7 +2,7 @@ import os
 import json
 import requests as http_requests
 from fastapi import APIRouter, HTTPException, Request
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from pydantic import BaseModel
 from famiglia_core.db.tools.user_connections_store import user_connections_store
 from famiglia_core.command_center.backend.comms.slack.client import slack_queue

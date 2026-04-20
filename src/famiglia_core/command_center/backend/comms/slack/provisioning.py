@@ -300,7 +300,7 @@ class SlackProvisioningService:
                     client_id = creds.get("client_id")
                     scopes = (
                         "app_mentions:read,chat:write,channels:history,groups:history,im:history,"
-                        "reactions:write,channels:read,groups:read,im:read,channels:manage,groups:write,users:read"
+                        "reactions:write,channels:read,groups:read,im:read,channels:manage,channels:join,groups:write,users:read"
                     )
                     
                     if client_id:

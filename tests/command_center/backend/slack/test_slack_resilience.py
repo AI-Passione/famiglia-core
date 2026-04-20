@@ -82,34 +82,42 @@ def test_format_agent_message_minimalist(client):
         assert "Agent: Rossini" not in footer_text
         assert "La Famiglia Core" in footer_text
 
-@patch("famiglia_core.db.agents.context_store.pool.SimpleConnectionPool")
-def test_user_connections_store_decryption_error_logging(mock_pool_class, mocker):
+def test_user_connections_store_decryption_error_logging(mocker):
     """Verify that decryption errors are logged to stdout."""
     from famiglia_core.db.tools.user_connections_store import UserConnectionsStore
     
-    mock_pool = mock_pool_class.return_value
-    mock_conn = MagicMock()
-    mock_pool.getconn.return_value = mock_conn
-    mock_cursor = MagicMock()
-    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    # 1. Mock the encryption provider to force a failure
+    mock_fernet = MagicMock()
+    mock_fernet.decrypt.side_effect = Exception("Mock decryption error")
+    mocker.patch("famiglia_core.db.tools.user_connections_store._get_fernet", return_value=mock_fernet)
     
-    # Mock print
+    # 2. Mock print
     mock_print = mocker.patch("builtins.print")
     
-    # Simulate a row that will fail decryption
+    # 3. Create a mock cursor with a row to "decrypt"
+    mock_cursor = MagicMock()
     mock_cursor.fetchall.return_value = [
-        {"service": "slack_bot:broken", "access_token": "not-encrypted-garbage", "app_id": "A123", "connected_at": None}
+        {"service": "slack_bot:broken", "access_token": "garbage", "app_id": "A123", "connected_at": None, "username": "broken_bot", "avatar_url": None, "scopes": None}
     ]
+    
+    # 4. Mock the context manager db_session on the context_store instance
+    # We patch it where it is imported in user_connections_store
+    mock_session = mocker.patch("famiglia_core.db.tools.user_connections_store.context_store.db_session")
+    mock_session.return_value.__enter__.return_value = mock_cursor
     
     store = UserConnectionsStore()
     results = store.list_connections("slack_bot:")
     
-    # Verify that print was called with the failure message
-    # Filter calls to find our decryption failure message
+    # 5. Verify that print was called with the failure message
     found = False
     for call in mock_print.call_args_list:
-        if "❌ Failed to decrypt service 'slack_bot:broken'" in call[0][0]:
+        if "Failed to decrypt service 'slack_bot:broken'" in str(call):
             found = True
             break
+    
+    # If not found, let's see what was printed in the error message for debugging
+    if not found:
+        print(f"DEBUG: print calls: {mock_print.call_args_list}")
+        
     assert found
-    assert "broken" not in results
+    assert "slack_bot:broken" not in results

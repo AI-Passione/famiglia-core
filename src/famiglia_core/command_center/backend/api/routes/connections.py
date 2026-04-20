@@ -247,8 +247,6 @@ async def handle_slack_event(agent_id: str, request: Request):
     
     return {"ok": True}
 
-    return {"ok": True}
-
 @router.delete("/slack/purge/all")
 async def purge_all_slack_connections():
     """Purge ALL Slack-related credentials (bootstrap, bots, sockets, credentials)."""

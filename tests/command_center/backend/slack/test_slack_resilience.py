@@ -84,7 +84,14 @@ def test_format_agent_message_minimalist(client):
 
 def test_user_connections_store_decryption_error_logging(mocker):
     """Verify that decryption errors are logged to stdout."""
-    from famiglia_core.db.tools.user_connections_store import UserConnectionsStore, context_store
+    import importlib
+    from famiglia_core.db.tools import user_connections_store as ucs_module
+    
+    # Force reload to clear any potential mocks from other tests
+    importlib.reload(ucs_module)
+    UserConnectionsStore = ucs_module.UserConnectionsStore
+    context_store = ucs_module.context_store
+    
     from contextlib import contextmanager
     
     # 1. Force context_store to be enabled
@@ -93,10 +100,11 @@ def test_user_connections_store_decryption_error_logging(mocker):
     # 2. Mock the encryption provider to force a failure
     mock_fernet = MagicMock()
     mock_fernet.decrypt.side_effect = Exception("Mock decryption error")
-    mocker.patch("famiglia_core.db.tools.user_connections_store._get_fernet", return_value=mock_fernet)
+    mocker.patch.object(ucs_module, "_get_fernet", return_value=mock_fernet)
     
     # 3. Mock print
     mock_print = mocker.patch("builtins.print")
+    mocker.patch.object(ucs_module, "print", mock_print)
     
     # 4. Create a mock cursor with a row to "decrypt"
     mock_cursor = MagicMock()
@@ -123,12 +131,7 @@ def test_user_connections_store_decryption_error_logging(mocker):
     results = store.list_connections("slack_bot:")
     
     # 6. Verify that print was called with the failure message
-    # Check if any call contains the critical failure strings
-    mock_print.assert_called()
-    found = any(
-        "Failed to decrypt service" in str(call) and "slack_bot:broken" in str(call)
-        for call in mock_print.call_args_list
-    )
+    found = any("Failed to decrypt service" in str(call) and "slack_bot:broken" in str(call) for call in mock_print.call_args_list)
     
     assert found
     assert "slack_bot:broken" not in results

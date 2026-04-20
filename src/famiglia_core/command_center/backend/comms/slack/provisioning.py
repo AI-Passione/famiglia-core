@@ -272,14 +272,27 @@ class SlackProvisioningService:
                         app_id = None
                         creds = {}
 
+                response = None
                 if app_id:
                     print(f"🔄 Syncing existing {agent_id} (App ID: {app_id})...")
-                    response = client.apps_manifest_update(app_id=app_id, manifest=manifest_str)
-                else:
+                    try:
+                        response = client.apps_manifest_update(app_id=app_id, manifest=manifest_str)
+                    except SlackApiError as e:
+                        error_code = e.response['error']
+                        # If the app is missing or Slack returns an internal error (usually due to stale IDs),
+                        # we purge the local reference and fall back to the creation flow.
+                        if error_code in ["app_not_found", "internal_error", "access_denied"]:
+                            print(f"⚠️ App {app_id} is stale or inaccessible ({error_code}). Purging and re-creating...")
+                            user_connections_store.delete_connection(f"slack_creds:{agent_id}")
+                            app_id = None
+                        else:
+                            raise e
+
+                if not app_id:
                     print(f"📦 Manifesting new {agent_id}...")
                     response = client.apps_manifest_create(manifest=manifest_str)
                 
-                if response["ok"]:
+                if response and response["ok"]:
                     if not app_id:
                         app_id = response["app_id"]
                         creds = response.get("credentials", {})
@@ -323,10 +336,11 @@ class SlackProvisioningService:
                         "install_url": install_url
                     }
                     provisioned_apps.append(app_info)
-                    status_icon = "✅ Updated" if existing_creds else "✅ Created"
+                    status_icon = "✅ Updated" if existing_creds and app_id else "✅ Created"
                     print(f"{status_icon} {agent_id} (App ID: {app_id})")
                 else:
-                    print(f"❌ Failed to process {agent_id}: {response['error']}")
+                    err = response["error"] if response else "Unknown Error"
+                    print(f"❌ Failed to process {agent_id}: {err}")
             except SlackApiError as e:
                 error_code = e.response['error']
                 print(f"❌ Slack API Error for {agent_id}: {error_code}")
@@ -350,6 +364,7 @@ class SlackProvisioningService:
                                 print(f"❌ Retry failed for {agent_id}: {re}")
             except Exception as e:
                 print(f"❌ Unexpected error manifesting {agent_id}: {e}")
+
                 
         return provisioned_apps
 

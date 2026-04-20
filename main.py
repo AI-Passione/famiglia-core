@@ -113,8 +113,8 @@ def main():
     try:
         with open("/tmp/famiglia_engine_ready", "w") as f:
             f.write("ready")
-    except OSError:
-        pass
+    except OSError as e:
+        print(f"[Warning] Could not write readiness signal to /tmp/famiglia_engine_ready: {e}")
 
     # 4. Start Slack Worker
     print("Starting Slack message queue worker...")

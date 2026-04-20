@@ -361,7 +361,7 @@ function SlackFamigliaWizard({ bossName, onClose, onHardReset }: { bossName: str
       const connectedCount = Object.values(famigliaStatus).filter((s: any) => s.connected).length;
       if (connectedCount === 8) {
         const timer = setTimeout(() => {
-          window.location.reload();
+          window.location.href = '/settings?tab=settings&slack_success=true#slack-card';
         }, 1500);
         return () => clearTimeout(timer);
       }
@@ -1203,7 +1203,7 @@ function OllamaCard({ initialStatus, onFinish }: { initialStatus: OllamaStatus; 
 
 // ─── Main Connections View ────────────────────────────────────────────────
 
-export function Connections({ successParam, errorParam, onClearParams, bossName }: any) {
+export function Connections({ successParam, slackSuccess, errorParam, onClearParams, bossName }: any) {
   const [config, setConfig] = useState<Record<string, ServiceConfig>>({});
   const [githubStatus, setGithubStatus] = useState<GitHubStatus>({ connected: false });
   const [slackStatus, setSlackStatus] = useState<SlackStatus>({ connected: false });
@@ -1265,11 +1265,15 @@ export function Connections({ successParam, errorParam, onClearParams, bossName 
       setToast({ m: 'Successfully linked service account.', type: 'success' });
       fetchData();
       onClearParams?.();
+    } else if (slackSuccess === 'true') {
+      setToast({ m: 'The Famiglia is unified. Full Slack network online.', type: 'success' });
+      fetchData();
+      onClearParams?.();
     } else if (errorParam) {
       setToast({ m: `Establishment error: ${errorParam}`, type: 'error' });
       onClearParams?.();
     }
-  }, [successParam, errorParam]);
+  }, [successParam, slackSuccess, errorParam]);
 
   if (loading) {
     return <div className="py-20 flex items-center justify-center text-[#ffb3b5] opacity-20"><span className="material-symbols-outlined animate-spin text-4xl">nest_remote_comfort_sensor</span></div>;
@@ -1312,7 +1316,7 @@ export function Connections({ successParam, errorParam, onClearParams, bossName 
         </section>
 
         {/* ── Comms ─────────────────────────────────────────────────────── */}
-        <section className="space-y-6">
+        <section id="slack-card" className="space-y-6">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[#ffb3b5] text-base">forum</span>
             <h2 className="text-xl font-headline font-bold text-white uppercase tracking-tighter">Comms</h2>

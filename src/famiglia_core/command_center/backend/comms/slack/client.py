@@ -59,6 +59,7 @@ class SlackQueueClient(CommsQueue):
         from famiglia_core.db.tools.user_connections_store import user_connections_store
         
         db_bot_tokens = user_connections_store.list_connections("slack_bot:")
+        print(f"[SlackQueue 🔍] Found {len(db_bot_tokens)} agent tokens in database.")
         for service, conn in db_bot_tokens.items():
             agent_id = service.replace("slack_bot:", "")
             self.agent_tokens[agent_id] = conn["access_token"]
@@ -98,7 +99,8 @@ class SlackQueueClient(CommsQueue):
             # detect duplicate tokens to avoid cross-agent impersonation
             if active_token in seen_tokens:
                 other = seen_tokens[active_token]
-                print(f"[SlackQueue] Skipping '{agent}' because token is identical to '{other}'.")
+                if agent != other: # Only log if it's actually a different agent name
+                    print(f"[SlackQueue ⚠️] Skipping '{agent}' because its token is identical to '{other}'. Check for duplicate app installs.")
                 continue
             seen_tokens[active_token] = agent
 
@@ -391,19 +393,7 @@ class SlackQueueClient(CommsQueue):
         Formats a plain text agent message into a premium Block Kit layout.
         """
         emoji = AGENT_EMOJIS.get(agent.lower(), "🤖")
-        header_text = f"{emoji} *{agent.capitalize()}*"
-        
         blocks = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": header_text
-                }
-            },
-            {
-                "type": "divider"
-            },
             {
                 "type": "section",
                 "text": {
@@ -420,7 +410,7 @@ class SlackQueueClient(CommsQueue):
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": f"_Env: {app_env} | Agent: {agent.capitalize()} | La Famiglia Core_"
+                    "text": f"_Env: {app_env} | La Famiglia Core_"
                 }
             ]
         })
@@ -563,6 +553,16 @@ class SlackQueueClient(CommsQueue):
 
     def _send_to_slack(self, payload: dict, thread_ts: Optional[str] = None) -> Optional[str]:
         agent_name = payload.get("agent", "system").lower()
+        
+        # Safety normalization for display names (e.g. "Dr. Rossini" -> "rossini")
+        if agent_name not in self.clients and agent_name != "system":
+            original_name = agent_name
+            # Strip titles/spaces/dots and try to resolve
+            normalized = re.sub(r"[^a-z0-9]", "", agent_name).replace("dr", "")
+            if normalized in self.clients:
+                agent_name = normalized
+            elif "rossini" in original_name: # Hardcoded safety for the Good Doctor
+                agent_name = "rossini"
         channel = payload.get("channel")
         message = payload.get("message")
         
@@ -581,9 +581,20 @@ class SlackQueueClient(CommsQueue):
 
         # Determine client (fallback to alfredo for system messages or if agent client missing)
         client = self.clients.get(agent_name)
+        
         if not client and agent_name != "system":
-            print(f"[SlackQueue] WARNING: No client for agent '{agent_name}'. Falling back to 'alfredo'.")
-            client = self.clients.get("alfredo")
+            # Attempt a lazy refresh if the client is missing (e.g. provisioned after start)
+            print(f"[SlackQueue 🔍] Client for '{agent_name}' missing in cache. Attempting DB refresh...")
+            refreshed_id = self.refresh_bot_id(agent_name)
+            if refreshed_id:
+                client = self.clients.get(agent_name)
+            
+            if not client:
+                if agent_name != "alfredo":
+                    print(f"[SlackQueue] WARNING: No client for agent '{agent_name}'. Falling back to 'alfredo'.")
+                    client = self.clients.get("alfredo")
+                else:
+                    print(f"[SlackQueue] WARNING: Alfredo client is missing from cache.")
         elif not client:
             client = self.clients.get("alfredo")
         

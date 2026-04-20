@@ -132,9 +132,32 @@ class TestGetConnectionStatus:
         cursor.fetchone.return_value = None
         assert store.get_connection_status("s") == {"connected": False}
 
-class TestDeleteConnection:
-    def test_deletes_returns_true(self, store, mock_db_session):
+    def test_delete_connection_returns_true(self, store, mock_db_session):
         _, cursor = mock_db_session
         assert store.delete_connection("s") is True
         assert cursor.execute.called
         assert "DELETE FROM user_connections" in cursor.execute.call_args[0][0]
+
+class TestListConnections:
+    def test_list_connections_logs_decryption_errors(self, store, mock_db_session, stable_fernet, capsys):
+        """Verify that decryption errors in list_connections are logged and handled."""
+        _, cursor = mock_db_session
+        cursor.fetchall.return_value = [
+            {
+                "service": "broken", 
+                "access_token": "garbage", 
+                "username": "u", 
+                "avatar_url": None, 
+                "scopes": None, 
+                "app_id": None, 
+                "refresh_token": None, 
+                "connected_at": None
+            }
+        ]
+        # Force a failure on decrypt
+        with patch.object(stable_fernet, "decrypt", side_effect=Exception("Mock Fail")):
+            res = store.list_connections("broken")
+            
+        captured = capsys.readouterr()
+        assert "Failed to decrypt service 'broken'" in captured.out
+        assert "broken" not in res

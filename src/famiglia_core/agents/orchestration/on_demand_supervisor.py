@@ -146,14 +146,14 @@ class OnDemandMasterSupervisor:
         scoped_conversation_key = build_conversation_key(sender, conversation_key)
         
         # 1. Fetch memories and history
-        memories = context_store.get_memories(self.name)
+        memories = context_store.get_memories(self.agent_id)
         history = []
         if context_store.enabled:
             history = context_store.get_recent_messages(scoped_conversation_key, limit=15)
         
         # 2. Assign action ID
         action_id = audit_logger.log_action(
-            agent_name=self.name,
+            agent_name=self.agent_id,
             action_type="INTERACTIVE_TASK",
             action_details={"task": task, "conversation_key": scoped_conversation_key},
             is_approval_required=False,
@@ -161,7 +161,7 @@ class OnDemandMasterSupervisor:
         ) if context_store.enabled else "mock-action-id"
 
         # 3. Resolve the best available model clinical-style
-        model_to_use = client.resolve_best_model(self.model_config, agent_name=self.name)
+        model_to_use = client.resolve_best_model(self.model_config, agent_name=self.agent_id)
 
         return {
             "task": task,
@@ -209,7 +209,7 @@ class OnDemandMasterSupervisor:
         model_config = self.model_config.copy()
         model_config["primary"] = state.get("model_to_use") or self.model_config.get("primary")
         
-        res, used_model = client.complete(prompt, model_config, agent_name=self.name)
+        res, used_model = client.complete(prompt, model_config, agent_name=self.agent_id)
         state["final_response"] = res
         state["used_model"] = used_model
         return state
@@ -265,7 +265,7 @@ class OnDemandMasterSupervisor:
         # We pass along any comms identifiers if they exists in state (for future use)
         metadata = state.get("metadata", {})
         response_distributor.dispatch(
-            agent_id=self.name,
+            agent_id=self.agent_id,
             text=final_text,
             conversation_key=state["conversation_key"],
             metadata=metadata

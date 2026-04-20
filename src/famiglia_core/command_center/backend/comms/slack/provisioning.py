@@ -569,6 +569,14 @@ class SlackProvisioningService:
             if channel_id:
                 actual_agents_joined = []
                 
+                # IMPORTANT: Alfredo MUST join the channel first to invite others
+                try:
+                    client.conversations_join(channel=channel_id)
+                except SlackApiError as e:
+                    join_error = e.response["error"]
+                    if join_error != "already_in_channel":
+                        print(f"⚠️ Alfredo failed to join #{desired_name}: {join_error}")
+
                 # Invite Owner first
                 if owner_id:
                     try:
@@ -586,12 +594,15 @@ class SlackProvisioningService:
                         # Alfredo invites the bot
                         client.conversations_invite(channel=channel_id, users=bot_user_id)
                         actual_agents_joined.append(agent_id)
+                        print(f"  + Invited {agent_id} to #{desired_name}")
                     except SlackApiError as e:
+                        invite_err = e.response["error"]
                         # Often "already_in_channel" or "cant_invite_self", which we can ignore
-                        if e.response["error"] not in ["already_in_channel", "cant_invite_self"]:
-                            results["errors"].append(f"Invite {agent_id} to #{desired_name} failed: {e.response['error']}")
-                        else:
+                        if invite_err in ["already_in_channel", "cant_invite_self"]:
                             actual_agents_joined.append(agent_id)
+                        else:
+                            print(f"⚠️ Failed to invite {agent_id} to #{desired_name}: {invite_err}")
+                            results["errors"].append(f"Invite {agent_id} to #{desired_name} failed: {invite_err}")
                 
                 results["channels"].append({
                     "code": code,

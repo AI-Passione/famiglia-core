@@ -226,7 +226,9 @@ class SlackProvisioningService:
         else:
             print("💡 No public tunnel detected. Falling back to Socket Mode (Semi-Automated).")
 
+        import time
         for manifest_path in manifest_files:
+            time.sleep(1) # Breath between manifest operations to avoid Slack 'internal_error'
             filename = os.path.basename(manifest_path)
             if filename == "passione_famiglia.yaml":
                 continue

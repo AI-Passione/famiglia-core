@@ -169,6 +169,7 @@ async def get_slack_famiglia_status():
             "bot_connected": bot_connected,
             "socket_connected": socket_connected,
             "transport": transport,
+            "public_url": public_url,
             "events_url": f"{public_url}/api/v1/connections/slack/events/{agent_id}" if public_url else None,
             "name": agent_id.capitalize()
         }

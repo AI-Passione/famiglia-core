@@ -26,7 +26,12 @@ class CommsQueue:
         if not redis_url:
             host = os.getenv("REDIS_HOST", "localhost")
             port = os.getenv("REDIS_PORT", "6379")
-            redis_url = f"redis://{host}:{port}"
+            password = os.getenv("REDIS_PASSWORD", "")
+            
+            if password:
+                redis_url = f"redis://:{password}@{host}:{port}"
+            else:
+                redis_url = f"redis://{host}:{port}"
             
         self.redis = redis.from_url(redis_url)
         

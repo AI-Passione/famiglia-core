@@ -59,6 +59,7 @@ class SlackQueueClient(CommsQueue):
         from famiglia_core.db.tools.user_connections_store import user_connections_store
         
         db_bot_tokens = user_connections_store.list_connections("slack_bot:")
+        print(f"[SlackQueue 🔍] Found {len(db_bot_tokens)} agent tokens in database.")
         for service, conn in db_bot_tokens.items():
             agent_id = service.replace("slack_bot:", "")
             self.agent_tokens[agent_id] = conn["access_token"]
@@ -98,7 +99,8 @@ class SlackQueueClient(CommsQueue):
             # detect duplicate tokens to avoid cross-agent impersonation
             if active_token in seen_tokens:
                 other = seen_tokens[active_token]
-                print(f"[SlackQueue] Skipping '{agent}' because token is identical to '{other}'.")
+                if agent != other: # Only log if it's actually a different agent name
+                    print(f"[SlackQueue ⚠️] Skipping '{agent}' because its token is identical to '{other}'. Check for duplicate app installs.")
                 continue
             seen_tokens[active_token] = agent
 
@@ -581,9 +583,20 @@ class SlackQueueClient(CommsQueue):
 
         # Determine client (fallback to alfredo for system messages or if agent client missing)
         client = self.clients.get(agent_name)
+        
         if not client and agent_name != "system":
-            print(f"[SlackQueue] WARNING: No client for agent '{agent_name}'. Falling back to 'alfredo'.")
-            client = self.clients.get("alfredo")
+            # Attempt a lazy refresh if the client is missing (e.g. provisioned after start)
+            print(f"[SlackQueue 🔍] Client for '{agent_name}' missing in cache. Attempting DB refresh...")
+            refreshed_id = self.refresh_bot_id(agent_name)
+            if refreshed_id:
+                client = self.clients.get(agent_name)
+            
+            if not client:
+                if agent_name != "alfredo":
+                    print(f"[SlackQueue] WARNING: No client for agent '{agent_name}'. Falling back to 'alfredo'.")
+                    client = self.clients.get("alfredo")
+                else:
+                    print(f"[SlackQueue] WARNING: Alfredo client is missing from cache.")
         elif not client:
             client = self.clients.get("alfredo")
         

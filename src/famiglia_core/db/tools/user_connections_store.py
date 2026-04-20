@@ -133,7 +133,7 @@ class UserConnectionsStore:
                 except Exception as e:
                     # Non-fatal: keep connection usable even if refresh token is stale/corrupt.
                     print(
-                        f"[UserConnectionsStore] Failed to decrypt refresh token for '{service}' "
+                        f"[UserConnectionsStore] ⚠️ Failed to decrypt refresh token for '{service}' "
                         f"(continuing without refresh token): {e}"
                     )
                     decrypted_refresh = None
@@ -225,7 +225,8 @@ class UserConnectionsStore:
                         "app_id": row["app_id"],
                         "connected_at": row["connected_at"].isoformat() if row["connected_at"] else None,
                     }
-                except Exception:
+                except Exception as e:
+                    print(f"[UserConnectionsStore] ❌ Failed to decrypt service '{row.get('service', 'unknown')}': {e}")
                     continue
             return results
         except Exception as e:

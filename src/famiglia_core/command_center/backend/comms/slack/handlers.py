@@ -146,17 +146,22 @@ def process_incoming_event(
         return
 
     # 3. Immediate acknowledgment with reaction
-    if slack_client and channel and ts:
+    # We use the verified client from slack_queue if the passed slack_client is missing or unreliable
+    client_to_use = (slack_client.client if slack_client else None) or slack_queue.clients.get(agent_obj.agent_id)
+    
+    if client_to_use and channel and ts:
         try:
-            print(f"[{agent_obj.name}] Adding reaction to {ts} in {channel}...")
-            slack_client.client.reactions_add(
+            print(f"[Acknowledge] {agent_obj.name} reacting with :{ack_emoji}: to msg {ts} in {channel}")
+            client_to_use.reactions_add(
                 name=ack_emoji,
                 channel=channel,
                 timestamp=ts
             )
         except Exception as e:
             if "already_reacted" not in str(e):
-                print(f"[{agent_obj.name}] Failed to add reaction: {e}")
+                print(f"[Acknowledge] {agent_obj.name} failed to add reaction: {e}")
+    else:
+        print(f"[Acknowledge] Skipping reaction for {agent_obj.name}: client={bool(client_to_use)}, channel={channel}, ts={ts}")
 
     # 4. Processing logic
     text = event.get("text", "")

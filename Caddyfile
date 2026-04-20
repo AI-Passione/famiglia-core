@@ -1,0 +1,20 @@
+{
+    # Global options
+    email {$ACME_EMAIL:admin@ai-passione.com}
+}
+
+{$PRODUCTION_DOMAIN:localhost} {
+    # Proxy all traffic to the frontend Nginx (which handles SPA and API proxying)
+    reverse_proxy frontend:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Custom log configuration
+    log {
+        output stdout
+        format json
+    }
+}

@@ -243,13 +243,13 @@ services:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     command:
       - http
-      - app:8000
+      - frontend:80
       - --log=stdout
     ports:
       - "4040:4040"
     depends_on:
-      app:
-        condition: service_healthy
+      frontend:
+        condition: service_started
 
 volumes:
   redis_data:

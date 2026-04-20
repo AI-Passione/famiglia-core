@@ -393,19 +393,7 @@ class SlackQueueClient(CommsQueue):
         Formats a plain text agent message into a premium Block Kit layout.
         """
         emoji = AGENT_EMOJIS.get(agent.lower(), "🤖")
-        header_text = f"{emoji} *{agent.capitalize()}*"
-        
         blocks = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": header_text
-                }
-            },
-            {
-                "type": "divider"
-            },
             {
                 "type": "section",
                 "text": {
@@ -422,7 +410,7 @@ class SlackQueueClient(CommsQueue):
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": f"_Env: {app_env} | Agent: {agent.capitalize()} | La Famiglia Core_"
+                    "text": f"_Env: {app_env} | La Famiglia Core_"
                 }
             ]
         })

@@ -9,6 +9,7 @@ interface SettingsProps {
   onSettingsChange: (next: AppSettings) => void;
   githubConnected?: string | null;
   githubError?: string | null;
+  slackSuccess?: string | null;
   onClearOAuthParams?: () => void;
 }
 
@@ -19,16 +20,17 @@ export function Settings({
   onSettingsChange,
   githubConnected,
   githubError,
+  slackSuccess,
   onClearOAuthParams
 }: SettingsProps) {
   const [activeSubTab, setActiveSubTab] = useState('personalization');
 
   // If we have OAuth params, switch to integration tab
   useEffect(() => {
-    if (githubConnected || githubError) {
+    if (githubConnected || githubError || slackSuccess) {
       setActiveSubTab('integration');
     }
-  }, [githubConnected, githubError]);
+  }, [githubConnected, githubError, slackSuccess]);
 
   const tabs = [
     { id: 'personalization', label: 'Personalization' },
@@ -267,6 +269,7 @@ export function Settings({
             >
               <Connections
                 successParam={githubConnected}
+                slackSuccess={slackSuccess}
                 errorParam={githubError}
                 onClearParams={onClearOAuthParams}
                 bossName={settings.fullName}

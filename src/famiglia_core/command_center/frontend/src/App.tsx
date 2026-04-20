@@ -75,6 +75,7 @@ function App() {
   const params = new URLSearchParams(window.location.search);
   const [githubConnected, setGithubConnected] = useState<string | null>(params.get('github_connected'));
   const [githubError, setGithubError] = useState<string | null>(params.get('github_error'));
+  const [slackSuccess, setSlackSuccess] = useState<string | null>(params.get('slack_success'));
 
   // If we landed here via the OAuth callback tab param, switch to connections
   useEffect(() => {
@@ -87,6 +88,7 @@ function App() {
   const clearOAuthParams = useCallback(() => {
     setGithubConnected(null);
     setGithubError(null);
+    setSlackSuccess(null);
     // Clean the URL without re-rendering
     window.history.replaceState({}, '', window.location.pathname);
   }, []);
@@ -261,6 +263,7 @@ function App() {
                       onSettingsChange={setSettings} 
                       githubConnected={githubConnected}
                       githubError={githubError}
+                      slackSuccess={slackSuccess}
                       onClearOAuthParams={clearOAuthParams}
                     />
                   } 

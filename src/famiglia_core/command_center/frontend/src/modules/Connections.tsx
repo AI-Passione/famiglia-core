@@ -355,6 +355,19 @@ function SlackFamigliaWizard({ bossName, onClose, onHardReset }: { bossName: str
     }
   }, [step]);
 
+  // Auto-refresh when all 8 bots are successfully authorized
+  useEffect(() => {
+    if (step === 2 && provisionedApps.length === 8) {
+      const connectedCount = Object.values(famigliaStatus).filter((s: any) => s.connected).length;
+      if (connectedCount === 8) {
+        const timer = setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [famigliaStatus, provisionedApps, step]);
+
   const fetchFamigliaStatus = async () => {
     try {
       const res = await fetch(`${API_BASE}/connections/slack/status`);
@@ -560,21 +573,23 @@ function SlackFamigliaWizard({ bossName, onClose, onHardReset }: { bossName: str
 
                 <div className="space-y-4 relative z-10">
                    <div className="flex items-center justify-between text-[11px] font-label font-black text-[#a38b88] uppercase tracking-widest px-1">
-                      <span>Global Synchronizing</span>
-                      <span className="text-[#ffb3b5]">Ready for Securing</span>
+                      <span>{Object.values(famigliaStatus).filter((s:any) => s.connected).length === provisionedApps.length ? 'All Agents Secured!' : 'Global Synchronizing'}</span>
+                      <span className="text-[#ffb3b5]">{Object.values(famigliaStatus).filter((s:any) => s.connected).length === provisionedApps.length ? 'Redirecting...' : 'Ready for Securing'}</span>
                    </div>
                    <div className="h-2 w-full bg-[#0d0d0d] rounded-full overflow-hidden border border-white/5 shadow-inner p-[1px]">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${(Object.values(famigliaStatus).filter((s:any) => s.connected).length / provisionedApps.length) * 100}%` }}
                         transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="h-full rounded-full bg-gradient-to-r from-[#6366f1] via-[#a855f7] to-[#ffb3b5] relative"
+                        className={`h-full rounded-full ${Object.values(famigliaStatus).filter((s:any) => s.connected).length === provisionedApps.length ? 'bg-emerald-400 shadow-[0_0_15px_#34d399]' : 'bg-gradient-to-r from-[#6366f1] via-[#a855f7] to-[#ffb3b5]'} relative`}
                       >
                          <div className="absolute inset-0 bg-white/20 animate-pulse" />
                       </motion.div>
                    </div>
                    <p className="text-[11px] font-body text-[#555] italic text-center">
-                     {bossName}, the network has been mapped. Secure each spirit below to finalize the integration.
+                     {Object.values(famigliaStatus).filter((s:any) => s.connected).length === provisionedApps.length 
+                       ? `${bossName}, the network is fully stabilized. Handover initiated.`
+                       : `${bossName}, the network has been mapped. Secure each spirit below to finalize the integration.`}
                    </p>
                 </div>
               </div>

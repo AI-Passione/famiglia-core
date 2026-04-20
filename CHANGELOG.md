@@ -1,3 +1,9 @@
+# [1.16.0](https://github.com/AI-Passione/famiglia-core/compare/v1.15.0...v1.16.0) (2026-04-20)
+
+### UI/UX Enhancements
+* **Automated Slack Onboarding**: Implemented auto-refresh logic in the Slack provisioner. The page now automatically redirects once all 8 agents are successfully authorized, streamlining the "Assembly" process.
+* **Premium Feedback**: Added visual states to the progress bar and status text ("All Agents Secured!", "Redirecting...") to provide a smooth, premium transition experience.
+
 # [1.15.0](https://github.com/AI-Passione/famiglia-core/compare/v1.14.0...v1.15.0) (2026-04-17)
 
 ### Slack Workspace Organization 2.0

@@ -580,6 +580,14 @@ class SlackProvisioningService:
                     except SlackApiError as e:
                         results["errors"].append(f"Failed to rename #{desired_name}: {e.response['error']}")
 
+            # Persist resolved ID if it wasn't already in DB
+            if channel_id and not stored_ref:
+                user_connections_store.upsert_connection(
+                    service=f"slack_channel:{code}",
+                    access_token=channel_id,
+                    username=desired_name
+                )
+
             # Join bots & owner
             if channel_id:
                 actual_agents_joined = []

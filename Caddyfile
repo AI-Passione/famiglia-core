@@ -3,7 +3,7 @@
     email {$ACME_EMAIL:admin@ai-passione.com}
 }
 
-{$PRODUCTION_DOMAIN:localhost} {
+{$PRODUCTION_DOMAIN:demo.aipassione.com} {
     # Proxy all traffic to the frontend Nginx (which handles SPA and API proxying)
     reverse_proxy frontend:80 {
         header_up Host {host}

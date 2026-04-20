@@ -82,7 +82,7 @@ def test_format_agent_message_minimalist(client):
         assert "Agent: Rossini" not in footer_text
         assert "La Famiglia Core" in footer_text
 
-@patch("famiglia_core.db.tools.user_connections_store.pool.SimpleConnectionPool")
+@patch("famiglia_core.db.agents.context_store.pool.SimpleConnectionPool")
 def test_user_connections_store_decryption_error_logging(mock_pool_class, mocker):
     """Verify that decryption errors are logged to stdout."""
     from famiglia_core.db.tools.user_connections_store import UserConnectionsStore

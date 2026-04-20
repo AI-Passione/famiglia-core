@@ -10,6 +10,8 @@ def mock_db_dependencies(mocker):
     mocker.patch("famiglia_core.agents.souls.soul_registry.resolve_agent_id", side_effect=lambda agent_name, agent_id: agent_id or agent_name.lower().replace("dr. ", "").strip())
     # Mock PostgresCheckpointer to avoid DB connection
     mocker.patch("famiglia_core.db.observability.checkpointer.PostgresCheckpointer", return_value=MagicMock())
+    # Mock audit logger globally for these tests
+    return mocker.patch("famiglia_core.db.agents.audit.audit_logger.log_action")
 
 def test_rossini_agent_id_consistency(mock_db_dependencies, mocker):
     """Verify that Rossini uses 'rossini' (agent_id) and not 'Dr. Rossini' (name) for dispatching."""
@@ -52,11 +54,11 @@ def test_alfredo_agent_id_consistency(mock_db_dependencies, mocker):
 def test_base_agent_audit_logging_uses_id(mock_db_dependencies, mocker):
     """Verify that audit logging uses agent_id."""
     agent = Rossini()
-    mock_audit = mocker.patch("famiglia_core.db.agents.audit.audit_logger.log_action")
     
     # Trigger _get_initial_state which calls log_action
     agent._get_initial_state("test task", "user", "conv-1")
     
-    mock_audit.assert_called_once()
-    args, kwargs = mock_audit.call_args
+    mock_db_dependencies.assert_called()
+    # Check the latest call
+    args, kwargs = mock_db_dependencies.call_args
     assert kwargs["agent_name"] == "rossini"

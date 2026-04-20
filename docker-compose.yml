@@ -242,10 +242,14 @@ services:
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:-}
       - NGROK_DOMAIN=${NGROK_DOMAIN:-}
+    entrypoint: [/bin/sh, -c]
     command:
-      - /bin/sh
-      - -c
       - |
+        if [ -z "$NGROK_AUTHTOKEN" ]; then
+          echo "❌ ERROR: NGROK_AUTHTOKEN is not set in .env"
+          echo "Please get it from: https://dashboard.ngrok.com/get-started/your-authtoken"
+          exit 1
+        fi
         if [ -n "$NGROK_DOMAIN" ]; then
           echo "🚀 Starting ngrok with static domain: $NGROK_DOMAIN"
           exec /bin/ngrok http app:8000 --domain="$NGROK_DOMAIN"

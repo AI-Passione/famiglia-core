@@ -565,6 +565,16 @@ class SlackQueueClient(CommsQueue):
 
     def _send_to_slack(self, payload: dict, thread_ts: Optional[str] = None) -> Optional[str]:
         agent_name = payload.get("agent", "system").lower()
+        
+        # Safety normalization for display names (e.g. "Dr. Rossini" -> "rossini")
+        if agent_name not in self.clients and agent_name != "system":
+            original_name = agent_name
+            # Strip titles/spaces/dots and try to resolve
+            normalized = re.sub(r"[^a-z0-9]", "", agent_name).replace("dr", "")
+            if normalized in self.clients:
+                agent_name = normalized
+            elif "rossini" in original_name: # Hardcoded safety for the Good Doctor
+                agent_name = "rossini"
         channel = payload.get("channel")
         message = payload.get("message")
         

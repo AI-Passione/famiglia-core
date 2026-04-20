@@ -31,6 +31,7 @@ services:
       - OLLAMA_REMOTE_HOST=${OLLAMA_REMOTE_HOST}
       - OLLAMA_FALLBACK_MODEL=${OLLAMA_FALLBACK_MODEL:-gemma3:4b}
       - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - APP_ENV=${APP_ENV:-production}
       - DEV_CHANNEL_ID=${DEV_CHANNEL_ID}
       - GITHUB_APP_ID_RICCARDO=${GITHUB_APP_ID_RICCARDO}
@@ -74,6 +75,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD:-}
     restart: unless-stopped
     deploy:
       resources:
@@ -99,7 +101,7 @@ services:
       - POSTGRES_DB=${DB_NAME:-passione_db}
       - POSTGRES_MULTIPLE_DATABASES=langfuse
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./src/famiglia_core/db/init_multiple_dbs.sh:/docker-entrypoint-initdb.d/00_init_multiple_dbs.sh
@@ -181,7 +183,7 @@ services:
         limits:
           memory: 256M
     ports:
-      - "0.0.0.0:3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
@@ -251,7 +253,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-passione_admin}:${DB_PASSWORD:-passione_password}@postgres:5432/langfuse
       - NEXTAUTH_SECRET=my-secret

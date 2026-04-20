@@ -145,12 +145,22 @@ def process_incoming_event(
     if not should_handle_message(app_env, channel, dev_channel_id):
         return
 
-    # 3. Immediate acknowledgment with reaction
-    # We use the verified client from slack_queue if the passed slack_client is missing or unreliable
+    # 3. Resilient Join & Immediate acknowledgement with reaction
     client_to_use = (slack_client.client if slack_client else None) or slack_queue.clients.get(agent_obj.agent_id)
     
     if client_to_use and channel and ts:
         try:
+            # 3a. Ensure we are in the channel (Required for public channels to react/post)
+            if not is_mention and not event.get("channel_type") == "im":
+                # Regular message flow: we might not be in the channel
+                try:
+                    # We check if we are in by trying to get info or just join (join is idempotent for public)
+                    print(f"[Acknowledge] {agent_obj.name} ensuring channel membership in {channel}")
+                    client_to_use.conversations_join(channel=channel)
+                except Exception as je:
+                    print(f"[Acknowledge] {agent_obj.name} join failed (might be private/already in): {je}")
+
+            # 3b. Add reaction
             print(f"[Acknowledge] {agent_obj.name} reacting with :{ack_emoji}: to msg {ts} in {channel}")
             client_to_use.reactions_add(
                 name=ack_emoji,
@@ -159,7 +169,7 @@ def process_incoming_event(
             )
         except Exception as e:
             if "already_reacted" not in str(e):
-                print(f"[Acknowledge] {agent_obj.name} failed to add reaction: {e}")
+                print(f"[Acknowledge] {agent_obj.name} failed to add reaction/join: {e}")
     else:
         print(f"[Acknowledge] Skipping reaction for {agent_obj.name}: client={bool(client_to_use)}, channel={channel}, ts={ts}")
 

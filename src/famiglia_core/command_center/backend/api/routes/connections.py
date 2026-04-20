@@ -1,10 +1,11 @@
 import os
 import json
 import requests as http_requests
-from fastapi import APIRouter, HTTPException
-from typing import Dict, Any
+from fastapi import APIRouter, HTTPException, Request
+from typing import Dict, Any, Optional
 from pydantic import BaseModel
 from famiglia_core.db.tools.user_connections_store import user_connections_store
+from famiglia_core.command_center.backend.comms.slack.client import slack_queue
 from famiglia_core.command_center.backend.github.auth_github import github_oauth_client
 from famiglia_core.command_center.backend.comms.slack.auth_slack import slack_oauth_client
 from famiglia_core.command_center.backend.notion.auth_notion import notion_oauth_client
@@ -188,6 +189,93 @@ async def disconnect_service(service: str):
     if deleted:
         return {"success": True, "message": f"{service.capitalize()} account disconnected."}
     raise HTTPException(status_code=500, detail=f"Failed to disconnect {service} account.")
+
+@router.post("/slack/events/{agent_id}")
+async def handle_slack_event(agent_id: str, request: Request):
+    """
+    HTTP Listener for Slack Events (Webhook mode).
+    Handles url_verification and enqueues events for background processing.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return {"status": "error", "message": "Invalid JSON"}
+
+    # 1. Handle Slack URL Verification Challenge
+    if body.get("type") == "url_verification":
+        print(f"[SlackBridge] Verifying URL for agent: {agent_id}")
+        return {"challenge": body.get("challenge")}
+
+    # 2. De-duplicate or basic validation
+    event = body.get("event")
+    if not event:
+        # Could be an interactive action or command if not wrapped in 'event'
+        # but the manifest currently points here for 'event_subscriptions'
+        return {"ok": True}
+
+    # 3. Resolve the bot_id for this agent (needed for mention filtering)
+    bot_id = slack_queue.bot_ids.get(agent_id)
+    if not bot_id:
+        # Try to resolve on the fly if missing from cache
+        conn = user_connections_store.get_connection(f"slack_bot:{agent_id}")
+        if conn:
+            bot_id = conn.get("username") # In our store, username is the bot_user_id
+    
+    if not bot_id:
+        print(f"[SlackBridge] WARNING: Could not resolve bot_id for {agent_id}. Event may be misrouted.")
+
+    # 4. Enqueue for the shared Slack Worker (main.py's thread)
+    print(f"[SlackBridge] 📨 Dequeued {event.get('type')} for {agent_id} (TS: {event.get('ts')})")
+    payload = {
+        "event": event,
+        "agent_id": agent_id,
+        "bot_id": bot_id
+    }
+    slack_queue.enqueue_incoming(payload)
+    
+    return {"ok": True}
+
+@router.post("/slack/events/{agent_id}")
+async def handle_slack_event(agent_id: str, request: Request):
+    """
+    HTTP Listener for Slack Events (Webhook mode).
+    Handles url_verification and enqueues events for background processing.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return {"status": "error", "message": "Invalid JSON"}
+
+    # 1. Handle Slack URL Verification Challenge
+    if body.get("type") == "url_verification":
+        print(f"[SlackBridge] Verifying URL for agent: {agent_id}")
+        return {"challenge": body.get("challenge")}
+
+    # 2. Extract Event
+    event = body.get("event")
+    if not event:
+        return {"ok": True}
+
+    # 3. Resolve the bot_id for this agent (needed for mention filtering)
+    bot_id = slack_queue.bot_ids.get(agent_id)
+    if not bot_id:
+        conn = user_connections_store.get_connection(f"slack_bot:{agent_id}")
+        if conn:
+            bot_id = conn.get("username") # username stores bot_user_id
+    
+    if not bot_id:
+        print(f"[SlackBridge] WARNING: Could not resolve bot_id for {agent_id}.")
+
+    # 4. Enqueue for the background worker
+    print(f"[SlackBridge] 📨 Dequeued {event.get('type')} for {agent_id} (TS: {event.get('ts')})")
+    payload = {
+        "event": event,
+        "agent_id": agent_id,
+        "bot_id": bot_id
+    }
+    slack_queue.enqueue_incoming(payload)
+    
+    return {"ok": True}
 
 @router.delete("/slack/purge/all")
 async def purge_all_slack_connections():

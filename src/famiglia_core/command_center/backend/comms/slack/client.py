@@ -53,6 +53,8 @@ class SlackQueueClient(CommsQueue):
             for agent in AGENT_EMOJIS.keys() if agent != "system"
         }
 
+        self.agent_transports = {} # {agent_id: 'socket' | 'http'}
+
         # 2. Overlay from Database (The Soul of the Famiglia)
         from famiglia_core.db.tools.user_connections_store import user_connections_store
         
@@ -65,6 +67,15 @@ class SlackQueueClient(CommsQueue):
         for service, conn in db_socket_tokens.items():
             agent_id = service.replace("slack_socket:", "")
             self.agent_app_tokens[agent_id] = conn["access_token"]
+
+        db_creds = user_connections_store.list_connections("slack_creds:")
+        for service, conn in db_creds.items():
+            agent_id = service.replace("slack_creds:", "")
+            try:
+                cdata = json.loads(conn["access_token"])
+                self.agent_transports[agent_id] = cdata.get("transport", "socket")
+            except Exception:
+                self.agent_transports[agent_id] = "socket"
         
         # Fallback to general SLACK_BOT_TOKEN if specific ones aren't set
         default_token = os.getenv("SLACK_BOT_TOKEN")

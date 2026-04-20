@@ -216,6 +216,12 @@ def main():
         if not bot_id:
             print(f"[{agent_id}] authentication failed or bot_id missing; listener will not start.")
             continue
+            
+        # Transport Check: Skip Socket Mode if configured for HTTP/Webhooks
+        transport = slack_queue.agent_transports.get(agent_id, "socket")
+        if transport == "http":
+            print(f"[{agent_id}] configured for HTTP Mode (Webhook). Skipping Socket Mode listener.")
+            continue
 
         print(f"Initializing listener for {agent_id} ({bot_id})...")
         app = App(token=token)
@@ -295,13 +301,29 @@ def main():
                     
                     if not socket_token: continue
                     
-                    # If we don't have a listener for this agent yet, start one
-                    if agent_id not in apps:
-                        print(f"[DynamicWatcher] New token detected for {agent_id}. Starting listener...")
-                        
-                        # We need to update slack_queue as well so outgoing messages work
-                        slack_queue.agent_tokens[agent_id] = token
-                        slack_queue.agent_app_tokens[agent_id] = socket_token
+                        # If we don't have a listener for this agent yet, start one
+                        if agent_id not in apps:
+                            # Transport Check for new agents
+                            creds_conn = user_connections_store.get_connection(f"slack_creds:{agent_id}")
+                            transport = "socket"
+                            if creds_conn:
+                                try:
+                                    cdata = json.loads(creds_conn["access_token"])
+                                    transport = cdata.get("transport", "socket")
+                                except: pass
+                            
+                            if transport == "http":
+                                print(f"[DynamicWatcher] {agent_id} is in HTTP mode. Activation completed (Bridge expected).")
+                                # Still need to update slack_queue for outgoing messages
+                                slack_queue.agent_tokens[agent_id] = token
+                                apps[agent_id] = "bridge_active" # Flag to skip future watcher cycles
+                                continue
+
+                            print(f"[DynamicWatcher] New token detected for {agent_id}. Starting listener...")
+                            
+                            # We need to update slack_queue as well so outgoing messages work
+                            slack_queue.agent_tokens[agent_id] = token
+                            slack_queue.agent_app_tokens[agent_id] = socket_token
                         
                         # Auth check
                         client_tmp = WebClient(token=token)

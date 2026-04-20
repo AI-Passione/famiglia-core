@@ -77,6 +77,8 @@ class SlackProvisioningService:
                         "channel_name": config["name"]
                     }
                 )
+            else:
+                print(f"  - Skipping greeting (already exists): {title}")
 
     def _get_public_url(self) -> Optional[str]:
         """Fetch the public URL from environment or ngrok container's API."""

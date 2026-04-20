@@ -80,24 +80,31 @@ class SlackProvisioningService:
 
     def _get_public_url(self) -> Optional[str]:
         """Fetch the public URL from environment or ngrok container's API."""
-        # 1. Check direct environment override first
-        env_url = os.getenv("PUBLIC_URL") or os.getenv("SLACK_REDIRECT_HOST")
+        # 1. Check direct environment overrides first (including NGROK_DOMAIN)
+        env_url = (
+            os.getenv("PUBLIC_URL") or 
+            os.getenv("SLACK_REDIRECT_HOST") or
+            os.getenv("NGROK_DOMAIN")
+        )
         if env_url:
+            # If NGROK_DOMAIN is just 'foo.ngrok-free.app', prefix it
+            if "://" not in env_url:
+                env_url = f"https://{env_url}"
             return env_url.rstrip("/")
 
-        # 2. Try to detect from ngrok
+        # 2. Try to detect from ngrok's local API
         try:
             # We use 'ngrok' as the hostname since it's the service name in docker-compose
-            # But we also try 'localhost' if running on host
             for host in ["ngrok", "localhost"]:
                 try:
                     response = requests.get(f"http://{host}:4040/api/tunnels", timeout=1)
                     if response.ok:
                         tunnels = response.json().get("tunnels", [])
-                        # Look for the https tunnel
-                        https_tunnel = next((t for t in tunnels if t.get("proto") == "https"), None)
-                        if https_tunnel:
-                            return https_tunnel.get("public_url").rstrip("/")
+                        # Prioritize https, then http
+                        for proto in ["https", "http"]:
+                            tunnel = next((t for t in tunnels if t.get("proto") == proto), None)
+                            if tunnel:
+                                return tunnel.get("public_url").rstrip("/")
                 except Exception:
                     continue
         except Exception as e:

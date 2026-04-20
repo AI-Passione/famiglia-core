@@ -14,4 +14,4 @@ from famiglia_core.command_center.backend.api.main import app
 if __name__ == "__main__":
     import uvicorn
     # The Docker setup usually calls this file.
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, proxy_headers=True, forwarded_allow_ips="*")

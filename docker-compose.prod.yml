@@ -42,8 +42,8 @@ services:
       - NOTION_API_KEY_ROSSINI=${NOTION_API_KEY_ROSSINI}
       - NOTION_API_KEY_KOWALSKI=${NOTION_API_KEY_KOWALSKI}
       - AGENT_CONTEXT_ENABLED=${AGENT_CONTEXT_ENABLED:-true}
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -64,8 +64,8 @@ services:
       dockerfile: Dockerfile
     image: ghcr.io/ai-passione/famiglia-core-frontend:latest
     restart: unless-stopped
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     depends_on:
       app:
         condition: service_healthy
@@ -267,6 +267,23 @@ services:
         reservations:
           memory: 512M
 
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - PRODUCTION_DOMAIN=${PRODUCTION_DOMAIN:-localhost}
+      - ACME_EMAIL=${ACME_EMAIL:-admin@ai-passione.com}
+    depends_on:
+      frontend:
+        condition: service_started
+
 volumes:
   redis_data:
   postgres_data:
@@ -276,3 +293,5 @@ volumes:
   grafana_data:
   prometheus_data:
   langfuse_db_data:
+  caddy_data:
+  caddy_config:

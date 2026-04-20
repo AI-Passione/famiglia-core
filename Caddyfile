@@ -1,0 +1,28 @@
+{
+    # Global options
+    email {$ACME_EMAIL:admin@ai-passione.com}
+}
+
+{$PRODUCTION_DOMAIN:demo.aipassione.com} {
+    # HSTS - Force browsers to only use HTTPS
+    header Strict-Transport-Security "max-age=31536000;"
+    
+    # Security Headers
+    header X-Content-Type-Options nosniff
+    header X-Frame-Options DENY
+    header Referrer-Policy strict-origin-when-cross-origin
+
+    # Proxy all traffic to the frontend Nginx
+    reverse_proxy frontend:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Custom log configuration
+    log {
+        output stdout
+        format json
+    }
+}

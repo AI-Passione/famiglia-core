@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/AI-Passione/famiglia-core/compare/v1.16.0...v1.17.0) (2026-04-21)
+
+
+### Features
+
+* add app_id column to oauth_tokens table schema ([fb7e727](https://github.com/AI-Passione/famiglia-core/commit/fb7e727a29484752414bc7c7de5e27748505b706))
+
 # [1.16.0](https://github.com/AI-Passione/famiglia-core/compare/v1.15.0...v1.16.0) (2026-04-20)
 
 

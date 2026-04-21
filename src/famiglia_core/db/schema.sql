@@ -256,6 +256,7 @@ CREATE TABLE IF NOT EXISTS user_connections (
   access_token TEXT         NOT NULL,   -- Fernet-encrypted
   refresh_token TEXT,                    -- Fernet-encrypted
   scopes       TEXT,
+  app_id       TEXT,
   connected_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at   TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (service)

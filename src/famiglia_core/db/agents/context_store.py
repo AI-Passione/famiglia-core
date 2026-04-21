@@ -957,6 +957,18 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to list Famiglia agents: {e}")
             return []
 
+    def get_shared_soul_baseline(self) -> Optional[str]:
+        """Fetch the common instructions shared by all agents."""
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return None
+                cursor.execute("SELECT content FROM shared_soul_baseline ORDER BY created_at DESC LIMIT 1")
+                row = cursor.fetchone()
+                return row["content"] if row else None
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch shared soul baseline: {e}")
+            return None
+
     # --- Agent Soul & Capability Management ---
 
     def get_agent_soul(self, agent_id: str) -> Optional[Dict[str, Any]]:

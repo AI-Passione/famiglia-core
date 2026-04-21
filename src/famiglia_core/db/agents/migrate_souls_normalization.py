@@ -98,24 +98,24 @@ class SoulMigrator:
                         m = re.match(r"-\s+`([\w_]+).*?`", line.strip())
                         if m:
                             data["workflows"].append(m.group(1))
-            elif "RESOURCES" in header or "RESOURCE" in header:
-                for line in body.split("\n"):
-                    if line.strip().startswith("- "):
-                        m = re.match(r"-\s+\*\*(.*?)\*\*:\s+(.*)", line.strip())
-                        if m:
-                            data["resources"].append({"name": m.group(1), "description": m.group(2), "type": "documentation"})
-                        else:
-                            name = line.strip()[2:]
                             if name: data["resources"].append({"name": name, "description": "", "type": "documentation"})
+            elif "TOOLS" in header or "CAPABILITIES" in header:
+                for line in body.split("\n"):
+                    # Match both - `tool_name`: description and - `tool_name`
+                    m = re.match(r"-\s+`([\w_-]+).*?`", line.strip())
+                    if m:
+                        data["tools"].append({"name": m.group(1).strip().lower(), "plugin": self._guess_plugin(m.group(1))})
 
-        # Extract tools via TRIGGER pattern anywhere
+        # Keep legacy TRIGGER pattern search as fallback/enrichment
         tool_triggers = re.findall(r"\[TRIGGER:\s+(.*?)\((.*?)\)\]", content)
-        seen_tools = set()
-        for tool_name, _ in tool_triggers:
+        for tool_full_name, _ in tool_triggers:
+            # Clean name (e.g. read_github_repo -> github if guessable, or just the name)
+            tool_name = tool_full_name.split("(")[0].strip()
             plugin = self._guess_plugin(tool_name)
-            if plugin not in seen_tools:
-                data["tools"].append({"name": plugin, "plugin": plugin})
-                seen_tools.add(plugin)
+            # Use the plugin name as the primary tool identifier if found, otherwise the clean name
+            final_name = plugin if plugin != "system" else tool_name
+            if not any(t["name"] == final_name for t in data["tools"]):
+                data["tools"].append({"name": final_name, "plugin": plugin})
 
         return data
 
@@ -246,13 +246,19 @@ class SoulMigrator:
                 avatar_url=AVATAR_MAPPING.get(agent_id)
             )
 
-            active_tools = {t["plugin"] for t in parsed_data["tools"]}
-            for kw in ["github", "notion", "web search"]:
-                if kw in content.lower(): active_tools.add(kw.replace(" ", "_"))
+            active_tools = {t["name"] for t in parsed_data["tools"]}
+            for kw in ["github", "notion", "web search", "duckdb"]:
+                if kw in content.lower():
+                    name = kw.replace(" ", "_")
+                    active_tools.add(name)
+
             for t_name in active_tools:
-                if t_name in tool_ids:
-                    with context_store.db_session() as cursor:
-                        if cursor: cursor.execute("INSERT INTO agent_tools (agent_id, tool_id) VALUES (%s, %s) ON CONFLICT DO NOTHING", (agent_id, tool_ids[t_name]))
+                with context_store.db_session() as cursor:
+                    if cursor:
+                        # Ensure tool exists or get its ID
+                        cursor.execute("INSERT INTO tools (name, plugin) VALUES (%s, %s) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id", (t_name, self._guess_plugin(t_name)))
+                        tid = cursor.fetchone()["id"]
+                        cursor.execute("INSERT INTO agent_tools (agent_id, tool_id) VALUES (%s, %s) ON CONFLICT DO NOTHING", (agent_id, tid))
 
             for skill in parsed_data["skills"]:
                 if skill["name"].lower() in SKILL_BLOCKLIST: continue

@@ -55,8 +55,18 @@ def load_agent_soul(agent_id: str, agent_name: str) -> str:
     if db_soul:
         print(f"[SoulRegistry] Loading soul from database for {resolved_id}")
         
+        # Load shared baseline from DB or file fallback
+        shared_text = context_store.get_shared_soul_baseline()
+        if not shared_text:
+            shared_path = Path(__file__).resolve().parent / "souls.md"
+            if shared_path.exists():
+                shared_text = shared_path.read_text(encoding="utf-8").strip()
+        
         # Build the soul string from normalized fields
         parts = []
+        if shared_text:
+            parts.append(shared_text)
+            
         if db_soul.get("persona"):
             parts.append(f"## PERSONA & TONE\n{db_soul['persona']}")
         if db_soul.get("reply_constraints"):
@@ -85,7 +95,7 @@ def load_agent_soul(agent_id: str, agent_name: str) -> str:
             parts.append(f"## REUSABLE WORKFLOWS\n{wf_text}")
 
         if db_traits["resources"]:
-            res_text = "\n".join([f"- **{r['name']}**: {r.get('description', '')} ({r.get('url', 'N/A')})" for r in db_traits["resources"]])
+            res_text = "\n".join([f"- **{r['name']}**: {r.get('description', '')}" for r in db_traits["resources"]])
             parts.append(f"## TOOLS & RESOURCES\n{res_text}")
 
         return "\n\n---\n\n".join(parts)

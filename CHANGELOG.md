@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/AI-Passione/famiglia-core/compare/v1.15.0...v1.16.0) (2026-04-20)
+
+
+### Features
+
+* add Redis password authentication and restrict service ports to localhost binding ([ab358c1](https://github.com/AI-Passione/famiglia-core/commit/ab358c14f7e934df931063621e4ac71adfc605cc))
+
 # [1.15.0](https://github.com/AI-Passione/famiglia-core/compare/v1.14.0...v1.15.0) (2026-04-20)
 
 

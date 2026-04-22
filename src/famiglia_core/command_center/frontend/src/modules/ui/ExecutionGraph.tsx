@@ -7,9 +7,10 @@ interface ExecutionGraphProps {
   activeNodeIds: string[];
   selectedNodeId: string | null;
   onNodeClick: (nodeId: string | null) => void;
+  logs?: any[];
 }
 
-export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeClick }: ExecutionGraphProps) {
+export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeClick, logs = [] }: ExecutionGraphProps) {
   const [offsets, setOffsets] = useState<Record<string, { x: number, y: number }>>({});
 
   // Simple vertical layout for now: nodes are arranged in columns based on their dependencies
@@ -273,6 +274,68 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
                       </div>
                     </div>
                   )}
+
+                  {(node.last_log || node.last_status) && (
+                    <div className="pt-6 border-t border-outline-variant/10">
+                      <p className="font-label text-[9px] text-outline uppercase tracking-widest mb-4">Historical Health</p>
+                      <div className={`p-4 rounded-xl border ${
+                        node.last_status === 'success' ? 'bg-emerald-500/5 border-emerald-500/20' : 
+                        node.last_status === 'error' ? 'bg-rose-500/5 border-rose-500/20' : 'bg-white/5 border-white/10'
+                      }`}>
+                        <div className="flex justify-between items-center mb-2">
+                           <span className={`font-mono text-[9px] uppercase font-bold ${
+                             node.last_status === 'success' ? 'text-emerald-400' : 
+                             node.last_status === 'error' ? 'text-rose-400' : 'text-primary'
+                           }`}>
+                             Status: {node.last_status || 'Unknown'}
+                           </span>
+                        </div>
+                        <p className="font-body text-[10px] text-on-surface-variant italic leading-relaxed">
+                          "{node.last_log || 'No previous logs recorded.'}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-6 border-t border-outline-variant/10">
+                     <p className="font-label text-[9px] text-outline uppercase tracking-widest mb-4">Technical Audit Logs</p>
+                     <div className="space-y-3">
+                        {(() => {
+                           const nodeLogs = logs.filter(l => 
+                              l.node_id === selectedNodeId || 
+                              l.metadata?.node_id === selectedNodeId || 
+                              l.metadata?.step === selectedNodeId
+                           );
+                           
+                           if (nodeLogs.length === 0) {
+                              return (
+                                 <div className="p-4 bg-white/5 rounded-lg border border-white/5 text-center">
+                                    <p className="text-[10px] text-outline italic">No execution telemetry recorded for this node.</p>
+                                 </div>
+                              );
+                           }
+
+                           return nodeLogs.map((log, idx) => (
+                              <div key={idx} className="p-3 bg-black/20 rounded-lg border border-outline-variant/5 space-y-2">
+                                 <div className="flex justify-between items-center">
+                                    <span className={`text-[8px] uppercase font-bold tracking-tighter ${
+                                       log.type === 'success' ? 'text-emerald-400' : 
+                                       log.type === 'error' ? 'text-rose-400' : 'text-primary'
+                                    }`}>
+                                       {log.title}
+                                    </span>
+                                    <span className="text-[8px] font-mono text-outline opacity-50">
+                                       {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                    </span>
+                                 </div>
+                                 <p className="text-[10px] text-on-surface-variant leading-relaxed">
+                                    {log.message}
+                                 </p>
+                              </div>
+                           ));
+                        })()}
+                     </div>
+                  </div>
 
                   <div className="pt-6 border-t border-outline-variant/10">
                      <p className="font-label text-[9px] text-outline uppercase tracking-widest mb-4">Node Context</p>

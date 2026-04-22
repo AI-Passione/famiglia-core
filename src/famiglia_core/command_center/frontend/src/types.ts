@@ -101,6 +101,8 @@ export interface GraphNode {
   description?: string;
   inputs?: string;
   outputs?: string;
+  last_log?: string;
+  last_status?: string;
 }
 
 export interface GraphEdge {

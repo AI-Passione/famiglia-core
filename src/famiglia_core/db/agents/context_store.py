@@ -236,23 +236,48 @@ class AgentContextStore:
         type: str = "info",
         agent_name: Optional[str] = None,
         task_id: Optional[int] = None,
+        node_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> int:
         """Unified logging for all application-level alerts (Bell notification center)."""
         try:
+            # Defensive node_id extraction from metadata
+            if not node_id and metadata:
+                node_id = metadata.get("node_id") or metadata.get("step")
+
             with self.db_session() as cursor:
                 if cursor is None: return -1
                 cursor.execute(
                     """
                     INSERT INTO app_notifications (
-                        source, agent_name, title, message, type, task_id, metadata
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        source, agent_name, title, message, type, task_id, node_id, metadata
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                     """,
-                    (source, agent_name, title, message, type, task_id, self._safe_json(metadata)),
+                    (source, agent_name, title, message, type, task_id, node_id, self._safe_json(metadata)),
                 )
                 row = cursor.fetchone()
-                return row["id"] if row else -1
+                notification_id = row["id"] if row else -1
+
+                # 2. Side-effect: Update workflow_nodes table for real-time health visibility
+                if node_id and task_id:
+                    cursor.execute(
+                        """
+                        UPDATE workflow_nodes
+                        SET last_log = %s, last_status = %s
+                        WHERE node_name = %s 
+                        AND workflow_id IN (
+                            SELECT id FROM workflows WHERE name = (
+                                SELECT metadata->>'graph_id' 
+                                FROM task_instances 
+                                WHERE id = %s
+                            )
+                        )
+                        """,
+                        (message[:1000], type, node_id, task_id)
+                    )
+
+                return notification_id
         except Exception as e:
             print(f"[ContextStore] Failed to log app notification: {e}")
             return -1

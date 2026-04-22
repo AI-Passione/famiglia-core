@@ -9,6 +9,10 @@ class GraphNode(BaseModel):
     type: str = "node" # node, conditional, entry, end
     code: Optional[str] = None
     description: Optional[str] = None
+    inputs: Optional[str] = None
+    outputs: Optional[str] = None
+    last_log: Optional[str] = None
+    last_status: Optional[str] = None
 
 class GraphEdge(BaseModel):
     source: str
@@ -163,6 +167,25 @@ class GraphParser:
 
         if len(nodes) <= 2:
             return None
+
+        # Enrich nodes with DB metadata if available
+        try:
+            from famiglia_core.db.agents.context_store import context_store
+            with context_store.db_session(commit=False) as cursor:
+                if cursor:
+                    cursor.execute(
+                        "SELECT node_name, last_log, last_status FROM workflow_nodes WHERE workflow_id IN (SELECT id FROM workflows WHERE name = %s)",
+                        (graph_id,)
+                    )
+                    db_rows = cursor.fetchall()
+                    db_map = {row["node_name"]: row for row in db_rows}
+                    
+                    for node in nodes:
+                        if node.id in db_map:
+                            node.last_log = db_map[node.id]["last_log"]
+                            node.last_status = db_map[node.id]["last_status"]
+        except Exception as e:
+            print(f"[GraphParser] DB enrichment failed for {graph_id}: {e}")
 
         return GraphDefinition(
             id=graph_id,

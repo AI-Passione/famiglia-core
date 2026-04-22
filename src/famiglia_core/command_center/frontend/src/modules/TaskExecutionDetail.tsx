@@ -219,6 +219,7 @@ export function TaskExecutionDetail() {
                 activeNodeIds={activeNodeIds} 
                 selectedNodeId={selectedNodeId}
                 onNodeClick={setSelectedNodeId}
+                logs={detail.notifications}
               />
             </div>
           ) : (

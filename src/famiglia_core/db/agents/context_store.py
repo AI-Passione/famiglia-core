@@ -686,6 +686,37 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to list task instances: {e}")
             return []
 
+    def list_tasks_in_range(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        statuses: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Fetch tasks that fall within a specific time range for the Agenda view."""
+        normalized_statuses = self._normalize_statuses(statuses)
+        query = """
+            SELECT * FROM task_instances
+            WHERE (eta_pickup_at BETWEEN %s AND %s)
+               OR (eta_completion_at BETWEEN %s AND %s)
+               OR (eta_pickup_at <= %s AND eta_completion_at >= %s)
+        """
+        params = [start_date, end_date, start_date, end_date, start_date, end_date]
+        
+        if normalized_statuses:
+            query += " AND status = ANY(%s)"
+            params.append(normalized_statuses)
+            
+        query += " ORDER BY eta_pickup_at ASC"
+        
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(query, params)
+                return [self._serialize_task_row(row) for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"[ContextStore] Failed to list tasks in range: {e}")
+            return []
+
     def get_total_task_count(self, statuses: Optional[List[str]] = None) -> int:
         normalized_statuses = self._normalize_statuses(statuses)
         query = "SELECT COUNT(*) FROM task_instances"
@@ -1320,6 +1351,35 @@ class AgentContextStore:
         except Exception as e:
             print(f"[ContextStore] Failed to update SOP workflow metadata {workflow_id}: {e}")
             return False
+
+    def update_task_instance(self, task_id: int, **kwargs) -> Optional[Dict[str, Any]]:
+        """General purpose update for task instances (e.g. rescheduling or renaming)."""
+        allowed_fields = {
+            "title", "task_payload", "status", "priority", 
+            "expected_agent", "eta_pickup_at", "eta_completion_at", "metadata"
+        }
+        update_fields = {k: v for k, v in kwargs.items() if k in allowed_fields}
+        if not update_fields:
+            return None
+            
+        sets = ", ".join([f"{k} = %s" for k in update_fields.keys()])
+        query = f"UPDATE task_instances SET {sets}, updated_at = NOW() WHERE id = %s RETURNING *"
+        
+        # Handle JSONB for metadata if present
+        if "metadata" in update_fields:
+            update_fields["metadata"] = self._safe_json(update_fields["metadata"])
+            
+        params = (*update_fields.values(), task_id)
+        
+        try:
+            with self.db_session() as cursor:
+                if cursor is None: return None
+                cursor.execute(query, params)
+                row = cursor.fetchone()
+                return self._serialize_task_row(row) if row else None
+        except Exception as e:
+            print(f"[ContextStore] Failed to update task instance {task_id}: {e}")
+            return None
 
     def get_task_instance(self, task_id: int) -> Optional[Dict[str, Any]]:
         try:

@@ -26,6 +26,7 @@ class TaskDetail(BaseModel):
     task: Dict[str, Any]
     messages: List[Dict[str, Any]]
     notifications: List[Dict[str, Any]]
+    graph: Optional[GraphDefinition] = None
 
 class ExecutionResponse(BaseModel):
     task_id: int
@@ -279,6 +280,15 @@ async def get_task_detail(task_id: int):
     messages = context_store.get_task_messages(task_id)
     notifications = context_store.get_task_notifications(task_id)
     
+    # Fetch Graph Definition if applicable
+    graph = None
+    graph_id = task.get("metadata", {}).get("graph_id")
+    if graph_id:
+        for root, _, files in os.walk(FEATURES_DIR):
+            if f"{graph_id}.py" in files:
+                graph = graph_parser.parse_file(os.path.join(root, f"{graph_id}.py"))
+                break
+    
     # Serialize timestamps for JSON
     def serialize_dates(items):
         for item in items:
@@ -290,7 +300,8 @@ async def get_task_detail(task_id: int):
     return TaskDetail(
         task=task,
         messages=serialize_dates(messages),
-        notifications=serialize_dates(notifications)
+        notifications=serialize_dates(notifications),
+        graph=graph
     )
 
 @router.post("/graphs/{graph_id}/execute", response_model=ExecutionResponse)

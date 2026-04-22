@@ -367,4 +367,5 @@ export interface TaskExecutionDetail {
   task: Task;
   messages: TaskMessage[];
   notifications: TaskNotification[];
+  graph?: GraphDefinition | null;
 }

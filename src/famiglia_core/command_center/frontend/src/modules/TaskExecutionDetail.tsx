@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { TaskExecutionDetail as DetailType } from '../types';
 import { API_BASE } from '../config';
+import { ExecutionGraph } from './ui/ExecutionGraph';
 
 export function TaskExecutionDetail() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -10,6 +11,7 @@ export function TaskExecutionDetail() {
   const [detail, setDetail] = useState<DetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const fetchDetail = async () => {
     if (!taskId) return;
@@ -48,7 +50,36 @@ export function TaskExecutionDetail() {
     detail.messages.forEach(m => events.push({ type: 'message', timestamp: m.created_at, data: m }));
     detail.notifications.forEach(n => events.push({ type: 'notification', timestamp: n.created_at, data: n }));
 
-    return events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const filtered = events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    if (selectedNodeId) {
+      return filtered.filter(e => 
+        e.data.metadata?.node_id === selectedNodeId || 
+        e.data.metadata?.step === selectedNodeId
+      );
+    }
+    
+    return filtered;
+  }, [detail, selectedNodeId]);
+
+  // Extract active node IDs from notifications/messages
+  const activeNodeIds = useMemo(() => {
+    if (!detail) return [];
+    const ids = new Set<string>();
+    detail.notifications.forEach(n => {
+      if (n.metadata?.node_id) ids.add(n.metadata.node_id);
+      if (n.metadata?.step) ids.add(n.metadata.step);
+    });
+    // Check messages too if they have node info
+    detail.messages.forEach(m => {
+      if (m.metadata?.node_id) ids.add(m.metadata.node_id);
+    });
+    
+    // If the task is completed, ensure 'END' is highlighted if it's in the graph
+    if (detail.task.status === 'completed') ids.add('END');
+    if (detail.task.status !== 'pending') ids.add('START');
+
+    return Array.from(ids);
   }, [detail]);
 
   if (loading) {
@@ -177,6 +208,28 @@ export function TaskExecutionDetail() {
         <div className="col-span-12 lg:col-span-8 space-y-6">
           <div className="flex items-center space-x-4">
             <span className="material-symbols-outlined text-primary">analytics</span>
+            <h3 className="font-headline text-xl text-on-surface">Execution Graph</h3>
+            <div className="h-[1px] flex-1 bg-outline-variant/20"></div>
+          </div>
+
+          {detail.graph ? (
+            <div className="glass-module border border-outline-variant/10 overflow-hidden bg-black/20">
+              <ExecutionGraph 
+                graph={detail.graph} 
+                activeNodeIds={activeNodeIds} 
+                selectedNodeId={selectedNodeId}
+                onNodeClick={setSelectedNodeId}
+              />
+            </div>
+          ) : (
+            <div className="py-10 text-center glass-module border border-outline-variant/10 opacity-30">
+               <span className="material-symbols-outlined text-4xl mb-2">schema</span>
+               <p className="font-label text-[10px] uppercase tracking-widest">No structural graph mapped for this mission type.</p>
+            </div>
+          )}
+
+          <div className="flex items-center space-x-4 pt-6">
+            <span className="material-symbols-outlined text-primary">history</span>
             <h3 className="font-headline text-xl text-on-surface">Execution Timeline</h3>
             <div className="h-[1px] flex-1 bg-outline-variant/20"></div>
           </div>

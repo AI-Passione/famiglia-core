@@ -390,5 +390,3 @@ export interface TaskExecutionDetail {
   notifications: TaskNotification[];
   graph?: GraphDefinition | null;
 }
-
-export type { AgendaEntry, AgendaEntryKind };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import type { FamigliaAgent, ActionLog, RecurringTask, ScheduleConfig, Task, GraphDefinition, AgendaEntry, AgendaEntryKind } from '../types';
+import type { FamigliaAgent, ActionLog, RecurringTask, ScheduleConfig, Task, GraphDefinition, AgendaEntry } from '../types';
 import { AgendaEventModal } from './ui/AgendaEventModal';
 
 type AgendaView = 'schedule' | 'week' | 'month';

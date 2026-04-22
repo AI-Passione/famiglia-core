@@ -782,6 +782,17 @@ export function Agenda({
   const recurringEntries = buildRecurringEntries(recurringTasks, tasks, range.start, range.end);
   const entries = sortEntries([...recurringEntries, ...taskEntries]);
 
+  // Debug logging to help identify why tasks might be missing
+  useEffect(() => {
+    console.log(`[Agenda Debug] Rendering view: ${view}`);
+    console.log(`[Agenda Debug] Reference Date: ${referenceDate.toISOString()}`);
+    console.log(`[Agenda Debug] Total Tasks from App: ${tasks.length}`);
+    console.log(`[Agenda Debug] Tasks in current range: ${taskEntries.length}`);
+    if (taskEntries.length > 0) {
+      console.log(`[Agenda Debug] Sample Task Date: ${taskEntries[0].start.toISOString()}`);
+    }
+  }, [view, referenceDate, tasks.length, taskEntries.length]);
+
   const upcomingTasks = sortEntries(
     buildTaskEntries(tasks, startOfDay(new Date()), endOfDay(addDays(new Date(), 21))),
   ).filter((entry) => ['queued', 'in_progress', 'drafted'].includes(entry.status));
@@ -804,14 +815,17 @@ export function Agenda({
     <section className="space-y-6">
       <div className="rounded-[32px] border border-white/5 bg-[radial-gradient(circle_at_top_left,_rgba(122,27,34,0.34),_transparent_46%),linear-gradient(180deg,_rgba(23,23,23,0.98),_rgba(17,17,17,0.95))] p-8 shadow-[0_22px_100px_rgba(0,0,0,0.28)]">
         <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="font-label text-[10px] uppercase tracking-[0.32em] text-[#8f8582]">
-              Home Dashboard · Local Command Schedule
-            </p>
-            <h2 className="mt-3 font-headline text-5xl tracking-tight text-[#f7f1f0]">The Agenda</h2>
-            <p className="mt-3 max-w-2xl font-body text-base leading-7 text-[#b6abaa]">
-              Upcoming tasks, recurring agent routines, and the sharpest priorities for {honorific} {fullName},
-              organized in one local-first command view.
+          <div className="space-y-2">
+            <div className="flex items-center gap-4">
+              <h2 className="font-headline text-5xl font-bold tracking-tight text-[#f4efee]">
+                Agenda
+              </h2>
+              <div className="mt-2 rounded-full bg-white/5 px-4 py-1 font-label text-[10px] uppercase tracking-[0.3em] text-[#8f8582]">
+                Last Synced: {now.toLocaleTimeString()}
+              </div>
+            </div>
+            <p className="font-body text-lg text-[#8f8582]">
+              Commanding the temporal flow for {honorific} {fullName}.
             </p>
             <div className="mt-6 flex gap-4">
               <button

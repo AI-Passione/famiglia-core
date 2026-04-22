@@ -772,7 +772,12 @@ export function Agenda({
   };
 
   const range = getAgendaRange(view, referenceDate);
-  const taskEntries = buildTaskEntries(tasks, range.start, range.end);
+  // Expand range for Monthly view to cover the full 42-cell grid
+  const fetchRange = view === 'month' 
+    ? { start: startOfWeek(startOfMonth(referenceDate)), end: addDays(startOfWeek(startOfMonth(referenceDate)), 42) }
+    : range;
+
+  const taskEntries = buildTaskEntries(tasks, fetchRange.start, fetchRange.end);
   const recurringEntries = buildRecurringEntries(recurringTasks, tasks, range.start, range.end);
   const entries = sortEntries([...recurringEntries, ...taskEntries]);
 

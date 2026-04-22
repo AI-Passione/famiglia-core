@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useMemo } from 'react';
 import type { GraphDefinition } from '../../types';
 
@@ -67,9 +67,9 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
   const levels_arr = Object.entries(nodesByLevel).sort(([a], [b]) => Number(a) - Number(b));
 
   return (
-    <div className="relative w-full overflow-x-auto py-10 min-h-[500px] flex flex-col items-center">
-      <div className="relative" style={{ width: '100%', height: levels_arr.length * (LEVEL_HEIGHT + LEVEL_GAP) + 100 }}>
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ minWidth: 800 }}>
+    <div className="relative w-full overflow-x-auto py-10 min-h-[600px] flex justify-center">
+      <div className="relative" style={{ width: '1200px', height: levels_arr.length * (LEVEL_HEIGHT + LEVEL_GAP) + 100 }}>
+        <svg className="absolute inset-0 w-full h-full pointer-events-none">
           <defs>
             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
               <polygon points="0 0, 10 3.5, 0 7" fill="rgba(99, 102, 241, 0.5)" />
@@ -81,11 +81,11 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
             const end = positions[edge.target];
             if (!start || !end) return null;
 
-            // Draw a curved path from bottom of start to top of end
-            const startX = 400 + start.x; // Offset to center
-            const startY = start.y + 25;
-            const endX = 400 + end.x;
-            const endY = end.y - 25;
+            // Use 600 as the horizontal center of our 1200px container
+            const startX = 600 + start.x;
+            const startY = start.y + 40; // Connect to bottom edge
+            const endX = 600 + end.x;
+            const endY = end.y - 40; // Connect to top edge
             
             const cp1Y = startY + 40;
             const cp2Y = endY - 40;
@@ -148,10 +148,12 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
               }}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              onClick={() => onNodeClick(selectedNodeId === node.id ? null : node.id)}
+              onClick={() => {
+                onNodeClick(selectedNodeId === node.id ? null : node.id);
+              }}
               style={{ 
                 position: 'absolute', 
-                left: `calc(50% + ${pos.x}px)`, 
+                left: `${600 + pos.x}px`, 
                 top: pos.y,
                 transform: 'translate(-50%, -50%)',
                 touchAction: 'none',
@@ -193,6 +195,81 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
           );
         })}
       </div>
+
+      {/* Node Detail Side Panel */}
+      <AnimatePresence>
+        {selectedNodeId && (
+          <motion.div
+            initial={{ x: 400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0 }}
+            className="absolute right-0 top-0 bottom-0 w-80 bg-background/80 backdrop-blur-xl border-l border-outline-variant/10 z-50 overflow-y-auto p-6 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]"
+          >
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="font-headline text-lg text-on-surface uppercase tracking-widest">Node Intel</h3>
+              <button 
+                onClick={() => onNodeClick(null)}
+                className="p-2 hover:bg-white/5 rounded-full transition-colors"
+              >
+                <span className="material-symbols-outlined text-outline">close</span>
+              </button>
+            </div>
+
+            {(() => {
+              const node = graph.nodes.find(n => n.id === selectedNodeId);
+              if (!node) return null;
+              return (
+                <div className="space-y-8">
+                  <div className="space-y-2">
+                    <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">Identity</p>
+                    <h4 className="font-headline text-xl text-on-surface">{node.label}</h4>
+                    <span className="inline-block px-2 py-0.5 rounded bg-white/5 font-mono text-[9px] text-outline uppercase">
+                      ID: {node.id}
+                    </span>
+                  </div>
+
+                  {node.description && (
+                    <div className="space-y-3">
+                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">Description</p>
+                      <p className="font-body text-xs text-on-surface-variant leading-relaxed italic">
+                        {node.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {node.code && (
+                    <div className="space-y-3">
+                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">Operational Logic</p>
+                      <div className="relative group">
+                        <pre className="p-4 bg-black/40 rounded-xl border border-outline-variant/10 font-mono text-[10px] text-on-surface-variant overflow-x-auto leading-relaxed max-h-[400px]">
+                          <code>{node.code}</code>
+                        </pre>
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <span className="text-[8px] font-mono text-outline uppercase bg-black/60 px-2 py-1 rounded">Python</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-6 border-t border-outline-variant/10">
+                     <p className="font-label text-[9px] text-outline uppercase tracking-widest mb-4">Node Context</p>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-white/5 rounded-lg border border-white/5">
+                           <p className="text-[8px] text-outline uppercase mb-1">Type</p>
+                           <p className="text-xs text-on-surface capitalize">{node.type}</p>
+                        </div>
+                        <div className="p-3 bg-white/5 rounded-lg border border-white/5">
+                           <p className="text-[8px] text-outline uppercase mb-1">State</p>
+                           <p className="text-xs text-on-surface">{activeNodeIds.includes(node.id) ? 'Active' : 'Idle'}</p>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

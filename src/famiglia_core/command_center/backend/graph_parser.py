@@ -7,6 +7,8 @@ class GraphNode(BaseModel):
     id: str
     label: str
     type: str = "node" # node, conditional, entry, end
+    code: Optional[str] = None
+    description: Optional[str] = None
 
 class GraphEdge(BaseModel):
     source: str
@@ -58,6 +60,26 @@ class GraphParser:
         edges = []
         seen_nodes = set()
         
+        # Extract Node Source Code using AST
+        try:
+            import ast
+            tree = ast.parse(content)
+            func_details = {}
+            for node_ast in ast.walk(tree):
+                if isinstance(node_ast, ast.FunctionDef):
+                    # Get the source code for this function
+                    # Note: this is a simple extraction, might need refinement for complex files
+                    start_line = node_ast.lineno - 1
+                    end_line = getattr(node_ast, "end_lineno", node_ast.lineno)
+                    lines = content.splitlines()[start_line:end_line]
+                    func_details[node_ast.name] = {
+                        "code": "\n".join(lines),
+                        "description": ast.get_docstring(node_ast)
+                    }
+        except Exception as e:
+            print(f"Error parsing AST for {file_path}: {e}")
+            func_details = {}
+
         # 1. Add START node
         nodes.append(GraphNode(id="START", label="Start", type="entry"))
         seen_nodes.add("START")
@@ -67,7 +89,13 @@ class GraphParser:
         for match in node_matches:
             node_id = match.group(1)
             if node_id not in seen_nodes:
-                nodes.append(GraphNode(id=node_id, label=node_id.replace("_", " ").title()))
+                details = func_details.get(node_id, {})
+                nodes.append(GraphNode(
+                    id=node_id, 
+                    label=node_id.replace("_", " ").title(),
+                    code=details.get("code"),
+                    description=details.get("description")
+                ))
                 seen_nodes.add(node_id)
 
         # 3. Add END node  

@@ -97,6 +97,8 @@ export interface GraphNode {
   id: string;
   label: string;
   type: 'node' | 'conditional' | 'entry' | 'end';
+  code?: string;
+  description?: string;
 }
 
 export interface GraphEdge {

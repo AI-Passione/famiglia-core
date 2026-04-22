@@ -241,6 +241,7 @@ def process_incoming_event(
             agent_id=agent_obj.agent_id,
             text=error_msg,
             conversation_key=conversation_key,
+            sender=agent_obj.name,
             metadata={"slack_channel": channel, "slack_thread_ts": reply_ts}
         )
 

@@ -268,6 +268,7 @@ class OnDemandMasterSupervisor:
             agent_id=self.agent_id,
             text=final_text,
             conversation_key=state["conversation_key"],
+            sender=self.name,
             metadata=metadata
         )
         

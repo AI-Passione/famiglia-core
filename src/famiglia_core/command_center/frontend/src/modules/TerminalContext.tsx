@@ -256,9 +256,10 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
               const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
               
               if (!isUser) {
-                const targetSpeaker = msg.sender || 'Agent';
+                const targetSpeaker = (msg.sender && msg.sender !== 'Agent') ? msg.sender : (msg.agent_name || 'Agent');
                 const mappingKey = String(targetSpeaker).split('(')[0].trim().toLowerCase();
-                const targetAvatar = AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP['alfredo'];
+                const agentKey = String(msg.agent_name || 'alfredo').toLowerCase();
+                const targetAvatar = AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP[agentKey];
 
                 const mapped: Message = {
                   id: `poll-${currentChatId}-${backendId}-${Date.now()}`,
@@ -382,10 +383,10 @@ export function TerminalProvider({ children, initialChatId = 'command-center' }:
                      const senderLower = String(msg.sender || "").toLowerCase();
                      const isUser = msg.role === 'user' || senderLower.includes('don jimmy') || senderLower.includes('web_user');
                      
-                     const targetSpeaker = isUser ? 'Don Jimmy' : (msg.sender || channel.agentSpeaker || 'Agent');
+                     const targetSpeaker = isUser ? 'Don Jimmy' : (msg.sender && msg.sender !== 'Agent' ? msg.sender : (msg.agent_name || channel.agentSpeaker || 'Agent'));
                      const targetRole = isUser ? 'Head of Family' : (msg.role || 'Agent');
                      const mappingKey = String(targetSpeaker || "").split('(')[0].trim().toLowerCase();
-                     const chAgentId = String(channel.agent_id || 'alfredo').toLowerCase();
+                     const chAgentId = String(msg.agent_name || channel.agent_id || 'alfredo').toLowerCase();
                      const targetAvatar = isUser ? undefined : AGENT_IMAGE_MAP[mappingKey] || AGENT_IMAGE_MAP[chAgentId];
 
                       return {

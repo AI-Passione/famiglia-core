@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import type { Task } from '../../types';
 
 // ─── Heartbeat SVG (ECG / hospital-monitor style) ───────────────────────────
@@ -107,12 +108,12 @@ interface OpsPulseProps {
 }
 
 export function OpsPulse({ completedTasks, scheduledTasks, failedTasks, tasks }: OpsPulseProps) {
+  const navigate = useNavigate();
   // Filter to feature-graph tasks only — greetings & generic tasks are excluded
   // Tasks triggered by graphs carry metadata.graph_id; fall back to title keyword match
   const featureTasks = (tasks || [])
     .filter(t => {
       if (!t) return false;
-      if (t.status === 'pending') return false;
       
       const title = (t.title || '').toLowerCase();
       const payload = (t.task_payload || '').toLowerCase();
@@ -176,13 +177,17 @@ export function OpsPulse({ completedTasks, scheduledTasks, failedTasks, tasks }:
             featureTasks.map((task, idx) => {
               const isSuccess = task.status === 'completed' || task.status === 'success';
               const isFailed  = task.status === 'failed'    || task.status === 'error';
-              const colorClass = isSuccess ? 'text-primary' : isFailed ? 'text-red-400' : 'text-tertiary';
+              const isPending = task.status === 'pending'   || task.status === 'queued';
+              
+              const colorClass = isSuccess ? 'text-primary' : isFailed ? 'text-red-400' : isPending ? 'text-amber-500' : 'text-tertiary';
               const bgClass    = isSuccess
                 ? 'bg-primary/10 border-primary/20'
                 : isFailed
                   ? 'bg-red-500/10 border-red-500/20'
-                  : 'bg-surface-container-highest/30 border-outline/10';
-              const icon = isSuccess ? 'check_circle' : isFailed ? 'cancel' : 'pending';
+                  : isPending
+                    ? 'bg-amber-500/10 border-amber-500/20'
+                    : 'bg-surface-container-highest/30 border-outline/10';
+              const icon = isSuccess ? 'check_circle' : isFailed ? 'cancel' : isPending ? 'schedule' : 'pending';
 
               const gid   = (task.metadata as any)?.graph_id as string | undefined;
               const isDoc = gid && (
@@ -200,12 +205,14 @@ export function OpsPulse({ completedTasks, scheduledTasks, failedTasks, tasks }:
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.07 }}
-                  className={`p-3 border rounded-xl flex gap-3 items-start ${bgClass}`}
+                  onClick={() => navigate(`/operations/tasks/${task.id}`)}
+                  title="View Detailed Execution Dossier"
+                  className={`p-3 border rounded-xl flex gap-3 items-start ${bgClass} cursor-pointer hover:bg-surface-container-highest/60 transition-all active:scale-[0.98] group/card`}
                 >
                   <span className={`material-symbols-outlined ${colorClass} text-[18px] mt-0.5 shrink-0`}>{icon}</span>
 
                   <div className="flex-1 min-w-0">
-                    <h5 className="font-headline text-sm text-on-surface leading-tight line-clamp-1">{task.title}</h5>
+                    <h5 className="font-headline text-sm text-on-surface leading-tight line-clamp-1 group-hover/card:text-primary transition-colors">{task.title}</h5>
                     <p className="font-body text-[11px] text-on-surface-variant italic line-clamp-1 mt-0.5">
                       {task.result_summary || task.task_payload || '—'}
                     </p>
@@ -214,7 +221,10 @@ export function OpsPulse({ completedTasks, scheduledTasks, failedTasks, tasks }:
                   {/* ── Link to Intelligence page for doc-generating graphs ── */}
                   {(isSuccess && (isDoc || true)) && (
                     <button
-                      onClick={() => handleViewIntel(task)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewIntel(task);
+                      }}
                       title="View in Intelligence"
                       className="shrink-0 mt-0.5 p-1.5 rounded-lg bg-primary/10 hover:bg-primary/25 text-primary transition-all group/link"
                     >

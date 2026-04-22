@@ -427,7 +427,7 @@ function AgendaEntryBadge({ entry, onClick, isPast }: { entry: AgendaEntry; onCl
         e.stopPropagation();
         onClick?.();
       }}
-      className={`rounded-md border-l-2 ${priority.border} bg-[#181818]/90 px-2.5 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-40 grayscale' : ''}`}
+      className={`rounded-md border-l-2 ${priority.border} bg-[#181818]/90 px-2.5 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-all ${isPast ? 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0' : ''}`}
       title={`${entry.title} · ${time}`}
     >
       <div className="flex items-center gap-2">
@@ -629,7 +629,7 @@ function WeeklyView({
                     <div
                       key={entry.id}
                       onClick={() => onEventClick(entry)}
-                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] cursor-pointer hover:bg-[#222222] transition-colors overflow-hidden ${isPast ? 'opacity-40 grayscale border-l-outline/30' : ''}`}
+                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] cursor-pointer hover:bg-[#222222] transition-all overflow-hidden ${isPast ? 'opacity-40 grayscale border-l-outline/30 hover:opacity-100 hover:grayscale-0' : ''}`}
                       style={{ top: `${top}px`, height: `${height}px` }}
                     >
                       <p className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-[#8f8582]">
@@ -683,7 +683,7 @@ function ScheduleView({ entries, onEventClick, now }: { entries: AgendaEntry[]; 
                   <article
                     key={entry.id}
                     onClick={() => onEventClick(entry)}
-                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-40 grayscale border-l-outline/30' : ''}`}
+                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-all ${isPast ? 'opacity-40 grayscale border-l-outline/30 hover:opacity-100 hover:grayscale-0' : ''}`}
                   >
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="font-headline text-lg text-[#f4efee]">{formatTime(entry.start)}</span>
@@ -882,7 +882,7 @@ export function Agenda({
                   <div 
                     key={entry.id} 
                     onClick={() => handleEventClick(entry)}
-                    className={`rounded-2xl border border-white/5 bg-[#191919] p-4 cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-40 grayscale' : ''}`}
+                    className={`rounded-2xl border-l-4 border-white/5 bg-[#191919] p-4 cursor-pointer hover:bg-[#222222] transition-all ${isPast ? 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0' : ''}`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${priority.chip}`}>

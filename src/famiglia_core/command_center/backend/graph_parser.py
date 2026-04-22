@@ -68,13 +68,27 @@ class GraphParser:
             for node_ast in ast.walk(tree):
                 if isinstance(node_ast, ast.FunctionDef):
                     # Get the source code for this function
-                    # Note: this is a simple extraction, might need refinement for complex files
                     start_line = node_ast.lineno - 1
                     end_line = getattr(node_ast, "end_lineno", node_ast.lineno)
                     lines = content.splitlines()[start_line:end_line]
+                    
+                    # Extract Arguments (Inputs)
+                    args = [arg.arg for arg in node_ast.args.args if arg.arg != 'self']
+                    inputs_str = ", ".join(args)
+                    
+                    # Extract Return (Outputs) - looking for return statements or type hint
+                    outputs_str = "state" # Default for LangGraph nodes
+                    if node_ast.returns:
+                        if isinstance(node_ast.returns, ast.Name):
+                            outputs_str = node_ast.returns.id
+                        elif isinstance(node_ast.returns, ast.Constant):
+                            outputs_str = str(node_ast.returns.value)
+                    
                     func_details[node_ast.name] = {
                         "code": "\n".join(lines),
-                        "description": ast.get_docstring(node_ast)
+                        "description": ast.get_docstring(node_ast),
+                        "inputs": inputs_str,
+                        "outputs": outputs_str
                     }
         except Exception as e:
             print(f"Error parsing AST for {file_path}: {e}")
@@ -94,7 +108,9 @@ class GraphParser:
                     id=node_id, 
                     label=node_id.replace("_", " ").title(),
                     code=details.get("code"),
-                    description=details.get("description")
+                    description=details.get("description"),
+                    inputs=details.get("inputs"),
+                    outputs=details.get("outputs")
                 ))
                 seen_nodes.add(node_id)
 

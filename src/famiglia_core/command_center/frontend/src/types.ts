@@ -99,6 +99,8 @@ export interface GraphNode {
   type: 'node' | 'conditional' | 'entry' | 'end';
   code?: string;
   description?: string;
+  inputs?: string;
+  outputs?: string;
 }
 
 export interface GraphEdge {

@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS workflow_nodes (
   node_name TEXT NOT NULL,
   description TEXT,
   node_type VARCHAR(50), -- e.g., 'task', 'condition'
+  inputs TEXT, -- Extracted function parameters
+  outputs TEXT, -- Extracted function return details
   UNIQUE (workflow_id, node_name),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

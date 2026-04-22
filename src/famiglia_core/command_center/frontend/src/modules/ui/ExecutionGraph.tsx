@@ -241,6 +241,25 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
                     </div>
                   )}
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">Inputs</p>
+                      <div className="p-3 bg-white/5 rounded-lg border border-white/5 min-h-[50px]">
+                        <p className="font-mono text-[10px] text-on-surface leading-tight">
+                          {node.inputs || '—'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">Outputs</p>
+                      <div className="p-3 bg-white/5 rounded-lg border border-white/5 min-h-[50px]">
+                        <p className="font-mono text-[10px] text-on-surface leading-tight">
+                          {node.outputs || '—'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {node.code && (
                     <div className="space-y-3">
                       <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">Operational Logic</p>

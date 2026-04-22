@@ -486,7 +486,7 @@ function MonthlyView({
               </div>
               <div className="space-y-2">
                 {dayEntries.map((entry) => {
-                  const isPast = entry.end.getTime() < now.getTime();
+                  const isPast = entry.end.getTime() < now.getTime() && !isSameDay(entry.end, now);
                   return (
                     <div key={entry.id} className={isPast ? 'opacity-40 grayscale' : ''}>
                       <AgendaEntryBadge entry={entry} onClick={() => onEventClick(entry)} isPast={isPast} />
@@ -621,7 +621,7 @@ function WeeklyView({
                     return null;
                   }
 
-                  const isPast = entry.end.getTime() < now.getTime();
+                  const isPast = entry.end.getTime() < now.getTime() && !isSameDay(entry.end, now);
 
                   return (
                     <div
@@ -676,7 +676,7 @@ function ScheduleView({ entries, onEventClick, now }: { entries: AgendaEntry[]; 
                 const priority = priorityStyles[entry.priority] || priorityStyles.medium;
                 const statusClass = statusStyles[entry.status] || statusStyles.queued;
 
-                const isPast = entry.end < now;
+                const isPast = entry.end < now && !isSameDay(entry.end, now);
                 return (
                   <article
                     key={entry.id}
@@ -902,7 +902,7 @@ export function Agenda({
               )}
               {priorityQueue.map((entry) => {
                 const priority = priorityStyles[entry.priority] || priorityStyles.medium;
-                const isPast = entry.end.getTime() < now.getTime();
+                const isPast = entry.end.getTime() < now.getTime() && !isSameDay(entry.end, now);
                 return (
                   <div 
                     key={entry.id} 

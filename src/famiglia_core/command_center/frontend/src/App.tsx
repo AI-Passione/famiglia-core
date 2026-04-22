@@ -157,7 +157,7 @@ function App() {
         const [agentsRes, actionsRes, tasksRes, recurringTasksRes] = await Promise.all([
           fetch(`${API_BASE}/agents`),
           fetch(`${API_BASE}/actions?limit=24`),
-          fetch(`${API_BASE}/tasks?limit=40`),
+          fetch(`${API_BASE}/tasks?limit=1000`), // Force rebuild: updated limit and sorting logic
           fetch(`${API_BASE}/recurring-tasks`)
         ]);
         
@@ -233,6 +233,7 @@ function App() {
                       recurringTasks={recurringTasks}
                       honorific={settings.honorific}
                       fullName={settings.fullName}
+                      graphs={graphs}
                     />
                   } 
                 />

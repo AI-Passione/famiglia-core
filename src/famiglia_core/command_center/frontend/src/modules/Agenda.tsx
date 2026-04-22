@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import type { FamigliaAgent, ActionLog, RecurringTask, ScheduleConfig, Task } from '../types';
+import type { FamigliaAgent, ActionLog, RecurringTask, ScheduleConfig, Task, GraphDefinition, AgendaEntry } from '../types';
+import { AgendaEventModal } from './ui/AgendaEventModal';
 
 type AgendaView = 'schedule' | 'week' | 'month';
-type AgendaEntryKind = 'task' | 'recurring';
 
 interface AgendaProps {
   agents: FamigliaAgent[];
@@ -13,20 +13,7 @@ interface AgendaProps {
   recurringTasks: RecurringTask[];
   honorific: string;
   fullName: string;
-}
-
-
-interface AgendaEntry {
-  id: string;
-  sourceId: number;
-  title: string;
-  details: string;
-  start: Date;
-  end: Date;
-  kind: AgendaEntryKind;
-  priority: string;
-  status: string;
-  agent: string | null;
+  graphs: GraphDefinition[];
 }
 
 const VIEW_OPTIONS: Array<{ id: AgendaView; label: string }> = [
@@ -185,6 +172,9 @@ function sortEntries(entries: AgendaEntry[]): AgendaEntry[] {
 
 function buildTaskEntries(tasks: Task[], rangeStart: Date, rangeEnd: Date): AgendaEntry[] {
   const entries = tasks.reduce<AgendaEntry[]>((collection, task) => {
+    // Skip cancelled tasks from the visual calendar
+    if (task.status === 'cancelled') return collection;
+
     const start = getTaskStart(task);
     if (!start) return collection;
     if (start < rangeStart || start > rangeEnd) return collection;
@@ -449,11 +439,13 @@ function MonthlyView({
   entries,
   referenceDate,
   onEventClick,
+  onCreateEvent,
   now,
 }: {
   entries: AgendaEntry[];
   referenceDate: Date;
   onEventClick: (entry: AgendaEntry) => void;
+  onCreateEvent: (date: Date) => void;
   now: Date;
 }) {
   const gridStart = startOfWeek(startOfMonth(referenceDate));
@@ -468,35 +460,37 @@ function MonthlyView({
           </div>
         ))}
         {cells.map((day) => {
-          const dayEntries = entries.filter((entry) => isSameDay(entry.start, day)).slice(0, 3);
-          const remaining = entries.filter((entry) => isSameDay(entry.start, day)).length - dayEntries.length;
+          const allDayEntries = entries.filter((entry) => isSameDay(entry.start, day));
+          const dayEntries = allDayEntries.slice(0, 6);
+          const remaining = allDayEntries.length - dayEntries.length;
 
           return (
             <div
               key={day.toISOString()}
-              className={`min-h-[152px] rounded-2xl border p-3 transition-colors ${
+              onClick={() => onCreateEvent(day)}
+              className={`min-h-[152px] flex flex-col rounded-2xl border p-3 transition-colors cursor-pointer group ${
                 isToday(day)
                   ? 'border-[#6e373c] bg-[#241618]/90'
                   : isSameMonth(day, referenceDate)
-                    ? (isBefore(day, startOfDay(now)) ? 'border-white/5 bg-black/40' : 'border-white/5 bg-[#181818]/85')
+                    ? (isBefore(day, startOfDay(now)) ? 'border-white/5 bg-black/40' : 'border-white/5 bg-[#181818]/85 hover:bg-[#1a1a1a]')
                     : 'border-white/5 bg-[#111111]/65'
               }`}
             >
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-3 flex items-center justify-between shrink-0">
                 <span className="font-label text-[10px] uppercase tracking-[0.24em] text-[#786f6c]">
                   {formatCompactDate(day)}
                 </span>
                 <span
-                  className={`flex h-8 w-8 items-center justify-center rounded-full font-headline text-sm ${
+                  className={`flex h-8 w-8 items-center justify-center rounded-full font-headline text-sm transition-transform group-hover:scale-110 ${
                     isToday(day) ? 'bg-[#4A0404] text-white' : 'text-[#cfc5c2]'
                   }`}
                 >
                   {day.getDate()}
                 </span>
               </div>
-              <div className="space-y-2">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 custom-scrollbar pr-1">
                 {dayEntries.map((entry) => {
-                  const isPast = entry.end.getTime() < now.getTime();
+                  const isPast = entry.end.getTime() < now.getTime() && !isSameDay(entry.end, now);
                   return (
                     <div key={entry.id} className={isPast ? 'opacity-40 grayscale' : ''}>
                       <AgendaEntryBadge entry={entry} onClick={() => onEventClick(entry)} isPast={isPast} />
@@ -504,8 +498,8 @@ function MonthlyView({
                   );
                 })}
                 {remaining > 0 && (
-                  <p className="px-1 font-label text-[10px] uppercase tracking-[0.22em] text-[#8f8582]">
-                    +{remaining} more
+                  <p className="px-1 py-1 font-label text-[9px] uppercase tracking-[0.22em] text-[#8f8582] bg-white/5 rounded-md text-center">
+                    +{remaining} more directives
                   </p>
                 )}
               </div>
@@ -521,11 +515,13 @@ function WeeklyView({
   entries,
   referenceDate,
   onEventClick,
+  onCreateEvent,
   now,
 }: {
   entries: AgendaEntry[];
   referenceDate: Date;
   onEventClick: (entry: AgendaEntry) => void;
+  onCreateEvent: (date: Date) => void;
   now: Date;
 }) {
   const weekStart = startOfWeek(referenceDate);
@@ -579,8 +575,14 @@ function WeeklyView({
                 {Array.from({ length: WEEK_HOUR_END - WEEK_HOUR_START }, (_, index) => (
                   <div
                     key={index}
-                    className="absolute inset-x-0 border-t border-white/5"
-                    style={{ top: `${index * WEEK_HOUR_HEIGHT}px` }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const clickDate = new Date(day);
+                      clickDate.setHours(WEEK_HOUR_START + index, 0, 0, 0);
+                      onCreateEvent(clickDate);
+                    }}
+                    className="absolute inset-x-0 border-t border-white/5 hover:bg-white/[0.02] cursor-pointer transition-colors"
+                    style={{ top: `${index * WEEK_HOUR_HEIGHT}px`, height: `${WEEK_HOUR_HEIGHT}px` }}
                   ></div>
                 ))}
                 
@@ -623,7 +625,7 @@ function WeeklyView({
                     return null;
                   }
 
-                  const isPast = entry.end.getTime() < now.getTime();
+                  const isPast = entry.end.getTime() < now.getTime() && !isSameDay(entry.end, now);
 
                   return (
                     <div
@@ -678,7 +680,7 @@ function ScheduleView({ entries, onEventClick, now }: { entries: AgendaEntry[]; 
                 const priority = priorityStyles[entry.priority] || priorityStyles.medium;
                 const statusClass = statusStyles[entry.status] || statusStyles.queued;
 
-                const isPast = entry.end < now;
+                const isPast = entry.end < now && !isSameDay(entry.end, now);
                 return (
                   <article
                     key={entry.id}
@@ -736,12 +738,17 @@ export function Agenda({
   recurringTasks,
   honorific,
   fullName,
+  graphs,
 }: AgendaProps) {
   const navigate = useNavigate();
   const [view, setView] = useState<AgendaView>('month');
   const [referenceDate, setReferenceDate] = useState(() => new Date());
   const [selectedEntry, setSelectedEntry] = useState<AgendaEntry | null>(null);
   const [now, setNow] = useState(() => new Date());
+
+  const [isEventModalOpen, setEventModalOpen] = useState(false);
+  const [modalInitialEntry, setModalInitialEntry] = useState<AgendaEntry | null>(null);
+  const [modalInitialDate, setModalInitialDate] = useState<Date | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -755,10 +762,39 @@ export function Agenda({
     setSelectedEntry(entry);
   };
 
+  const handleEditEvent = (entry: AgendaEntry) => {
+    setModalInitialEntry(entry);
+    setModalInitialDate(null);
+    setEventModalOpen(true);
+    setSelectedEntry(null);
+  };
+
+  const handleCreateEvent = (date: Date = new Date()) => {
+    setModalInitialEntry(null);
+    setModalInitialDate(date);
+    setEventModalOpen(true);
+  };
+
   const range = getAgendaRange(view, referenceDate);
-  const taskEntries = buildTaskEntries(tasks, range.start, range.end);
+  // Expand range for Monthly view to cover the full 42-cell grid
+  const fetchRange = view === 'month' 
+    ? { start: startOfWeek(startOfMonth(referenceDate)), end: addDays(startOfWeek(startOfMonth(referenceDate)), 42) }
+    : range;
+
+  const taskEntries = buildTaskEntries(tasks, fetchRange.start, fetchRange.end);
   const recurringEntries = buildRecurringEntries(recurringTasks, tasks, range.start, range.end);
   const entries = sortEntries([...recurringEntries, ...taskEntries]);
+
+  // Debug logging to help identify why tasks might be missing
+  useEffect(() => {
+    console.log(`[Agenda Debug] Rendering view: ${view}`);
+    console.log(`[Agenda Debug] Reference Date: ${referenceDate.toISOString()}`);
+    console.log(`[Agenda Debug] Total Tasks from App: ${tasks.length}`);
+    console.log(`[Agenda Debug] Tasks in current range: ${taskEntries.length}`);
+    if (taskEntries.length > 0) {
+      console.log(`[Agenda Debug] Sample Task Date: ${taskEntries[0].start.toISOString()}`);
+    }
+  }, [view, referenceDate, tasks.length, taskEntries.length]);
 
   const upcomingTasks = sortEntries(
     buildTaskEntries(tasks, startOfDay(new Date()), endOfDay(addDays(new Date(), 21))),
@@ -782,15 +818,27 @@ export function Agenda({
     <section className="space-y-6">
       <div className="rounded-[32px] border border-white/5 bg-[radial-gradient(circle_at_top_left,_rgba(122,27,34,0.34),_transparent_46%),linear-gradient(180deg,_rgba(23,23,23,0.98),_rgba(17,17,17,0.95))] p-8 shadow-[0_22px_100px_rgba(0,0,0,0.28)]">
         <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="font-label text-[10px] uppercase tracking-[0.32em] text-[#8f8582]">
-              Home Dashboard · Local Command Schedule
+          <div className="space-y-2">
+            <div className="flex items-center gap-4">
+              <h2 className="font-headline text-5xl font-bold tracking-tight text-[#f4efee]">
+                The Agenda
+              </h2>
+              <div className="mt-2 rounded-full bg-white/5 px-4 py-1 font-label text-[10px] uppercase tracking-[0.3em] text-[#8f8582]">
+                Last Synced: {now.toLocaleTimeString()}
+              </div>
+            </div>
+            <p className="font-body text-lg text-[#8f8582]">
+              Commanding the temporal flow for {honorific} {fullName}.
             </p>
-            <h2 className="mt-3 font-headline text-5xl tracking-tight text-[#f7f1f0]">The Agenda</h2>
-            <p className="mt-3 max-w-2xl font-body text-base leading-7 text-[#b6abaa]">
-              Upcoming tasks, recurring agent routines, and the sharpest priorities for {honorific} {fullName},
-              organized in one local-first command view.
-            </p>
+            <div className="mt-6 flex gap-4">
+              <button
+                onClick={() => handleCreateEvent()}
+                className="flex items-center gap-2 rounded-full bg-[#6e373c] px-6 py-3 font-label text-[10px] uppercase tracking-[0.24em] text-white shadow-[0_12px_40px_rgba(110,55,60,0.3)] transition hover:bg-[#8e474c] hover:scale-105 active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[18px]">add_task</span>
+                Schedule New Directive
+              </button>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
@@ -858,8 +906,8 @@ export function Agenda({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div>
-          {view === 'month' && <MonthlyView entries={entries} referenceDate={referenceDate} onEventClick={handleEventClick} now={now} />}
-          {view === 'week' && <WeeklyView entries={entries} referenceDate={referenceDate} onEventClick={handleEventClick} now={now} />}
+          {view === 'month' && <MonthlyView entries={entries} referenceDate={referenceDate} onEventClick={handleEventClick} onCreateEvent={handleCreateEvent} now={now} />}
+          {view === 'week' && <WeeklyView entries={entries} referenceDate={referenceDate} onEventClick={handleEventClick} onCreateEvent={handleCreateEvent} now={now} />}
           {view === 'schedule' && <ScheduleView entries={entries} onEventClick={handleEventClick} now={now} />}
         </div>
 
@@ -877,7 +925,7 @@ export function Agenda({
               )}
               {priorityQueue.map((entry) => {
                 const priority = priorityStyles[entry.priority] || priorityStyles.medium;
-                const isPast = entry.end.getTime() < now.getTime();
+                const isPast = entry.end.getTime() < now.getTime() && !isSameDay(entry.end, now);
                 return (
                   <div 
                     key={entry.id} 
@@ -1046,16 +1094,25 @@ export function Agenda({
                       </div>
                       
                       {selectedEntry.kind === 'task' && (
-                        <button
-                          onClick={() => {
-                            setSelectedEntry(null);
-                            navigate(`/operations/tasks/${selectedEntry.sourceId}`);
-                          }}
-                          className="flex items-center gap-2 rounded-full bg-[#4A0404] px-6 py-3 font-label text-[10px] uppercase tracking-[0.24em] text-white transition hover:brightness-110 shadow-[0_10px_20px_rgba(74,4,4,0.3)]"
-                        >
-                          View Mission Log
-                          <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                        </button>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => handleEditEvent(selectedEntry)}
+                            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 font-label text-[10px] uppercase tracking-[0.24em] text-white transition hover:bg-white/10"
+                          >
+                            <span className="material-symbols-outlined text-sm">edit</span>
+                            Refine
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedEntry(null);
+                              navigate(`/operations/tasks/${selectedEntry.sourceId}`);
+                            }}
+                            className="flex items-center gap-2 rounded-full bg-[#4A0404] px-6 py-3 font-label text-[10px] uppercase tracking-[0.24em] text-white transition hover:brightness-110 shadow-[0_10px_20px_rgba(74,4,4,0.3)]"
+                          >
+                            View Mission Log
+                            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                          </button>
+                        </div>
                       )}
                    </div>
                 </div>
@@ -1064,6 +1121,18 @@ export function Agenda({
           </div>
         )}
       </AnimatePresence>
+
+      <AgendaEventModal
+        isOpen={isEventModalOpen}
+        onClose={() => setEventModalOpen(false)}
+        onSuccess={() => {
+          // Data will refresh via the interval in App.tsx
+        }}
+        agents={agents}
+        graphs={graphs}
+        initialEntry={modalInitialEntry}
+        initialDate={modalInitialDate}
+      />
     </section>
   );
 }

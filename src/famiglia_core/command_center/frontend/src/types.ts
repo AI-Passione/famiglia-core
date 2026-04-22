@@ -44,6 +44,21 @@ export interface Task {
   error_details?: string | null;
 }
 
+export type AgendaEntryKind = 'task' | 'recurring';
+
+export interface AgendaEntry {
+  id: string;
+  sourceId: number;
+  title: string;
+  details: string;
+  start: Date;
+  end: Date;
+  kind: AgendaEntryKind;
+  priority: string;
+  status: string;
+  agent: string | null;
+}
+
 export interface ActionLog {
   id: number;
   timestamp: string;

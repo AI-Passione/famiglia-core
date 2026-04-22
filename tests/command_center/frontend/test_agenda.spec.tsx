@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { MemoryRouter } from 'react-router-dom';
 import { Agenda } from '@/modules/Agenda';
+import { ToastProvider } from '@/modules/ui/ToastProvider';
 import type { FamigliaAgent, ActionLog, RecurringTask, Task } from '@/types';
 
 const agents: any[] = [
@@ -54,14 +55,16 @@ describe('Agenda Module', () => {
   it('renders the agenda shell and defaults to monthly view', () => {
     render(
       <MemoryRouter>
-        <Agenda
-          agents={agents}
-          actions={actions}
-          tasks={tasks}
-          recurringTasks={recurringTasks}
-          honorific="Don"
-          fullName="Jimmy"
-        />
+        <ToastProvider>
+          <Agenda
+            agents={agents}
+            actions={actions}
+            tasks={tasks}
+            recurringTasks={recurringTasks}
+            honorific="Don"
+            fullName="Jimmy"
+          />
+        </ToastProvider>
       </MemoryRouter>
     );
 
@@ -74,14 +77,16 @@ describe('Agenda Module', () => {
   it('switches between monthly, weekly, and schedule modes', () => {
     render(
       <MemoryRouter>
-        <Agenda
-          agents={agents}
-          actions={actions}
-          tasks={tasks}
-          recurringTasks={recurringTasks}
-          honorific="Don"
-          fullName="Jimmy"
-        />
+        <ToastProvider>
+          <Agenda
+            agents={agents}
+            actions={actions}
+            tasks={tasks}
+            recurringTasks={recurringTasks}
+            honorific="Don"
+            fullName="Jimmy"
+          />
+        </ToastProvider>
       </MemoryRouter>
     );
 

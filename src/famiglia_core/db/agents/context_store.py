@@ -674,7 +674,7 @@ class AgentContextStore:
                 created_at DESC
             LIMIT %s OFFSET %s
         """
-        params.append(max(1, min(limit, 500)))
+        params.append(max(1, min(limit, 2000)))
         params.append(max(0, offset))
 
         try:

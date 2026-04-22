@@ -1,7 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock
 from famiglia_core.command_center.backend.api.main import app
 
 @pytest.fixture

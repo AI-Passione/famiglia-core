@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SOPManager } from './SOPManager';
 import { SOPBuilder } from './SOPBuilder';
@@ -25,6 +26,7 @@ interface Conversation {
 }
 
 export function Operations() {
+  const navigate = useNavigate();
   const [opsMode, setOpsMode] = useState<'pipelines' | 'sop'>('pipelines');
 
   const [isCreatingSOP, setIsCreatingSOP] = useState(false);
@@ -165,7 +167,8 @@ export function Operations() {
                           key={log.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="glass-module border border-outline-variant/10 p-4 hover:border-primary/30 transition-all group"
+                          onClick={() => navigate(`/operations/tasks/${log.id}`)}
+                          className="glass-module border border-outline-variant/10 p-4 hover:border-primary/30 transition-all group cursor-pointer"
                         >
                           <div className="flex justify-between items-start">
                             <div className="space-y-1">

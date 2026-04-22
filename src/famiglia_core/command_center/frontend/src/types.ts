@@ -339,3 +339,31 @@ export interface InsightSummary {
   relevance: string;
   processed_at?: string | null;
 }
+
+export interface TaskMessage {
+  id: number;
+  agent_name: string;
+  sender: string | null;
+  role: string;
+  content: string;
+  created_at: string;
+  conversation_key: string;
+  metadata: Record<string, any> | null;
+}
+
+export interface TaskNotification {
+  id: number;
+  source: string;
+  agent_name: string | null;
+  title: string;
+  message: string;
+  type: 'success' | 'info' | 'error' | 'warning';
+  created_at: string;
+  metadata: Record<string, any> | null;
+}
+
+export interface TaskExecutionDetail {
+  task: Task;
+  messages: TaskMessage[];
+  notifications: TaskNotification[];
+}

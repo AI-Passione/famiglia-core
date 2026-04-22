@@ -1290,6 +1290,51 @@ class AgentContextStore:
             print(f"[ContextStore] Failed to update SOP workflow metadata {workflow_id}: {e}")
             return False
 
+    def get_task_instance(self, task_id: int) -> Optional[Dict[str, Any]]:
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return None
+                cursor.execute("SELECT * FROM task_instances WHERE id = %s", (task_id,))
+                row = cursor.fetchone()
+                return self._serialize_task_row(row) if row else None
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch task instance {task_id}: {e}")
+            return None
+
+    def get_task_messages(self, task_id: int) -> List[Dict[str, Any]]:
+        """Fetch messages related to a specific task using metadata->>'task_id'."""
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    """
+                    SELECT m.*, c.conversation_key
+                    FROM agent_messages m
+                    JOIN agent_conversations c ON m.conversation_id = c.id
+                    WHERE m.metadata->>'task_id' = %s
+                    ORDER BY m.created_at ASC
+                    """,
+                    (str(task_id),),
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch task messages for {task_id}: {e}")
+            return []
+
+    def get_task_notifications(self, task_id: int) -> List[Dict[str, Any]]:
+        """Fetch unified notifications related to a specific task."""
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    "SELECT * FROM app_notifications WHERE task_id = %s ORDER BY created_at ASC",
+                    (task_id,),
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch task notifications for {task_id}: {e}")
+            return []
+
     def _get_connection(self):
         """Legacy compatibility method. returns a connection from the pool. 
         WARNING: The caller is expected to call conn.close(), but in this pool setup, 

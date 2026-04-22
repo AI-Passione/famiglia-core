@@ -118,9 +118,7 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
           return (
             <motion.div
               key={node.id}
-              drag
-              dragMomentum={false}
-              onDrag={(_, info) => {
+              onPan={(_, info) => {
                 setOffsets(prev => ({
                   ...prev,
                   [node.id]: {
@@ -137,10 +135,11 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
                 left: `calc(50% + ${pos.x}px)`, 
                 top: pos.y,
                 transform: 'translate(-50%, -50%)',
-                touchAction: 'none'
+                touchAction: 'none',
+                userSelect: 'none'
               }}
               className={`
-                z-20 p-4 rounded-xl border text-center transition-all cursor-pointer group
+                z-20 p-4 rounded-xl border text-center transition-colors cursor-pointer group
                 ${isActive 
                   ? 'bg-primary/20 border-primary shadow-[0_0_20px_rgba(99,102,241,0.3)]' 
                   : 'bg-black/60 border-white/5 hover:border-white/20'}

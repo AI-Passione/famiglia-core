@@ -494,7 +494,7 @@ function MonthlyView({
                 {dayEntries.map((entry) => {
                   const isPast = entry.end < now;
                   return (
-                    <div key={entry.id} className={isPast ? 'opacity-40 grayscale-[0.5]' : ''}>
+                    <div key={entry.id} className={isPast ? 'opacity-20 grayscale' : ''}>
                       <AgendaEntryBadge entry={entry} onClick={() => onEventClick(entry)} />
                     </div>
                   );
@@ -619,7 +619,7 @@ function WeeklyView({
                     <div
                       key={entry.id}
                       onClick={() => onEventClick(entry)}
-                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] cursor-pointer hover:bg-[#222222] transition-colors overflow-hidden ${isPast ? 'opacity-40 grayscale-[0.5]' : ''}`}
+                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] cursor-pointer hover:bg-[#222222] transition-colors overflow-hidden ${isPast ? 'opacity-20 grayscale brightness-75 border-l-outline/30' : ''}`}
                       style={{ top: `${top}px`, height: `${height}px` }}
                     >
                       <p className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-[#8f8582]">
@@ -673,7 +673,7 @@ function ScheduleView({ entries, onEventClick, now }: { entries: AgendaEntry[]; 
                   <article
                     key={entry.id}
                     onClick={() => onEventClick(entry)}
-                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-40 grayscale-[0.5]' : ''}`}
+                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-20 grayscale brightness-75 border-l-outline/30' : ''}`}
                   >
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="font-headline text-lg text-[#f4efee]">{formatTime(entry.start)}</span>

@@ -236,23 +236,54 @@ class AgentContextStore:
         type: str = "info",
         agent_name: Optional[str] = None,
         task_id: Optional[int] = None,
+        node_id: Optional[str] = None,
+        node_inputs: Optional[Dict[str, Any]] = None,
+        node_outputs: Optional[Dict[str, Any]] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> int:
         """Unified logging for all application-level alerts (Bell notification center)."""
         try:
+            # Defensive node_id extraction from metadata
+            if not node_id and metadata:
+                node_id = metadata.get("node_id") or metadata.get("step")
+
             with self.db_session() as cursor:
                 if cursor is None: return -1
                 cursor.execute(
                     """
                     INSERT INTO app_notifications (
-                        source, agent_name, title, message, type, task_id, metadata
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        source, agent_name, title, message, type, task_id, node_id, node_inputs, node_outputs, metadata
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                     """,
-                    (source, agent_name, title, message, type, task_id, self._safe_json(metadata)),
+                    (
+                        source, agent_name, title, message, type, task_id, node_id,
+                        self._safe_json(node_inputs), self._safe_json(node_outputs),
+                        self._safe_json(metadata)
+                    ),
                 )
                 row = cursor.fetchone()
-                return row["id"] if row else -1
+                notification_id = row["id"] if row else -1
+
+                # 2. Side-effect: Update workflow_nodes table for real-time health visibility
+                if node_id and task_id:
+                    cursor.execute(
+                        """
+                        UPDATE workflow_nodes
+                        SET last_log = %s, last_status = %s
+                        WHERE node_name = %s 
+                        AND workflow_id IN (
+                            SELECT id FROM workflows WHERE name = (
+                                SELECT metadata->>'graph_id' 
+                                FROM task_instances 
+                                WHERE id = %s
+                            )
+                        )
+                        """,
+                        (message[:1000], type, node_id, task_id)
+                    )
+
+                return notification_id
         except Exception as e:
             print(f"[ContextStore] Failed to log app notification: {e}")
             return -1
@@ -1289,6 +1320,51 @@ class AgentContextStore:
         except Exception as e:
             print(f"[ContextStore] Failed to update SOP workflow metadata {workflow_id}: {e}")
             return False
+
+    def get_task_instance(self, task_id: int) -> Optional[Dict[str, Any]]:
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return None
+                cursor.execute("SELECT * FROM task_instances WHERE id = %s", (task_id,))
+                row = cursor.fetchone()
+                return self._serialize_task_row(row) if row else None
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch task instance {task_id}: {e}")
+            return None
+
+    def get_task_messages(self, task_id: int) -> List[Dict[str, Any]]:
+        """Fetch messages related to a specific task using metadata->>'task_id'."""
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    """
+                    SELECT m.*, c.conversation_key
+                    FROM agent_messages m
+                    JOIN agent_conversations c ON m.conversation_id = c.id
+                    WHERE m.metadata->>'task_id' = %s
+                    ORDER BY m.created_at ASC
+                    """,
+                    (str(task_id),),
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch task messages for {task_id}: {e}")
+            return []
+
+    def get_task_notifications(self, task_id: int) -> List[Dict[str, Any]]:
+        """Fetch unified notifications related to a specific task."""
+        try:
+            with self.db_session(commit=False) as cursor:
+                if cursor is None: return []
+                cursor.execute(
+                    "SELECT id, source, agent_name, title, message, type, metadata, node_id, node_inputs, node_outputs, created_at FROM app_notifications WHERE task_id = %s ORDER BY created_at ASC",
+                    (task_id,),
+                )
+                return list(cursor.fetchall())
+        except Exception as e:
+            print(f"[ContextStore] Failed to fetch task notifications for {task_id}: {e}")
+            return []
 
     def _get_connection(self):
         """Legacy compatibility method. returns a connection from the pool. 

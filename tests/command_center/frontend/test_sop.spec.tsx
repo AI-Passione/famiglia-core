@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Operations } from '@/modules/Operations';
 import type { GraphDefinition, Category, SOPWorkflow } from '@/types';
@@ -51,7 +52,11 @@ describe('SOP Hub Integration', () => {
   });
 
   it('switches to SOP Hub and displays categories', async () => {
-    render(<Operations graphs={mockGraphs} selectedGraph={null} setSelectedGraph={vi.fn()} initialTasks={[]} />);
+    render(
+      <MemoryRouter>
+        <Operations graphs={mockGraphs} selectedGraph={null} setSelectedGraph={vi.fn()} initialTasks={[]} />
+      </MemoryRouter>
+    );
     
     // Click SOP Hub tab
     const sopTab = await screen.findByText(/SOP Hub/i);
@@ -66,7 +71,11 @@ describe('SOP Hub Integration', () => {
   });
 
   it('opens Category Creator from Initialize Protocol menu', async () => {
-    render(<Operations graphs={mockGraphs} selectedGraph={null} setSelectedGraph={vi.fn()} initialTasks={[]} />);
+    render(
+      <MemoryRouter>
+        <Operations graphs={mockGraphs} selectedGraph={null} setSelectedGraph={vi.fn()} initialTasks={[]} />
+      </MemoryRouter>
+    );
     
     // Switch to SOP Hub
     fireEvent.click(await screen.findByText(/SOP Hub/i));
@@ -85,7 +94,11 @@ describe('SOP Hub Integration', () => {
   });
 
   it('opens SOP Builder from Initialize Protocol menu', async () => {
-    render(<Operations graphs={mockGraphs} selectedGraph={null} setSelectedGraph={vi.fn()} initialTasks={[]} />);
+    render(
+      <MemoryRouter>
+        <Operations graphs={mockGraphs} selectedGraph={null} setSelectedGraph={vi.fn()} initialTasks={[]} />
+      </MemoryRouter>
+    );
     
     // Switch to SOP Hub
     fireEvent.click(await screen.findByText(/SOP Hub/i));

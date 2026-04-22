@@ -41,6 +41,7 @@ export interface Task {
   result_summary?: string | null;
   recurring_task_id?: number | null;
   metadata?: Record<string, unknown> | null;
+  error_details?: string | null;
 }
 
 export interface ActionLog {
@@ -96,6 +97,12 @@ export interface GraphNode {
   id: string;
   label: string;
   type: 'node' | 'conditional' | 'entry' | 'end';
+  code?: string;
+  description?: string;
+  inputs?: string;
+  outputs?: string;
+  last_log?: string;
+  last_status?: string;
 }
 
 export interface GraphEdge {
@@ -338,4 +345,33 @@ export interface InsightSummary {
   rossini_tldr?: string | null;
   relevance: string;
   processed_at?: string | null;
+}
+
+export interface TaskMessage {
+  id: number;
+  agent_name: string;
+  sender: string | null;
+  role: string;
+  content: string;
+  created_at: string;
+  conversation_key: string;
+  metadata: Record<string, any> | null;
+}
+
+export interface TaskNotification {
+  id: number;
+  source: string;
+  agent_name: string | null;
+  title: string;
+  message: string;
+  type: 'success' | 'info' | 'error' | 'warning';
+  created_at: string;
+  metadata: Record<string, any> | null;
+}
+
+export interface TaskExecutionDetail {
+  task: Task;
+  messages: TaskMessage[];
+  notifications: TaskNotification[];
+  graph?: GraphDefinition | null;
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SOPManager } from './SOPManager';
 import { SOPBuilder } from './SOPBuilder';
@@ -11,7 +12,7 @@ interface MissionLog {
   id: string;
   graph_id: string;
   timestamp: string;
-  status: 'success' | 'failure' | 'running';
+  status: 'success' | 'failure' | 'running' | 'pending' | 'queued';
   duration: string;
   initiator: string;
 }
@@ -25,6 +26,7 @@ interface Conversation {
 }
 
 export function Operations() {
+  const navigate = useNavigate();
   const [opsMode, setOpsMode] = useState<'pipelines' | 'sop'>('pipelines');
 
   const [isCreatingSOP, setIsCreatingSOP] = useState(false);
@@ -165,7 +167,8 @@ export function Operations() {
                           key={log.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="glass-module border border-outline-variant/10 p-4 hover:border-primary/30 transition-all group"
+                          onClick={() => navigate(`/operations/tasks/${log.id}`)}
+                          className="glass-module border border-outline-variant/10 p-4 hover:border-primary/30 transition-all group cursor-pointer"
                         >
                           <div className="flex justify-between items-start">
                             <div className="space-y-1">
@@ -174,6 +177,7 @@ export function Operations() {
                                 <span className={`px-2 py-0.5 rounded-full font-label text-[8px] uppercase tracking-widest ${
                                   log.status === 'success' ? 'bg-success/10 text-success' :
                                   log.status === 'running' ? 'bg-primary/10 text-primary animate-pulse' :
+                                  (log.status === 'pending' || log.status === 'queued') ? 'bg-amber-500/10 text-amber-500' :
                                   'bg-error/10 text-error'
                                 }`}>
                                   {log.status}

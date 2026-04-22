@@ -166,12 +166,16 @@ def test_agent_execute_scheduled_task_logic(mock_agent_deps):
     
     with patch("famiglia_core.agents.base_agent.setup_scheduling_supervisor_graph") as mock_setup_graph:
         mock_graph = mock_setup_graph.return_value
-        # Ensure the final state includes conversation_key to satisfy _finalize_response
-        mock_graph.invoke.return_value = {
-            "final_response": "Scheduled task success",
-            "conversation_key": "test_conv",
-            "metadata": {}
-        }
+        # Mock stream() to simulate the node execution cycle
+        mock_graph.stream.return_value = [
+            {
+                "worker_node": {
+                    "final_response": "Scheduled task success",
+                    "conversation_key": "test_conv",
+                    "metadata": {}
+                }
+            }
+        ]
         
         response = agent.execute_scheduled_task(task)
         assert "Scheduled task success" in response

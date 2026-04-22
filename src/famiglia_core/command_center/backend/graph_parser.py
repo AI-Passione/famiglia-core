@@ -7,6 +7,12 @@ class GraphNode(BaseModel):
     id: str
     label: str
     type: str = "node" # node, conditional, entry, end
+    code: Optional[str] = None
+    description: Optional[str] = None
+    inputs: Optional[str] = None
+    outputs: Optional[str] = None
+    last_log: Optional[str] = None
+    last_status: Optional[str] = None
 
 class GraphEdge(BaseModel):
     source: str
@@ -58,6 +64,40 @@ class GraphParser:
         edges = []
         seen_nodes = set()
         
+        # Extract Node Source Code using AST
+        try:
+            import ast
+            tree = ast.parse(content)
+            func_details = {}
+            for node_ast in ast.walk(tree):
+                if isinstance(node_ast, ast.FunctionDef):
+                    # Get the source code for this function
+                    start_line = node_ast.lineno - 1
+                    end_line = getattr(node_ast, "end_lineno", node_ast.lineno)
+                    lines = content.splitlines()[start_line:end_line]
+                    
+                    # Extract Arguments (Inputs)
+                    args = [arg.arg for arg in node_ast.args.args if arg.arg != 'self']
+                    inputs_str = ", ".join(args)
+                    
+                    # Extract Return (Outputs) - looking for return statements or type hint
+                    outputs_str = "state" # Default for LangGraph nodes
+                    if node_ast.returns:
+                        if isinstance(node_ast.returns, ast.Name):
+                            outputs_str = node_ast.returns.id
+                        elif isinstance(node_ast.returns, ast.Constant):
+                            outputs_str = str(node_ast.returns.value)
+                    
+                    func_details[node_ast.name] = {
+                        "code": "\n".join(lines),
+                        "description": ast.get_docstring(node_ast),
+                        "inputs": inputs_str,
+                        "outputs": outputs_str
+                    }
+        except Exception as e:
+            print(f"Error parsing AST for {file_path}: {e}")
+            func_details = {}
+
         # 1. Add START node
         nodes.append(GraphNode(id="START", label="Start", type="entry"))
         seen_nodes.add("START")
@@ -67,7 +107,15 @@ class GraphParser:
         for match in node_matches:
             node_id = match.group(1)
             if node_id not in seen_nodes:
-                nodes.append(GraphNode(id=node_id, label=node_id.replace("_", " ").title()))
+                details = func_details.get(node_id, {})
+                nodes.append(GraphNode(
+                    id=node_id, 
+                    label=node_id.replace("_", " ").title(),
+                    code=details.get("code"),
+                    description=details.get("description"),
+                    inputs=details.get("inputs"),
+                    outputs=details.get("outputs")
+                ))
                 seen_nodes.add(node_id)
 
         # 3. Add END node  
@@ -119,6 +167,25 @@ class GraphParser:
 
         if len(nodes) <= 2:
             return None
+
+        # Enrich nodes with DB metadata if available
+        try:
+            from famiglia_core.db.agents.context_store import context_store
+            with context_store.db_session(commit=False) as cursor:
+                if cursor:
+                    cursor.execute(
+                        "SELECT node_name, last_log, last_status FROM workflow_nodes WHERE workflow_id IN (SELECT id FROM workflows WHERE name = %s)",
+                        (graph_id,)
+                    )
+                    db_rows = cursor.fetchall()
+                    db_map = {row["node_name"]: row for row in db_rows}
+                    
+                    for node in nodes:
+                        if node.id in db_map:
+                            node.last_log = db_map[node.id]["last_log"]
+                            node.last_status = db_map[node.id]["last_status"]
+        except Exception as e:
+            print(f"[GraphParser] DB enrichment failed for {graph_id}: {e}")
 
         return GraphDefinition(
             id=graph_id,

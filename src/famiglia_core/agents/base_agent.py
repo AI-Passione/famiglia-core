@@ -205,17 +205,28 @@ class BaseAgent(CommonSkills, TaskTools, OnDemandMasterSupervisor):
                 "callbacks": callbacks,
             }
             
-            # Use stream() to catch intermediate events
-            for chunk in self.graph.stream(state, config=config):
-                # LangGraph v0.2+ stream(stream_mode="updates") returns {node_name: {updates}}
-                for key, value in chunk.items():
+            # Use stream() to catch intermediate events and log telemetry
+            for chunk in self.graph.stream(state, config=config, stream_mode="updates"):
+                for node_name, value in chunk.items():
                     if isinstance(value, dict):
                         state.update(value)
-                        node_name = key
+                        
+                        # Log telemetry for graph observability if we have a task context
+                        task_id = state.get("metadata", {}).get("task_id")
+                        if task_id:
+                            context_store.log_app_notification(
+                                source="workflow",
+                                agent_name=self.name,
+                                title=f"Node Trace: {node_name}",
+                                message=f"Snapshot captured for {node_name}.",
+                                type="info",
+                                task_id=task_id,
+                                node_id=node_name,
+                                node_outputs=value,
+                                metadata={"type": "node_trace", "node": node_name}
+                            )
                     else:
-                        # Fallback/Test double support: update directly
-                        state[key] = value
-                        node_name = "unknown"
+                        state[node_name] = value
                     
                     # If we have a stream callback, notify the UI about the current node
                     if on_intermediate_response:
@@ -273,33 +284,49 @@ class BaseAgent(CommonSkills, TaskTools, OnDemandMasterSupervisor):
             state["metadata"] = {}
         state["metadata"]["task_record"] = asdict(task_record)
 
-        # 2. Setup and Execute the Scheduling Graph
+        # 2. Setup and Execute the Scheduling Graph with Streaming Telemetry
         scheduling_graph = setup_scheduling_supervisor_graph(self)
         
-        callback = None
+        callback = langfuse_manager.get_callback_handler()
+        callbacks = [callback] if callback else []
+        
+        config = {
+            "configurable": {"thread_id": state.get("conversation_key", "default")},
+            "callbacks": callbacks,
+        }
+
+        final_state = state
         try:
-            callback = langfuse_manager.get_callback_handler()
-            callbacks = [callback] if callback else []
-            
-            config = {
-                "configurable": {"thread_id": state.get("conversation_key", "default")},
-                "callbacks": callbacks,
-            }
-            final_state = scheduling_graph.invoke(state, config=config)
+            # Stream the execution to capture individual node results for observability
+            for chunk in scheduling_graph.stream(state, config=config, stream_mode="updates"):
+                for node_name, updates in chunk.items():
+                    # Capture the "output" of this specific node
+                    final_state.update(updates)
+                    
+                    # Log the node execution to the technical audit trail
+                    # We treat 'updates' as the node_outputs for this specific step
+                    context_store.log_app_notification(
+                        source="workflow",
+                        agent_name=self.name,
+                        title=f"Node Execution: {node_name}",
+                        message=f"Node '{node_name}' completed execution cycle.",
+                        type="info",
+                        task_id=task_record.id,
+                        node_id=node_name,
+                        node_outputs=updates,
+                        metadata={"type": "node_execution", "node": node_name}
+                    )
         except Exception as e:
             print(f"[{self.name}] SchedulingMasterSupervisor execution failed: {e}")
             final_state = state
         finally:
+            # (Langfuse flush logic omitted for brevity, keeping original structure)
             if callback:
                 try:
-                    if hasattr(callback, "langfuse"):
-                        callback.langfuse.flush()
+                    if hasattr(callback, "langfuse"): callback.langfuse.flush()
                 except Exception as e:
-                    print(f"[{self.name}] Failed to flush langfuse callback: {e}")
-            try:
-                langfuse_manager.flush()
-            except Exception:
-                pass
+                    print(f"[{self.name}] Non-fatal error while flushing callback langfuse client: {e}")
+            langfuse_manager.flush()
 
         # 3. Finalize response using the same master logic
         return self._finalize_response(final_state)

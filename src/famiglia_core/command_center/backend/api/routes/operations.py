@@ -1,7 +1,7 @@
 import os
 import re
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
@@ -21,6 +21,12 @@ class MissionLog(BaseModel):
     status: str
     duration: str
     initiator: str
+
+class TaskDetail(BaseModel):
+    task: Dict[str, Any]
+    messages: List[Dict[str, Any]]
+    notifications: List[Dict[str, Any]]
+    graph: Optional[GraphDefinition] = None
 
 class ExecutionResponse(BaseModel):
     task_id: int
@@ -261,8 +267,42 @@ async def get_mission_logs(graph_id: str):
                 ))
             return logs
     except Exception as e:
-        print(f"[Operations API] Error fetching mission logs: {e}")
-        return []
+         print(f"[Operations API] Error fetching mission logs: {e}")
+         return []
+ 
+@router.get("/mission-logs/detail/{task_id}", response_model=TaskDetail)
+async def get_task_detail(task_id: int):
+    """Fetch full details for a specific task instance, including messages and notifications."""
+    task = context_store.get_task_instance(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail=f"Task ML-{task_id:03d} not found")
+    
+    messages = context_store.get_task_messages(task_id)
+    notifications = context_store.get_task_notifications(task_id)
+    
+    # Fetch Graph Definition if applicable
+    graph = None
+    graph_id = task.get("metadata", {}).get("graph_id")
+    if graph_id:
+        for root, _, files in os.walk(FEATURES_DIR):
+            if f"{graph_id}.py" in files:
+                graph = graph_parser.parse_file(os.path.join(root, f"{graph_id}.py"))
+                break
+    
+    # Serialize timestamps for JSON
+    def serialize_dates(items):
+        for item in items:
+            for key, val in item.items():
+                if isinstance(val, datetime):
+                    item[key] = val.isoformat()
+        return items
+
+    return TaskDetail(
+        task=task,
+        messages=serialize_dates(messages),
+        notifications=serialize_dates(notifications),
+        graph=graph
+    )
 
 @router.post("/graphs/{graph_id}/execute", response_model=ExecutionResponse)
 async def execute_graph(graph_id: str, request: Request):

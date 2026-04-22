@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Operations } from '@/modules/Operations';
 import type { GraphDefinition, Task, ActionLog } from '@/types';
@@ -47,7 +48,11 @@ describe('Operations Component', () => {
   });
 
   it('renders correctly with tripartite situational feeds', async () => {
-    render(<Operations graphs={mockGraphs} selectedGraph={null} setSelectedGraph={vi.fn()} initialTasks={[]} />);
+    render(
+      <MemoryRouter>
+        <Operations graphs={mockGraphs} selectedGraph={null} setSelectedGraph={vi.fn()} initialTasks={[]} />
+      </MemoryRouter>
+    );
     
     expect(await screen.findByText(/Operational Pipelines/i)).toBeDefined();
     
@@ -58,7 +63,11 @@ describe('Operations Component', () => {
   });
 
   it('populates mission logs and strategic dialogue with real-time data', async () => {
-    render(<Operations graphs={mockGraphs} selectedGraph={mockGraphs[0]} setSelectedGraph={vi.fn()} initialTasks={[]} />);
+    render(
+      <MemoryRouter>
+        <Operations graphs={mockGraphs} selectedGraph={mockGraphs[0]} setSelectedGraph={vi.fn()} initialTasks={[]} />
+      </MemoryRouter>
+    );
     
     // Mission Logs check
     await waitFor(() => {

@@ -104,3 +104,28 @@ def test_execute_graph_not_found():
         mock_walk.return_value = []
         response = client.post("/api/v1/graphs/non_existent/execute")
         assert response.status_code == 404
+
+@patch("famiglia_core.command_center.backend.api.routes.operations.context_store")
+def test_get_task_detail_endpoint(mock_store):
+    # Mock task data
+    mock_store.get_task_instance.return_value = {
+        "id": 123,
+        "title": "Test Task",
+        "status": "completed",
+        "created_at": "2026-04-22T10:00:00Z"
+    }
+    mock_store.get_task_messages.return_value = [
+        {"id": 1, "content": "Hello", "created_at": datetime(2026, 4, 22, 10, 0, 1, tzinfo=timezone.utc)}
+    ]
+    mock_store.get_task_notifications.return_value = [
+        {"id": 1, "title": "Done", "created_at": datetime(2026, 4, 22, 10, 0, 5, tzinfo=timezone.utc)}
+    ]
+    
+    response = client.get("/api/v1/operations/mission-logs/detail/123")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["task"]["id"] == 123
+    assert len(data["messages"]) == 1
+    assert data["messages"][0]["content"] == "Hello"
+    assert "T10:00:01" in data["messages"][0]["created_at"] # Verify serialization
+    assert len(data["notifications"]) == 1

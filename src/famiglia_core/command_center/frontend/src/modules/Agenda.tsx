@@ -488,7 +488,7 @@ function MonthlyView({
                   {day.getDate()}
                 </span>
               </div>
-              <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 custom-scrollbar pr-1">
                 {dayEntries.map((entry) => {
                   const isPast = entry.end.getTime() < now.getTime() && !isSameDay(entry.end, now);
                   return (

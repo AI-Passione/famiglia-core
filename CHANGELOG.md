@@ -1,3 +1,43 @@
+# [1.18.0](https://github.com/AI-Passione/famiglia-core/compare/v1.17.0...v1.18.0) (2026-04-22)
+
+
+### Bug Fixes
+
+* add type validation to soul registry data retrieval and update agent identity test mock path ([de16111](https://github.com/AI-Passione/famiglia-core/commit/de16111ef18bbd92d59c472f3a504970f1a35dd2))
+* expand task fetch range in Agenda to ensure full month grid coverage ([545cac8](https://github.com/AI-Passione/famiglia-core/commit/545cac8d3e59e60a2447b6c57a2b86a424d3e170))
+* prevent horizontal overflow in agenda day entries container ([54f6034](https://github.com/AI-Passione/famiglia-core/commit/54f6034e755fee8080557cf225639469c04b673b))
+* update agenda past-event logic to include current day and increase task fetching limits for database and frontend ([4e92b5c](https://github.com/AI-Passione/famiglia-core/commit/4e92b5c72bb867bc7c5e235a3b79f8e637c0bbf5))
+
+
+### Features
+
+* add agent_name to message schema and include sender field in message distribution logic ([fdb8cbb](https://github.com/AI-Passione/famiglia-core/commit/fdb8cbb503b78b2a7cb9020ffe99bb96965b591a))
+* add and display input/output fields for workflow nodes in backend parsing and frontend UI ([f8c9045](https://github.com/AI-Passione/famiglia-core/commit/f8c9045325e2774b23a416b8ee60be79d924c307))
+* add backend endpoints for task details and implement TaskExecutionDetail UI for mission logs ([77e7dca](https://github.com/AI-Passione/famiglia-core/commit/77e7dca1116ce0eccca9fb0c194750ebcfd5fd72))
+* add debug logging to Agenda and update header UI with sync status timestamp ([6f4f103](https://github.com/AI-Passione/famiglia-core/commit/6f4f1033ccc42f90552482da21b4a94e8216a062))
+* add drag-and-drop support to nodes in ExecutionGraph with persistent offset state ([97bd6c0](https://github.com/AI-Passione/famiglia-core/commit/97bd6c0592bedd73a47d336f0275e7592e36ed3c))
+* add error_details to TaskExecutionDetail type, clean up frontend imports, and wrap component tests in MemoryRouter ([8268cf8](https://github.com/AI-Passione/famiglia-core/commit/8268cf8db03bfb71b4550a113e76004977876de4))
+* add hover opacity and grayscale restoration to past agenda items and enable transition-all animations ([6e5d653](https://github.com/AI-Passione/famiglia-core/commit/6e5d653ed006cad572db4cef39bb3b65e93a80bc))
+* add interactive agenda event details modal and click handling across all views ([dfbd8a4](https://github.com/AI-Passione/famiglia-core/commit/dfbd8a4b0eb7a2efd9d237c1a9bad01339864a1b))
+* add isBefore utility function to Agenda module ([465d420](https://github.com/AI-Passione/famiglia-core/commit/465d420214fbdb603e44e33a827be7687ac9d935))
+* add navigation to task detail pages and wrap situation room in memory router for testing ([b204b1c](https://github.com/AI-Passione/famiglia-core/commit/b204b1c743e8497fcc852aba1c3a6091067e66a9))
+* add pending and queued status support to operations and missions UI ([6bbc1f9](https://github.com/AI-Passione/famiglia-core/commit/6bbc1f95253027445350b2f951df37509aaae25b))
+* add persona and tone section to Rossini agent configuration ([c07083e](https://github.com/AI-Passione/famiglia-core/commit/c07083ec82615c5743bc9eb276d1de182e8c809d))
+* enable navigation to task details from OpsPulse cards and update pending task status styling ([b6a4f90](https://github.com/AI-Passione/famiglia-core/commit/b6a4f9023b0abde0b190664cdb43e532603bd7de))
+* extract node source code via AST and display details in a side panel within the execution graph UI ([2b1cacc](https://github.com/AI-Passione/famiglia-core/commit/2b1cacce67b75ddb01face9a75902e08cf811bce))
+* filter out cancelled tasks in agenda and add ETA fields to task model ([f9c3f9f](https://github.com/AI-Passione/famiglia-core/commit/f9c3f9ff37ee8982b84241efc3570395e5aaabdf))
+* implement Agenda API with range-based filtering and CRUD support for task instances ([1a1887f](https://github.com/AI-Passione/famiglia-core/commit/1a1887ff33de6e99b94a7410e86a144cab824aba))
+* implement AgendaEventModal and integrate it into the Agenda component for task details management ([0f66582](https://github.com/AI-Passione/famiglia-core/commit/0f665827f28af5446984cbaddc9bc1f72b08ad73))
+* implement execution graph visualization and task-node filtering in the command center dashboard ([cbbfa30](https://github.com/AI-Passione/famiglia-core/commit/cbbfa302fcc62deebe62701cb4210d0951283617))
+* implement graph observability by logging node inputs and outputs to the context store and surfacing them in the ExecutionGraph UI. ([982dbaf](https://github.com/AI-Passione/famiglia-core/commit/982dbaf6345ca386fe47f9f6a1c8aa7ca62565a7))
+* implement live time tracking with visual indicators and dimming for past events in Agenda views ([9569bd6](https://github.com/AI-Passione/famiglia-core/commit/9569bd6f3e64516b9c0055cead26ce93b158bcf1))
+* implement real-time execution health monitoring and telemetry logging for workflow nodes ([da3ea8c](https://github.com/AI-Passione/famiglia-core/commit/da3ea8c9b9553e727618de5a4722aecbe96b854a))
+* increase agenda display limit to 6 entries and improve scrollable layout with updated 'more' label styling ([743eaad](https://github.com/AI-Passione/famiglia-core/commit/743eaadf8dfe6ce1297df9cd61c9d9b2d35e3896))
+* introduce is_scheduled flag to task schema and sync across agenda backend and frontend ([ac28b67](https://github.com/AI-Passione/famiglia-core/commit/ac28b6747f5ae1c107aef643e29201b5f9c3c496))
+* update execution graph styling and add support for conditional node shapes and edge labels ([c0d3ace](https://github.com/AI-Passione/famiglia-core/commit/c0d3acebc7c1d951fe8175fd28e732bf4d02aa6d))
+* visually dim past agenda entries and disable interaction for historical items ([e694f33](https://github.com/AI-Passione/famiglia-core/commit/e694f33b0d8368f157aa7935c17b66ee1f374c06))
+* wrap Agenda component with ToastProvider and update header text ([79254ba](https://github.com/AI-Passione/famiglia-core/commit/79254bab40315a4b81f424b74681fb5a2bb3f15c))
+
 # [1.17.0](https://github.com/AI-Passione/famiglia-core/compare/v1.16.0...v1.17.0) (2026-04-21)
 
 

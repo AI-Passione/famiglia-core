@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import type { Task } from '../../types';
 
 interface LatestMissionsProps {
@@ -6,6 +7,7 @@ interface LatestMissionsProps {
 }
 
 export function LatestMissions({ tasks }: LatestMissionsProps) {
+  const navigate = useNavigate();
   // Filter for tasks that are not pending, mostly completed/failed/in_progress but recently updated
   const recentTasks = (tasks || [])
     .filter(t => t && t.status !== 'pending')
@@ -37,7 +39,8 @@ export function LatestMissions({ tasks }: LatestMissionsProps) {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.1 }}
-                className={`p-4 border rounded-xl flex gap-4 ${bgClass}`}
+                onClick={() => navigate(`/operations/tasks/${task.id}`)}
+                className={`p-4 border rounded-xl flex gap-4 ${bgClass} cursor-pointer hover:bg-surface-container-highest/50 transition-all active:scale-[0.98] group/card`}
               >
                 <span className={`material-symbols-outlined ${colorClass} text-[20px] mt-0.5`}>{icon}</span>
                 <div>

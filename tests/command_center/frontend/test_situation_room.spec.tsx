@@ -1,4 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SituationRoom } from '@/modules/SituationRoom';
 import { TerminalProvider } from '@/modules/TerminalContext';
@@ -38,12 +39,14 @@ describe('SituationRoom Component & New Widgets', () => {
     render(
       <NotificationProvider>
         <TerminalProvider>
-          <SituationRoom
-            actions={mockActions}
-            tasks={mockTasks}
-            graphs={mockGraphs}
-            honorific="Don Jimmy"
-          />
+          <MemoryRouter>
+            <SituationRoom
+              actions={mockActions}
+              tasks={mockTasks}
+              graphs={mockGraphs}
+              honorific="Don Jimmy"
+            />
+          </MemoryRouter>
         </TerminalProvider>
       </NotificationProvider>
     );
@@ -70,7 +73,9 @@ describe('SituationRoom Component & New Widgets', () => {
     render(
       <NotificationProvider>
         <TerminalProvider>
-          <SituationRoom actions={[]} tasks={[]} graphs={mockGraphs} honorific="Don" onExecuteDirective={mockExecute} />
+          <MemoryRouter>
+            <SituationRoom actions={[]} tasks={[]} graphs={mockGraphs} honorific="Don" onExecuteDirective={mockExecute} />
+          </MemoryRouter>
         </TerminalProvider>
       </NotificationProvider>
     );

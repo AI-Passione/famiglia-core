@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import type { FamigliaAgent, ActionLog, RecurringTask, ScheduleConfig, Task } from '../types';
 
 type AgendaView = 'schedule' | 'week' | 'month';
@@ -12,6 +14,7 @@ interface AgendaProps {
   honorific: string;
   fullName: string;
 }
+
 
 interface AgendaEntry {
   id: string;
@@ -133,6 +136,10 @@ function isSameMonth(left: Date, right: Date): boolean {
 
 function isToday(date: Date): boolean {
   return isSameDay(date, new Date());
+}
+
+function isBefore(left: Date, right: Date): boolean {
+  return left.getTime() < right.getTime();
 }
 
 function formatDayKey(date: Date): string {
@@ -409,14 +416,18 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-function AgendaEntryBadge({ entry }: { entry: AgendaEntry }) {
+function AgendaEntryBadge({ entry, onClick, isPast }: { entry: AgendaEntry; onClick?: () => void; isPast?: boolean }) {
   const priority = priorityStyles[entry.priority] || priorityStyles.medium;
   const statusClass = statusStyles[entry.status] || statusStyles.queued;
   const time = `${formatTime(entry.start)}${entry.kind === 'task' ? '' : ' · Recurring'}`;
 
   return (
     <div
-      className={`rounded-md border-l-2 ${priority.border} bg-[#181818]/90 px-2.5 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.18)]`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      className={`rounded-md border-l-2 ${priority.border} bg-[#181818]/90 px-2.5 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-all ${isPast ? 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0' : ''}`}
       title={`${entry.title} · ${time}`}
     >
       <div className="flex items-center gap-2">
@@ -437,9 +448,13 @@ function AgendaEntryBadge({ entry }: { entry: AgendaEntry }) {
 function MonthlyView({
   entries,
   referenceDate,
+  onEventClick,
+  now,
 }: {
   entries: AgendaEntry[];
   referenceDate: Date;
+  onEventClick: (entry: AgendaEntry) => void;
+  now: Date;
 }) {
   const gridStart = startOfWeek(startOfMonth(referenceDate));
   const cells = Array.from({ length: 42 }, (_, index) => addDays(gridStart, index));
@@ -463,7 +478,7 @@ function MonthlyView({
                 isToday(day)
                   ? 'border-[#6e373c] bg-[#241618]/90'
                   : isSameMonth(day, referenceDate)
-                    ? 'border-white/5 bg-[#181818]/85'
+                    ? (isBefore(day, startOfDay(now)) ? 'border-white/5 bg-black/40' : 'border-white/5 bg-[#181818]/85')
                     : 'border-white/5 bg-[#111111]/65'
               }`}
             >
@@ -480,9 +495,14 @@ function MonthlyView({
                 </span>
               </div>
               <div className="space-y-2">
-                {dayEntries.map((entry) => (
-                  <AgendaEntryBadge key={entry.id} entry={entry} />
-                ))}
+                {dayEntries.map((entry) => {
+                  const isPast = entry.end.getTime() < now.getTime();
+                  return (
+                    <div key={entry.id} className={isPast ? 'opacity-40 grayscale' : ''}>
+                      <AgendaEntryBadge entry={entry} onClick={() => onEventClick(entry)} isPast={isPast} />
+                    </div>
+                  );
+                })}
                 {remaining > 0 && (
                   <p className="px-1 font-label text-[10px] uppercase tracking-[0.22em] text-[#8f8582]">
                     +{remaining} more
@@ -500,9 +520,13 @@ function MonthlyView({
 function WeeklyView({
   entries,
   referenceDate,
+  onEventClick,
+  now,
 }: {
   entries: AgendaEntry[];
   referenceDate: Date;
+  onEventClick: (entry: AgendaEntry) => void;
+  now: Date;
 }) {
   const weekStart = startOfWeek(referenceDate);
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
@@ -544,8 +568,14 @@ function WeeklyView({
             const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), WEEK_HOUR_END, 0, 0, 0);
             const dayEntries = entries.filter((entry) => isSameDay(entry.start, day));
 
+            const isPastDay = isBefore(day, startOfDay(now));
+
             return (
-              <div key={day.toISOString()} className="relative border-l border-white/5" style={{ height: `${totalHeight}px` }}>
+              <div 
+                key={day.toISOString()} 
+                className={`relative border-l border-white/5 ${isPastDay ? 'bg-black/40' : ''}`} 
+                style={{ height: `${totalHeight}px` }}
+              >
                 {Array.from({ length: WEEK_HOUR_END - WEEK_HOUR_START }, (_, index) => (
                   <div
                     key={index}
@@ -553,6 +583,27 @@ function WeeklyView({
                     style={{ top: `${index * WEEK_HOUR_HEIGHT}px` }}
                   ></div>
                 ))}
+                
+                {/* Current Time Indicator */}
+                {isToday(day) && (
+                  (() => {
+                    const nowMinutes = (now.getHours() * 60 + now.getMinutes()) - (WEEK_HOUR_START * 60);
+                    const nowPos = (nowMinutes / 60) * WEEK_HOUR_HEIGHT;
+                    if (nowPos >= 0 && nowPos <= totalHeight) {
+                      return (
+                        <div 
+                          className="absolute inset-x-0 z-20 flex items-center" 
+                          style={{ top: `${nowPos}px` }}
+                        >
+                          <div className="h-[2px] flex-1 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
+                          <div className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] -ml-1" />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()
+                )}
+
                 {dayEntries.map((entry) => {
                   const priority = priorityStyles[entry.priority] || priorityStyles.medium;
                   const eventStart = clamp(
@@ -572,10 +623,13 @@ function WeeklyView({
                     return null;
                   }
 
+                  const isPast = entry.end.getTime() < now.getTime();
+
                   return (
                     <div
                       key={entry.id}
-                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)]`}
+                      onClick={() => onEventClick(entry)}
+                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] cursor-pointer hover:bg-[#222222] transition-all overflow-hidden ${isPast ? 'opacity-40 grayscale border-l-outline/30 hover:opacity-100 hover:grayscale-0' : ''}`}
                       style={{ top: `${top}px`, height: `${height}px` }}
                     >
                       <p className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-[#8f8582]">
@@ -595,7 +649,7 @@ function WeeklyView({
   );
 }
 
-function ScheduleView({ entries }: { entries: AgendaEntry[] }) {
+function ScheduleView({ entries, onEventClick, now }: { entries: AgendaEntry[]; onEventClick: (entry: AgendaEntry) => void; now: Date }) {
   const groups = groupEntriesByDay(entries);
 
   return (
@@ -624,10 +678,12 @@ function ScheduleView({ entries }: { entries: AgendaEntry[] }) {
                 const priority = priorityStyles[entry.priority] || priorityStyles.medium;
                 const statusClass = statusStyles[entry.status] || statusStyles.queued;
 
+                const isPast = entry.end < now;
                 return (
                   <article
                     key={entry.id}
-                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)]`}
+                    onClick={() => onEventClick(entry)}
+                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-all ${isPast ? 'opacity-40 grayscale border-l-outline/30 hover:opacity-100 hover:grayscale-0' : ''}`}
                   >
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="font-headline text-lg text-[#f4efee]">{formatTime(entry.start)}</span>
@@ -681,8 +737,23 @@ export function Agenda({
   honorific,
   fullName,
 }: AgendaProps) {
+  const navigate = useNavigate();
   const [view, setView] = useState<AgendaView>('month');
   const [referenceDate, setReferenceDate] = useState(() => new Date());
+  const [selectedEntry, setSelectedEntry] = useState<AgendaEntry | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 30000); // Update every 30s for smoothness
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleEventClick = (entry: AgendaEntry) => {
+    console.log("[Agenda] Event clicked:", entry);
+    setSelectedEntry(entry);
+  };
 
   const range = getAgendaRange(view, referenceDate);
   const taskEntries = buildTaskEntries(tasks, range.start, range.end);
@@ -787,9 +858,9 @@ export function Agenda({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div>
-          {view === 'month' && <MonthlyView entries={entries} referenceDate={referenceDate} />}
-          {view === 'week' && <WeeklyView entries={entries} referenceDate={referenceDate} />}
-          {view === 'schedule' && <ScheduleView entries={entries} />}
+          {view === 'month' && <MonthlyView entries={entries} referenceDate={referenceDate} onEventClick={handleEventClick} now={now} />}
+          {view === 'week' && <WeeklyView entries={entries} referenceDate={referenceDate} onEventClick={handleEventClick} now={now} />}
+          {view === 'schedule' && <ScheduleView entries={entries} onEventClick={handleEventClick} now={now} />}
         </div>
 
         <aside className="space-y-5">
@@ -806,8 +877,13 @@ export function Agenda({
               )}
               {priorityQueue.map((entry) => {
                 const priority = priorityStyles[entry.priority] || priorityStyles.medium;
+                const isPast = entry.end.getTime() < now.getTime();
                 return (
-                  <div key={entry.id} className="rounded-2xl border border-white/5 bg-[#191919] p-4">
+                  <div 
+                    key={entry.id} 
+                    onClick={() => handleEventClick(entry)}
+                    className={`rounded-2xl border-l-4 border-white/5 bg-[#191919] p-4 cursor-pointer hover:bg-[#222222] transition-all ${isPast ? 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0' : ''}`}
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${priority.chip}`}>
                         {entry.priority}
@@ -870,8 +946,20 @@ export function Agenda({
               )}
               {latestActions.map((action) => {
                 const actionDate = parseMaybeDate(action.timestamp);
+                // Try to find a matching task if it exists
+                const matchingTask = tasks.find(t => t.id === action.action_details?.task_id);
+                
                 return (
-                  <div key={action.id} className="rounded-2xl border border-white/5 bg-[#191919] p-4">
+                  <div 
+                    key={action.id} 
+                    onClick={() => {
+                      if (matchingTask) {
+                        const entry = buildTaskEntries([matchingTask], startOfDay(new Date(action.timestamp)), endOfDay(new Date(action.timestamp)))[0];
+                        if (entry) handleEventClick(entry);
+                      }
+                    }}
+                    className={`rounded-2xl border border-white/5 bg-[#191919] p-4 ${matchingTask ? 'cursor-pointer hover:bg-[#222222] transition-colors' : ''}`}
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-body text-sm font-semibold capitalize text-[#f4efee]">{action.agent_name}</p>
                       <span className="font-label text-[10px] uppercase tracking-[0.18em] text-[#8f8582]">
@@ -886,6 +974,96 @@ export function Agenda({
           </div>
         </aside>
       </div>
+      <AnimatePresence>
+        {selectedEntry && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedEntry(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 40 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 40 }}
+              className="relative w-full max-w-lg overflow-hidden rounded-[32px] border border-white/10 bg-[#161616] shadow-[0_32px_120px_rgba(0,0,0,0.6)]"
+            >
+              {/* Header Accent */}
+              <div 
+                className="h-2" 
+                style={{ backgroundColor: selectedEntry.priority === 'critical' ? '#ff7f88' : selectedEntry.priority === 'high' ? '#ffb46b' : selectedEntry.priority === 'low' ? '#87d89b' : '#6bc7ff' }} 
+              />
+              
+              <div className="p-8">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="font-label text-[10px] uppercase tracking-[0.4em] text-[#8f8582]">
+                      {selectedEntry.kind === 'task' ? 'Local Directive' : 'Recurring Routine'}
+                    </p>
+                    <h3 className="font-headline text-3xl text-[#f4efee]">{selectedEntry.title}</h3>
+                  </div>
+                  <button
+                    onClick={() => setSelectedEntry(null)}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-[#8f8582] transition hover:bg-white/10 hover:text-white"
+                  >
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+
+                <div className="mt-8 space-y-8">
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="rounded-2xl bg-white/[0.03] p-5 border border-white/5">
+                        <p className="font-label text-[9px] uppercase tracking-widest text-[#6f6664]">Scheduled For</p>
+                        <p className="mt-2 font-headline text-xl text-[#f4efee]">{formatTime(selectedEntry.start)}</p>
+                        <p className="mt-1 font-body text-xs text-[#8f8582]">{formatScheduleDate(selectedEntry.start)}</p>
+                      </div>
+                      <div className="rounded-2xl bg-white/[0.03] p-5 border border-white/5">
+                        <p className="font-label text-[9px] uppercase tracking-widest text-[#6f6664]">Agent Assigned</p>
+                        <p className="mt-2 font-headline text-xl text-[#f4efee]">{formatAgentName(selectedEntry.agent)}</p>
+                        <p className="mt-1 font-body text-xs text-[#8f8582]">Autonomous Executor</p>
+                      </div>
+                   </div>
+
+                   <div className="space-y-3">
+                     <p className="font-label text-[9px] uppercase tracking-widest text-[#6f6664]">Directive Payload</p>
+                     <div className="rounded-2xl border border-white/5 bg-black/40 p-6 shadow-inner">
+                       <p className="font-body text-sm leading-relaxed text-[#b6abaa] whitespace-pre-wrap italic">
+                         "{selectedEntry.details}"
+                       </p>
+                     </div>
+                   </div>
+
+                   <div className="flex items-center justify-between gap-4 pt-4 border-t border-white/5">
+                      <div className="flex items-center gap-3">
+                         <span className={`rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.24em] ${statusStyles[selectedEntry.status]}`}>
+                            {selectedEntry.status.replace(/_/g, ' ')}
+                         </span>
+                         <span className={`rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.24em] ${priorityStyles[selectedEntry.priority]?.chip}`}>
+                            {selectedEntry.priority}
+                         </span>
+                      </div>
+                      
+                      {selectedEntry.kind === 'task' && (
+                        <button
+                          onClick={() => {
+                            setSelectedEntry(null);
+                            navigate(`/operations/tasks/${selectedEntry.sourceId}`);
+                          }}
+                          className="flex items-center gap-2 rounded-full bg-[#4A0404] px-6 py-3 font-label text-[10px] uppercase tracking-[0.24em] text-white transition hover:brightness-110 shadow-[0_10px_20px_rgba(74,4,4,0.3)]"
+                        >
+                          View Mission Log
+                          <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                        </button>
+                      )}
+                   </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

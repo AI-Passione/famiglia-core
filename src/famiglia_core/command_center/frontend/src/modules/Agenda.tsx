@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import type { FamigliaAgent, ActionLog, RecurringTask, ScheduleConfig, Task, GraphDefinition } from '../types';
+import type { FamigliaAgent, ActionLog, RecurringTask, ScheduleConfig, Task, GraphDefinition, AgendaEntry, AgendaEntryKind } from '../types';
 import { AgendaEventModal } from './ui/AgendaEventModal';
 
 type AgendaView = 'schedule' | 'week' | 'month';
-type AgendaEntryKind = 'task' | 'recurring';
 
 interface AgendaProps {
   agents: FamigliaAgent[];
@@ -15,20 +14,6 @@ interface AgendaProps {
   honorific: string;
   fullName: string;
   graphs: GraphDefinition[];
-}
-
-
-interface AgendaEntry {
-  id: string;
-  sourceId: number;
-  title: string;
-  details: string;
-  start: Date;
-  end: Date;
-  kind: AgendaEntryKind;
-  priority: string;
-  status: string;
-  agent: string | null;
 }
 
 const VIEW_OPTIONS: Array<{ id: AgendaView; label: string }> = [

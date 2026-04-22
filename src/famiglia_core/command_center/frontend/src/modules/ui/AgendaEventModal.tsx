@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { FamigliaAgent, GraphDefinition, AgendaEntry } from '../../types';
+import type { FamigliaAgent, GraphDefinition } from '../../types';
+import type { AgendaEntry } from '../../types';
 import { API_BASE } from '../../config';
 import { useToast } from './ToastProvider';
 

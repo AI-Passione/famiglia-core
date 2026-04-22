@@ -818,7 +818,7 @@ export function Agenda({
           <div className="space-y-2">
             <div className="flex items-center gap-4">
               <h2 className="font-headline text-5xl font-bold tracking-tight text-[#f4efee]">
-                Agenda
+                The Agenda
               </h2>
               <div className="mt-2 rounded-full bg-white/5 px-4 py-1 font-label text-[10px] uppercase tracking-[0.3em] text-[#8f8582]">
                 Last Synced: {now.toLocaleTimeString()}

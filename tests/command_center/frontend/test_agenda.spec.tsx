@@ -2,15 +2,16 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { MemoryRouter } from 'react-router-dom';
 import { Agenda } from '@/modules/Agenda';
-import type { Agent, Action, RecurringTask, Task } from '@/types';
+import type { FamigliaAgent, ActionLog, RecurringTask, Task } from '@/types';
 
-const agents: Agent[] = [
-  { name: 'alfredo', last_active: '2026-04-01T08:00:00Z', msg_count: 12, status: 'idle' },
-  { name: 'rossini', last_active: '2026-04-01T07:30:00Z', msg_count: 9, status: 'thinking' },
+const agents: any[] = [
+  { name: 'alfredo', last_active: '2026-04-01T08:00:00Z', msg_count: 12, status: 'idle', is_active: true },
+  { name: 'rossini', last_active: '2026-04-01T07:30:00Z', msg_count: 9, status: 'thinking', is_active: true },
 ];
 
-const actions: Action[] = [
+const actions: any[] = [
   {
     id: 1,
     timestamp: '2026-04-01T07:45:00Z',
@@ -52,13 +53,16 @@ const recurringTasks: RecurringTask[] = [
 describe('Agenda Module', () => {
   it('renders the agenda shell and defaults to monthly view', () => {
     render(
-      <Agenda
-        agents={agents}
-        actions={actions}
-        tasks={tasks}
-        recurringTasks={recurringTasks}
-        honorific="Don"
-      />
+      <MemoryRouter>
+        <Agenda
+          agents={agents}
+          actions={actions}
+          tasks={tasks}
+          recurringTasks={recurringTasks}
+          honorific="Don"
+          fullName="Jimmy"
+        />
+      </MemoryRouter>
     );
 
     expect(screen.getByText('The Agenda')).toBeDefined();
@@ -69,13 +73,16 @@ describe('Agenda Module', () => {
 
   it('switches between monthly, weekly, and schedule modes', () => {
     render(
-      <Agenda
-        agents={agents}
-        actions={actions}
-        tasks={tasks}
-        recurringTasks={recurringTasks}
-        honorific="Don"
-      />
+      <MemoryRouter>
+        <Agenda
+          agents={agents}
+          actions={actions}
+          tasks={tasks}
+          recurringTasks={recurringTasks}
+          honorific="Don"
+          fullName="Jimmy"
+        />
+      </MemoryRouter>
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Weekly' }));

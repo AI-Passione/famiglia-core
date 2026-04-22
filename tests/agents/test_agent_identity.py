@@ -6,7 +6,7 @@ from famiglia_core.agents.alfredo import Alfredo
 @pytest.fixture
 def mock_db_dependencies(mocker):
     mocker.patch("famiglia_core.db.agents.context_store.context_store.enabled", True)
-    mocker.patch("famiglia_core.agents.souls.soul_registry.load_agent_soul", return_value="Test Soul")
+    mocker.patch("famiglia_core.agents.base_agent.load_agent_soul", return_value="Test Soul")
     mocker.patch("famiglia_core.agents.souls.soul_registry.resolve_agent_id", side_effect=lambda agent_name, agent_id: agent_id or agent_name.lower().replace("dr. ", "").strip())
     # Mock PostgresCheckpointer to avoid DB connection
     mocker.patch("famiglia_core.db.observability.checkpointer.PostgresCheckpointer", return_value=MagicMock())

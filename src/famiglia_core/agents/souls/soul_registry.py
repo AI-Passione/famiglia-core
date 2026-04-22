@@ -52,16 +52,32 @@ def load_agent_soul(agent_id: str, agent_name: str) -> str:
     db_soul = context_store.get_agent_soul(resolved_id)
     db_traits = context_store.get_agent_traits(resolved_id)
     
-    if db_soul:
+    if isinstance(db_soul, dict):
         print(f"[SoulRegistry] Loading soul from database for {resolved_id}")
+        
+        if not isinstance(db_traits, dict):
+            db_traits = {"skills": [], "tools": [], "workflows": [], "resources": []}
+
+        # Load shared baseline from DB or file fallback
+        shared_text = context_store.get_shared_soul_baseline()
+        if not isinstance(shared_text, str):
+            shared_text = None
+
+        if not shared_text:
+            shared_path = Path(__file__).resolve().parent / "souls.md"
+            if shared_path.exists():
+                shared_text = shared_path.read_text(encoding="utf-8").strip()
         
         # Build the soul string from normalized fields
         parts = []
-        if db_soul.get("persona"):
+        if shared_text:
+            parts.append(shared_text)
+            
+        if isinstance(db_soul.get("persona"), str):
             parts.append(f"## PERSONA & TONE\n{db_soul['persona']}")
-        if db_soul.get("reply_constraints"):
+        if isinstance(db_soul.get("reply_constraints"), str):
             parts.append(f"## REPLY CONSTRAINTS\n{db_soul['reply_constraints']}")
-        if db_soul.get("identity"):
+        if isinstance(db_soul.get("identity"), str):
             parts.append(f"## PHRASES & IDENTITY\n{db_soul['identity']}")
             
         # Add Traits
@@ -84,10 +100,12 @@ def load_agent_soul(agent_id: str, agent_name: str) -> str:
                     wf_text += f"Execution Order: {' -> '.join(wf['node_order'])}\n"
             parts.append(f"## REUSABLE WORKFLOWS\n{wf_text}")
 
-        if db_traits["resources"]:
-            res_text = "\n".join([f"- **{r['name']}**: {r.get('description', '')} ({r.get('url', 'N/A')})" for r in db_traits["resources"]])
+        if db_traits.get("resources"):
+            res_text = "\n".join([f"- **{r['name']}**: {r.get('description', '')}" for r in db_traits["resources"] if isinstance(r, dict)])
             parts.append(f"## TOOLS & RESOURCES\n{res_text}")
 
+        # Ensure all parts are strings before joining
+        parts = [p for p in parts if isinstance(p, str)]
         return "\n\n---\n\n".join(parts)
 
     # 2. Fallback to Markdown Seeding

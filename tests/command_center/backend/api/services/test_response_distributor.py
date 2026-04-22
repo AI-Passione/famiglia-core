@@ -12,13 +12,20 @@ def test_response_distributor_dispatch_web_only(mock_slack_queue, mock_store):
     metadata = {"platform": "web"}
     
     # Execute
-    response_distributor.dispatch(agent_id, text, conversation_key, metadata)
+    response_distributor.dispatch(
+        agent_id=agent_id,
+        text=text,
+        conversation_key=conversation_key,
+        sender="Alfredo",
+        metadata=metadata
+    )
     
     # Verify DB logging (First class citizen)
     mock_store.log_message.assert_called_once_with(
         role="agent",
         conversation_key=conversation_key,
         agent_name=agent_id,
+        sender="Alfredo",
         content=text,
         metadata=metadata
     )
@@ -43,10 +50,23 @@ def test_response_distributor_dispatch_slack_mirror(mock_slack_queue, mock_store
     mock_slack_queue.clients = {"some_token"}
     
     # Execute
-    response_distributor.dispatch(agent_id, text, conversation_key, metadata)
+    response_distributor.dispatch(
+        agent_id=agent_id,
+        text=text,
+        conversation_key=conversation_key,
+        sender="Alfredo",
+        metadata=metadata
+    )
     
     # Verify DB logging (Always first)
-    mock_store.log_message.assert_called_once()
+    mock_store.log_message.assert_called_once_with(
+        role="agent",
+        conversation_key=conversation_key,
+        agent_name=agent_id,
+        sender="Alfredo",
+        content=text,
+        metadata=metadata
+    )
     
     # Verify Slack Mirroring
     mock_slack_queue.enqueue_message.assert_called_once_with(

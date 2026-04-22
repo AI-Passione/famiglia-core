@@ -295,7 +295,7 @@ class AgentContextStore:
                 if cursor is None: return []
                 cursor.execute(
                     """
-                    SELECT m.id, m.parent_id, m.role, m.content, m.sender, m.created_at, m.metadata
+                    SELECT m.id, m.parent_id, m.agent_name, m.role, m.content, m.sender, m.created_at, m.metadata
                     FROM agent_messages m
                     INNER JOIN agent_conversations c ON c.id = m.conversation_id
                     WHERE c.conversation_key = %s AND m.parent_id IS NULL
@@ -317,7 +317,7 @@ class AgentContextStore:
                 if cursor is None: return []
                 cursor.execute(
                     """
-                    SELECT m.id, m.parent_id, m.role, m.content, m.sender, m.created_at, m.metadata
+                    SELECT m.id, m.parent_id, m.agent_name, m.role, m.content, m.sender, m.created_at, m.metadata
                     FROM agent_messages m
                     WHERE m.parent_id = %s
                     ORDER BY m.created_at ASC

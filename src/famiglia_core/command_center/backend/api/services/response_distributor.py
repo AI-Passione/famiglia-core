@@ -14,6 +14,7 @@ class ResponseDistributor:
         agent_id: str,
         text: str,
         conversation_key: str,
+        sender: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ):
         """
@@ -29,6 +30,7 @@ class ResponseDistributor:
                 role="agent",
                 conversation_key=conversation_key,
                 agent_name=agent_id,
+                sender=sender,
                 content=text,
                 metadata=metadata
             )

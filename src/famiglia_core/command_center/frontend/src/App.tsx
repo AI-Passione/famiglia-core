@@ -233,6 +233,7 @@ function App() {
                       recurringTasks={recurringTasks}
                       honorific={settings.honorific}
                       fullName={settings.fullName}
+                      graphs={graphs}
                     />
                   } 
                 />

@@ -1086,25 +1086,16 @@ export function Agenda({
                       </div>
                       
                       {selectedEntry.kind === 'task' && (
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => handleEditEvent(selectedEntry)}
-                            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 font-label text-[10px] uppercase tracking-[0.24em] text-white transition hover:bg-white/10"
-                          >
-                            <span className="material-symbols-outlined text-sm">edit</span>
-                            Refine
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedEntry(null);
-                              navigate(`/operations/tasks/${selectedEntry.sourceId}`);
-                            }}
-                            className="flex items-center gap-2 rounded-full bg-[#4A0404] px-6 py-3 font-label text-[10px] uppercase tracking-[0.24em] text-white transition hover:brightness-110 shadow-[0_10px_20px_rgba(74,4,4,0.3)]"
-                          >
-                            View Mission Log
-                            <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedEntry(null);
+                            navigate(`/operations/tasks/${selectedEntry.sourceId}`);
+                          }}
+                          className="flex items-center gap-2 rounded-full bg-[#4A0404] px-6 py-3 font-label text-[10px] uppercase tracking-[0.24em] text-white transition hover:brightness-110 shadow-[0_10px_20px_rgba(74,4,4,0.3)]"
+                        >
+                          View Mission Log
+                          <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                        </button>
                       )}
                    </div>
                 </div>
@@ -1113,18 +1104,6 @@ export function Agenda({
           </div>
         )}
       </AnimatePresence>
-
-      <AgendaEventModal
-        isOpen={isEventModalOpen}
-        onClose={() => setEventModalOpen(false)}
-        onSuccess={() => {
-          // Data will refresh via the interval in App.tsx
-        }}
-        agents={agents}
-        graphs={graphs}
-        initialEntry={modalInitialEntry}
-        initialDate={modalInitialDate}
-      />
     </section>
   );
 }

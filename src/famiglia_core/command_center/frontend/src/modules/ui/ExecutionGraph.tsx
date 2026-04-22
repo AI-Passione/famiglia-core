@@ -43,7 +43,7 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
 
   
   // Map node IDs to positions for edge drawing
-  const LEVEL_HEIGHT = 120;
+  const LEVEL_HEIGHT = 140;
   const LEVEL_GAP = 60;
   const NODE_WIDTH = 180;
   
@@ -72,7 +72,7 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ minWidth: 800 }}>
           <defs>
             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-              <polygon points="0 0, 10 3.5, 0 7" fill="rgba(99, 102, 241, 0.3)" />
+              <polygon points="0 0, 10 3.5, 0 7" fill="rgba(99, 102, 241, 0.5)" />
             </marker>
           </defs>
           
@@ -83,27 +83,45 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
 
             // Draw a curved path from bottom of start to top of end
             const startX = 400 + start.x; // Offset to center
-            const startY = start.y + 20;
+            const startY = start.y + 25;
             const endX = 400 + end.x;
-            const endY = end.y - 20;
+            const endY = end.y - 25;
             
             const cp1Y = startY + 40;
             const cp2Y = endY - 40;
 
             const isHighlighted = activeNodeIds.includes(edge.source) && activeNodeIds.includes(edge.target);
+            const midX = (startX + endX) / 2;
+            const midY = (startY + endY) / 2;
 
             return (
-              <motion.path
-                key={`${edge.source}-${edge.target}-${idx}`}
-                d={`M ${startX} ${startY} C ${startX} ${cp1Y}, ${endX} ${cp2Y}, ${endX} ${endY}`}
-                stroke={isHighlighted ? 'rgba(99, 102, 241, 0.6)' : 'rgba(255, 255, 255, 0.1)'}
-                strokeWidth={isHighlighted ? 2 : 1}
-                fill="none"
-                markerEnd="url(#arrowhead)"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 1.5, delay: idx * 0.1 }}
-              />
+              <g key={`${edge.source}-${edge.target}-${idx}`}>
+                <motion.path
+                  d={`M ${startX} ${startY} C ${startX} ${cp1Y}, ${endX} ${cp2Y}, ${endX} ${endY}`}
+                  stroke={isHighlighted ? 'rgba(99, 102, 241, 0.8)' : 'rgba(255, 255, 255, 0.15)'}
+                  strokeWidth={isHighlighted ? 2.5 : 1.5}
+                  fill="none"
+                  markerEnd="url(#arrowhead)"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1, delay: idx * 0.05 }}
+                />
+                {edge.label && (
+                  <foreignObject 
+                    x={midX - 60} 
+                    y={midY - 12} 
+                    width="120" 
+                    height="24"
+                    className="pointer-events-none"
+                  >
+                    <div className="flex items-center justify-center h-full">
+                      <span className="px-2 py-0.5 bg-[#1a1a1a]/90 border border-white/5 rounded text-[8px] font-mono text-outline uppercase tracking-tighter whitespace-nowrap">
+                        {edge.label}
+                      </span>
+                    </div>
+                  </foreignObject>
+                )}
+              </g>
             );
           })}
         </svg>
@@ -114,6 +132,7 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
           const isActive = activeNodeIds.includes(node.id);
           const isEntry = node.type === 'entry';
           const isEnd = node.type === 'end';
+          const isConditional = node.type === 'conditional';
 
           return (
             <motion.div
@@ -139,12 +158,13 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
                 userSelect: 'none'
               }}
               className={`
-                z-20 p-4 rounded-xl border text-center transition-colors cursor-pointer group
+                z-20 p-4 transition-colors cursor-pointer group
                 ${isActive 
                   ? 'bg-primary/20 border-primary shadow-[0_0_20px_rgba(99,102,241,0.3)]' 
                   : 'bg-black/60 border-white/5 hover:border-white/20'}
                 ${selectedNodeId === node.id ? 'ring-2 ring-primary ring-offset-4 ring-offset-background' : ''}
-                ${isEntry || isEnd ? 'rounded-full px-6 py-2' : 'min-w-[150px]'}
+                ${isEntry || isEnd ? 'rounded-full px-8 py-3 border-2' : isConditional ? 'rotate-45 border-dashed' : 'rounded-lg border'}
+                ${!isEntry && !isEnd ? 'min-w-[160px]' : ''}
               `}
             >
               <div className="flex flex-col items-center">

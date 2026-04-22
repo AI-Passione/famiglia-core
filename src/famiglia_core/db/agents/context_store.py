@@ -572,6 +572,7 @@ class AgentContextStore:
         eta_completion_at: Optional[datetime] = None,
         metadata: Optional[Dict[str, Any]] = None,
         recurring_task_id: Optional[int] = None,
+        is_scheduled: bool = False,
     ) -> Optional[Dict[str, Any]]:
         safe_priority = self._normalize_priority(priority)
         safe_created_by = self._normalize_creator_type(created_by_type)
@@ -588,11 +589,11 @@ class AgentContextStore:
                         title, task_payload, status, priority,
                         created_by_type, created_by_name,
                         expected_agent, eta_pickup_at, eta_completion_at,
-                        metadata, recurring_task_id, created_at, updated_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                        metadata, recurring_task_id, is_scheduled, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                     RETURNING *
                     """,
-                    (title, task_payload, "queued", safe_priority, safe_created_by, created_by_name, expected_agent, eta_pickup_at, eta_completion_at, self._safe_json(metadata), recurring_task_id),
+                    (title, task_payload, "queued", safe_priority, safe_created_by, created_by_name, expected_agent, eta_pickup_at, eta_completion_at, self._safe_json(metadata), recurring_task_id, is_scheduled),
                 )
                 row = cursor.fetchone()
                 return self._serialize_task_row(row) if row else None
@@ -691,6 +692,7 @@ class AgentContextStore:
         start_date: datetime,
         end_date: datetime,
         statuses: Optional[List[str]] = None,
+        only_scheduled: bool = True,
     ) -> List[Dict[str, Any]]:
         """Fetch tasks that fall within a specific time range for the Agenda view."""
         normalized_statuses = self._normalize_statuses(statuses)
@@ -705,6 +707,9 @@ class AgentContextStore:
         if normalized_statuses:
             query += " AND status = ANY(%s)"
             params.append(normalized_statuses)
+
+        if only_scheduled:
+            query += " AND is_scheduled = TRUE"
             
         query += " ORDER BY eta_pickup_at ASC"
         

@@ -153,6 +153,7 @@ class TaskOrchestrator:
             eta_pickup_at=now,  # Pass datetime object directly
             metadata=task.metadata,
             recurring_task_id=task.id,
+            is_scheduled=True,
         )
         context_store.update_recurring_task_last_spawned(task.id, now)
         self._wakeup_event.set() # Wake up the worker immediately

@@ -151,62 +151,62 @@ function App() {
     return () => clearTimeout(sync);
   }, [settings, settingsHydrated]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [agentsRes, actionsRes, tasksRes, recurringTasksRes] = await Promise.all([
-          fetch(`${API_BASE}/agents`),
-          fetch(`${API_BASE}/actions?limit=24`),
-          fetch(`${API_BASE}/tasks?limit=1000`), // Force rebuild: updated limit and sorting logic
-          fetch(`${API_BASE}/recurring-tasks`)
-        ]);
-        
-        if (agentsRes.ok) {
-          const data = await agentsRes.json();
-          setAgents(Array.isArray(data) ? data : []);
-        }
-        if (actionsRes.ok) {
-          const data = await actionsRes.json() as PaginatedActions;
-          setActions(Array.isArray(data.actions) ? data.actions : []);
-        }
-        if (tasksRes.ok) {
-          const data = await tasksRes.json() as PaginatedTasks;
-          setTasks(Array.isArray(data.tasks) ? data.tasks : []);
-        }
-        if (recurringTasksRes.ok) {
-          const data = await recurringTasksRes.json();
-          setRecurringTasks(Array.isArray(data) ? data : []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
+  const fetchData = useCallback(async () => {
+    try {
+      const [agentsRes, actionsRes, tasksRes, recurringTasksRes] = await Promise.all([
+        fetch(`${API_BASE}/agents`),
+        fetch(`${API_BASE}/actions?limit=24`),
+        fetch(`${API_BASE}/tasks?limit=1000`), 
+        fetch(`${API_BASE}/recurring-tasks`)
+      ]);
+      
+      if (agentsRes.ok) {
+        const data = await agentsRes.json();
+        setAgents(Array.isArray(data) ? data : []);
       }
-    };
+      if (actionsRes.ok) {
+        const data = await actionsRes.json() as PaginatedActions;
+        setActions(Array.isArray(data.actions) ? data.actions : []);
+      }
+      if (tasksRes.ok) {
+        const data = await tasksRes.json() as PaginatedTasks;
+        setTasks(Array.isArray(data.tasks) ? data.tasks : []);
+      }
+      if (recurringTasksRes.ok) {
+        const data = await recurringTasksRes.json();
+        setRecurringTasks(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+    }
+  }, []);
 
-    const fetchGraphs = async () => {
-      try {
-        const response = await fetch(`${API_BASE}/operations/graphs`);
-        if (response.ok) {
-          const data = await response.json();
-          const validGraphs = Array.isArray(data) ? data : [];
-          setGraphs(validGraphs);
-          if (validGraphs.length > 0 && !selectedGraph) {
-            setSelectedGraph(validGraphs[0]);
-          }
-        } else {
-          setGraphs([]);
+  const fetchGraphs = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/operations/graphs`);
+      if (response.ok) {
+        const data = await response.json();
+        const validGraphs = Array.isArray(data) ? data : [];
+        setGraphs(validGraphs);
+        if (validGraphs.length > 0 && !selectedGraph) {
+          setSelectedGraph(validGraphs[0]);
         }
-      } catch (error) {
-        console.error("Failed to fetch graphs:", error);
+      } else {
         setGraphs([]);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch graphs:", error);
+      setGraphs([]);
+    }
+  }, [selectedGraph]);
 
+  useEffect(() => {
     fetchData(); // Initial fetch for agents, actions, tasks
     fetchGraphs(); // Initial fetch for graphs
 
     const interval = setInterval(fetchData, 5000); // Set up interval for recurring data fetch
     return () => clearInterval(interval); // Cleanup interval on unmount
-  }, [selectedGraph]);
+  }, [fetchData, fetchGraphs]);
 
   return (
     <ToastProvider>
@@ -234,6 +234,7 @@ function App() {
                       honorific={settings.honorific}
                       fullName={settings.fullName}
                       graphs={graphs}
+                      onRefresh={fetchData}
                     />
                   } 
                 />
@@ -290,6 +291,7 @@ function App() {
           isOpen={isDirectiveModalOpen} 
           onClose={() => setDirectiveModalOpen(false)} 
           graphs={graphs}
+          onRefresh={fetchData}
         />
         <div className="fixed left-72 top-16 w-[1px] h-full bg-[#1c1b1b] z-30"></div>
       </div>

@@ -163,6 +163,7 @@ CREATE TABLE IF NOT EXISTS task_instances (
   result_summary TEXT,
   error_details TEXT,
   metadata JSONB,
+  is_scheduled BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CHECK (status IN ('queued', 'in_progress', 'drafted', 'completed', 'failed', 'cancelled')),

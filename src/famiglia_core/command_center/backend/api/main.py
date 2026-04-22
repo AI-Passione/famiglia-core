@@ -96,6 +96,7 @@ class TaskInstance(BaseModel):
     eta_completion_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     result_summary: Optional[str] = None
+    is_scheduled: bool = False
 
 class RecurringTaskTemplate(BaseModel):
     id: int

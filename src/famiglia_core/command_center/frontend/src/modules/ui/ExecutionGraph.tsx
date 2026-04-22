@@ -245,17 +245,37 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">Inputs</p>
-                      <div className="p-3 bg-white/5 rounded-lg border border-white/5 min-h-[50px]">
-                        <p className="font-mono text-[10px] text-on-surface leading-tight">
-                          {node.inputs || '—'}
+                      <div className="p-3 bg-white/5 rounded-lg border border-white/5 min-h-[50px] overflow-hidden">
+                        <p className="font-mono text-[10px] text-on-surface leading-tight break-words">
+                          {(() => {
+                            const latestLogWithData = [...logs].reverse().find(l => 
+                              (l.node_id === selectedNodeId || l.metadata?.node_id === selectedNodeId) && l.node_inputs
+                            );
+                            if (latestLogWithData?.node_inputs) {
+                              return typeof latestLogWithData.node_inputs === 'object' 
+                                ? JSON.stringify(latestLogWithData.node_inputs, null, 2) 
+                                : String(latestLogWithData.node_inputs);
+                            }
+                            return node.inputs || '—';
+                          })()}
                         </p>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">Outputs</p>
-                      <div className="p-3 bg-white/5 rounded-lg border border-white/5 min-h-[50px]">
-                        <p className="font-mono text-[10px] text-on-surface leading-tight">
-                          {node.outputs || '—'}
+                      <div className="p-3 bg-white/5 rounded-lg border border-white/5 min-h-[50px] overflow-hidden">
+                        <p className="font-mono text-[10px] text-on-surface leading-tight break-words">
+                          {(() => {
+                            const latestLogWithData = [...logs].reverse().find(l => 
+                              (l.node_id === selectedNodeId || l.metadata?.node_id === selectedNodeId) && l.node_outputs
+                            );
+                            if (latestLogWithData?.node_outputs) {
+                              return typeof latestLogWithData.node_outputs === 'object' 
+                                ? JSON.stringify(latestLogWithData.node_outputs, null, 2) 
+                                : String(latestLogWithData.node_outputs);
+                            }
+                            return node.outputs || '—';
+                          })()}
                         </p>
                       </div>
                     </div>

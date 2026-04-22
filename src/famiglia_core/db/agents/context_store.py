@@ -237,6 +237,8 @@ class AgentContextStore:
         agent_name: Optional[str] = None,
         task_id: Optional[int] = None,
         node_id: Optional[str] = None,
+        node_inputs: Optional[Dict[str, Any]] = None,
+        node_outputs: Optional[Dict[str, Any]] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> int:
         """Unified logging for all application-level alerts (Bell notification center)."""
@@ -250,11 +252,15 @@ class AgentContextStore:
                 cursor.execute(
                     """
                     INSERT INTO app_notifications (
-                        source, agent_name, title, message, type, task_id, node_id, metadata
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        source, agent_name, title, message, type, task_id, node_id, node_inputs, node_outputs, metadata
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                     """,
-                    (source, agent_name, title, message, type, task_id, node_id, self._safe_json(metadata)),
+                    (
+                        source, agent_name, title, message, type, task_id, node_id,
+                        self._safe_json(node_inputs), self._safe_json(node_outputs),
+                        self._safe_json(metadata)
+                    ),
                 )
                 row = cursor.fetchone()
                 notification_id = row["id"] if row else -1
@@ -1352,7 +1358,7 @@ class AgentContextStore:
             with self.db_session(commit=False) as cursor:
                 if cursor is None: return []
                 cursor.execute(
-                    "SELECT * FROM app_notifications WHERE task_id = %s ORDER BY created_at ASC",
+                    "SELECT id, source, agent_name, title, message, type, metadata, node_id, node_inputs, node_outputs, created_at FROM app_notifications WHERE task_id = %s ORDER BY created_at ASC",
                     (task_id,),
                 )
                 return list(cursor.fetchall())

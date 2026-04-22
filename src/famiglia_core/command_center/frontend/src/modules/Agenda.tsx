@@ -14,6 +14,7 @@ interface AgendaProps {
   honorific: string;
   fullName: string;
   graphs: GraphDefinition[];
+  onRefresh?: () => void;
 }
 
 const VIEW_OPTIONS: Array<{ id: AgendaView; label: string }> = [
@@ -740,6 +741,7 @@ export function Agenda({
   honorific,
   fullName,
   graphs,
+  onRefresh,
 }: AgendaProps) {
   const navigate = useNavigate();
   const [view, setView] = useState<AgendaView>('month');
@@ -1127,7 +1129,7 @@ export function Agenda({
         isOpen={isEventModalOpen}
         onClose={() => setEventModalOpen(false)}
         onSuccess={() => {
-          // Data will refresh via the interval in App.tsx
+          onRefresh?.();
         }}
         agents={agents}
         graphs={graphs}

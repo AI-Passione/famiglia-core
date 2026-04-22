@@ -9,9 +9,10 @@ interface DirectiveModalProps {
   isOpen: boolean;
   onClose: () => void;
   graphs: GraphDefinition[];
+  onRefresh?: () => void;
 }
 
-export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps) {
+export function DirectiveModal({ isOpen, onClose, graphs, onRefresh }: DirectiveModalProps) {
   const [selectedGraphId, setSelectedGraphId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [manualPrompt, setManualPrompt] = useState('');
@@ -52,6 +53,7 @@ export function DirectiveModal({ isOpen, onClose, graphs }: DirectiveModalProps)
           addExternalAgentMessage(data.acknowledgement, data.agent_id);
         }
         
+        onRefresh?.();
         setExecuting(false);
       } else {
         showToast('Failed to dispatch directive.', 'error');

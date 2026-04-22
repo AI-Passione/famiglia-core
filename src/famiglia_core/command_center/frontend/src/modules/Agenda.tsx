@@ -172,6 +172,9 @@ function sortEntries(entries: AgendaEntry[]): AgendaEntry[] {
 
 function buildTaskEntries(tasks: Task[], rangeStart: Date, rangeEnd: Date): AgendaEntry[] {
   const entries = tasks.reduce<AgendaEntry[]>((collection, task) => {
+    // Skip cancelled tasks from the visual calendar
+    if (task.status === 'cancelled') return collection;
+
     const start = getTaskStart(task);
     if (!start) return collection;
     if (start < rangeStart || start > rangeEnd) return collection;

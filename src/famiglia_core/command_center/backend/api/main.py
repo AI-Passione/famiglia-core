@@ -92,6 +92,8 @@ class TaskInstance(BaseModel):
     expected_agent: Optional[str] = None
     assigned_agent: Optional[str] = None
     created_at: datetime
+    eta_pickup_at: Optional[datetime] = None
+    eta_completion_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     result_summary: Optional[str] = None
 

@@ -10,8 +10,7 @@ export function LatestMissions({ tasks }: LatestMissionsProps) {
   const navigate = useNavigate();
   // Filter for tasks that are not pending, mostly completed/failed/in_progress but recently updated
   const recentTasks = (tasks || [])
-    .filter(t => t && t.status !== 'pending')
-    .slice(0, 4);
+    .slice(0, 5);
 
   return (
     <div className="bg-surface-container-low p-6 h-full flex flex-col relative overflow-hidden group">
@@ -28,10 +27,11 @@ export function LatestMissions({ tasks }: LatestMissionsProps) {
           recentTasks.map((task, idx) => {
             const isSuccess = task.status === 'completed' || task.status === 'success';
             const isFailed = task.status === 'failed' || task.status === 'error';
+            const isPending = task.status === 'pending' || task.status === 'queued';
             // Determine colors and icons based on status
-            const colorClass = isSuccess ? 'text-primary' : isFailed ? 'text-red-500' : 'text-tertiary';
-            const bgClass = isSuccess ? 'bg-primary/10 border-primary/20' : isFailed ? 'bg-red-500/10 border-red-500/20' : 'bg-surface-container-highest/30 border-outline/10';
-            const icon = isSuccess ? 'check_circle' : isFailed ? 'cancel' : 'pending';
+            const colorClass = isSuccess ? 'text-primary' : isFailed ? 'text-red-500' : isPending ? 'text-amber-500' : 'text-tertiary';
+            const bgClass = isSuccess ? 'bg-primary/10 border-primary/20' : isFailed ? 'bg-red-500/10 border-red-500/20' : isPending ? 'bg-amber-500/10 border-amber-500/20' : 'bg-surface-container-highest/30 border-outline/10';
+            const icon = isSuccess ? 'check_circle' : isFailed ? 'cancel' : isPending ? 'schedule' : 'pending';
 
             return (
               <motion.div 

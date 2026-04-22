@@ -12,7 +12,7 @@ interface MissionLog {
   id: string;
   graph_id: string;
   timestamp: string;
-  status: 'success' | 'failure' | 'running';
+  status: 'success' | 'failure' | 'running' | 'pending' | 'queued';
   duration: string;
   initiator: string;
 }
@@ -177,6 +177,7 @@ export function Operations() {
                                 <span className={`px-2 py-0.5 rounded-full font-label text-[8px] uppercase tracking-widest ${
                                   log.status === 'success' ? 'bg-success/10 text-success' :
                                   log.status === 'running' ? 'bg-primary/10 text-primary animate-pulse' :
+                                  (log.status === 'pending' || log.status === 'queued') ? 'bg-amber-500/10 text-amber-500' :
                                   'bg-error/10 text-error'
                                 }`}>
                                   {log.status}

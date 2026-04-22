@@ -424,11 +424,10 @@ function AgendaEntryBadge({ entry, onClick, isPast }: { entry: AgendaEntry; onCl
   return (
     <div
       onClick={(e) => {
-        if (isPast) return;
         e.stopPropagation();
         onClick?.();
       }}
-      className={`rounded-md border-l-2 ${priority.border} bg-[#181818]/90 px-2.5 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.18)] ${isPast ? 'cursor-default' : 'cursor-pointer hover:bg-[#222222]'} transition-colors`}
+      className={`rounded-md border-l-2 ${priority.border} bg-[#181818]/90 px-2.5 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-40 grayscale' : ''}`}
       title={`${entry.title} · ${time}`}
     >
       <div className="flex items-center gap-2">
@@ -499,7 +498,7 @@ function MonthlyView({
                 {dayEntries.map((entry) => {
                   const isPast = entry.end.getTime() < now.getTime();
                   return (
-                    <div key={entry.id} className={isPast ? 'opacity-[0.06] grayscale blur-[0.8px] pointer-events-none' : ''}>
+                    <div key={entry.id} className={isPast ? 'opacity-40 grayscale' : ''}>
                       <AgendaEntryBadge entry={entry} onClick={() => onEventClick(entry)} isPast={isPast} />
                     </div>
                   );
@@ -629,8 +628,8 @@ function WeeklyView({
                   return (
                     <div
                       key={entry.id}
-                      onClick={() => !isPast && onEventClick(entry)}
-                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] transition-colors overflow-hidden ${isPast ? 'opacity-[0.06] grayscale blur-[0.8px] border-l-outline/10 pointer-events-none cursor-default' : 'cursor-pointer hover:bg-[#222222]'}`}
+                      onClick={() => onEventClick(entry)}
+                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] cursor-pointer hover:bg-[#222222] transition-colors overflow-hidden ${isPast ? 'opacity-40 grayscale border-l-outline/30' : ''}`}
                       style={{ top: `${top}px`, height: `${height}px` }}
                     >
                       <p className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-[#8f8582]">
@@ -684,7 +683,7 @@ function ScheduleView({ entries, onEventClick, now }: { entries: AgendaEntry[]; 
                   <article
                     key={entry.id}
                     onClick={() => onEventClick(entry)}
-                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-[0.08] grayscale blur-[0.5px] border-l-outline/20 pointer-events-none' : ''}`}
+                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-40 grayscale border-l-outline/30' : ''}`}
                   >
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="font-headline text-lg text-[#f4efee]">{formatTime(entry.start)}</span>
@@ -752,7 +751,6 @@ export function Agenda({
   }, []);
 
   const handleEventClick = (entry: AgendaEntry) => {
-    if (entry.end.getTime() < now.getTime()) return; // Strictly ignore clicks on historical archives
     console.log("[Agenda] Event clicked:", entry);
     setSelectedEntry(entry);
   };
@@ -879,11 +877,12 @@ export function Agenda({
               )}
               {priorityQueue.map((entry) => {
                 const priority = priorityStyles[entry.priority] || priorityStyles.medium;
+                const isPast = entry.end.getTime() < now.getTime();
                 return (
                   <div 
                     key={entry.id} 
                     onClick={() => handleEventClick(entry)}
-                    className="rounded-2xl border border-white/5 bg-[#191919] p-4 cursor-pointer hover:bg-[#222222] transition-colors"
+                    className={`rounded-2xl border border-white/5 bg-[#191919] p-4 cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-40 grayscale' : ''}`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className={`rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] ${priority.chip}`}>

@@ -412,7 +412,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-function AgendaEntryBadge({ entry, onClick }: { entry: AgendaEntry; onClick?: () => void }) {
+function AgendaEntryBadge({ entry, onClick, isPast }: { entry: AgendaEntry; onClick?: () => void; isPast?: boolean }) {
   const priority = priorityStyles[entry.priority] || priorityStyles.medium;
   const statusClass = statusStyles[entry.status] || statusStyles.queued;
   const time = `${formatTime(entry.start)}${entry.kind === 'task' ? '' : ' · Recurring'}`;
@@ -420,10 +420,11 @@ function AgendaEntryBadge({ entry, onClick }: { entry: AgendaEntry; onClick?: ()
   return (
     <div
       onClick={(e) => {
+        if (isPast) return;
         e.stopPropagation();
         onClick?.();
       }}
-      className={`rounded-md border-l-2 ${priority.border} bg-[#181818]/90 px-2.5 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors`}
+      className={`rounded-md border-l-2 ${priority.border} bg-[#181818]/90 px-2.5 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.18)] ${isPast ? 'cursor-default' : 'cursor-pointer hover:bg-[#222222]'} transition-colors`}
       title={`${entry.title} · ${time}`}
     >
       <div className="flex items-center gap-2">
@@ -474,7 +475,7 @@ function MonthlyView({
                 isToday(day)
                   ? 'border-[#6e373c] bg-[#241618]/90'
                   : isSameMonth(day, referenceDate)
-                    ? 'border-white/5 bg-[#181818]/85'
+                    ? (isBefore(day, startOfDay(now)) ? 'border-white/5 bg-black/40' : 'border-white/5 bg-[#181818]/85')
                     : 'border-white/5 bg-[#111111]/65'
               }`}
             >
@@ -492,10 +493,10 @@ function MonthlyView({
               </div>
               <div className="space-y-2">
                 {dayEntries.map((entry) => {
-                  const isPast = entry.end < now;
+                  const isPast = entry.end.getTime() < now.getTime();
                   return (
-                    <div key={entry.id} className={isPast ? 'opacity-20 grayscale' : ''}>
-                      <AgendaEntryBadge entry={entry} onClick={() => onEventClick(entry)} />
+                    <div key={entry.id} className={isPast ? 'opacity-[0.06] grayscale blur-[0.8px] pointer-events-none' : ''}>
+                      <AgendaEntryBadge entry={entry} onClick={() => onEventClick(entry)} isPast={isPast} />
                     </div>
                   );
                 })}
@@ -564,8 +565,14 @@ function WeeklyView({
             const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), WEEK_HOUR_END, 0, 0, 0);
             const dayEntries = entries.filter((entry) => isSameDay(entry.start, day));
 
+            const isPastDay = isBefore(day, startOfDay(now));
+
             return (
-              <div key={day.toISOString()} className="relative border-l border-white/5" style={{ height: `${totalHeight}px` }}>
+              <div 
+                key={day.toISOString()} 
+                className={`relative border-l border-white/5 ${isPastDay ? 'bg-black/40' : ''}`} 
+                style={{ height: `${totalHeight}px` }}
+              >
                 {Array.from({ length: WEEK_HOUR_END - WEEK_HOUR_START }, (_, index) => (
                   <div
                     key={index}
@@ -613,13 +620,13 @@ function WeeklyView({
                     return null;
                   }
 
-                  const isPast = entry.end < now;
+                  const isPast = entry.end.getTime() < now.getTime();
 
                   return (
                     <div
                       key={entry.id}
-                      onClick={() => onEventClick(entry)}
-                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] cursor-pointer hover:bg-[#222222] transition-colors overflow-hidden ${isPast ? 'opacity-20 grayscale brightness-75 border-l-outline/30' : ''}`}
+                      onClick={() => !isPast && onEventClick(entry)}
+                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] transition-colors overflow-hidden ${isPast ? 'opacity-[0.06] grayscale blur-[0.8px] border-l-outline/10 pointer-events-none cursor-default' : 'cursor-pointer hover:bg-[#222222]'}`}
                       style={{ top: `${top}px`, height: `${height}px` }}
                     >
                       <p className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-[#8f8582]">
@@ -673,7 +680,7 @@ function ScheduleView({ entries, onEventClick, now }: { entries: AgendaEntry[]; 
                   <article
                     key={entry.id}
                     onClick={() => onEventClick(entry)}
-                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-20 grayscale brightness-75 border-l-outline/30' : ''}`}
+                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-[0.08] grayscale blur-[0.5px] border-l-outline/20 pointer-events-none' : ''}`}
                   >
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="font-headline text-lg text-[#f4efee]">{formatTime(entry.start)}</span>
@@ -741,6 +748,7 @@ export function Agenda({
   }, []);
 
   const handleEventClick = (entry: AgendaEntry) => {
+    if (entry.end.getTime() < now.getTime()) return; // Strictly ignore clicks on historical archives
     console.log("[Agenda] Event clicked:", entry);
     setSelectedEntry(entry);
   };

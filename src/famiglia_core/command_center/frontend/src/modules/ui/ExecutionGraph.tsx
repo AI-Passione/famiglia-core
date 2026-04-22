@@ -67,9 +67,13 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
   const levels_arr = Object.entries(nodesByLevel).sort(([a], [b]) => Number(a) - Number(b));
 
   return (
-    <div className="relative w-full overflow-x-auto py-10 min-h-[600px] flex justify-center">
-      <div className="relative" style={{ width: '1200px', height: levels_arr.length * (LEVEL_HEIGHT + LEVEL_GAP) + 100 }}>
-        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+    <div className="relative w-full overflow-x-hidden py-10 min-h-[600px] flex justify-center">
+      <div className="relative w-full max-w-5xl" style={{ height: levels_arr.length * (LEVEL_HEIGHT + LEVEL_GAP) + 100 }}>
+        <svg 
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          viewBox={`-600 0 1200 ${levels_arr.length * (LEVEL_HEIGHT + LEVEL_GAP) + 100}`}
+          preserveAspectRatio="xMidYMin meet"
+        >
           <defs>
             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
               <polygon points="0 0, 10 3.5, 0 7" fill="rgba(99, 102, 241, 0.5)" />
@@ -81,10 +85,10 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
             const end = positions[edge.target];
             if (!start || !end) return null;
 
-            // Use 600 as the horizontal center of our 1200px container
-            const startX = 600 + start.x;
+            // In our viewBox, 0 is the horizontal center
+            const startX = start.x;
             const startY = start.y + 40; // Connect to bottom edge
-            const endX = 600 + end.x;
+            const endX = end.x;
             const endY = end.y - 40; // Connect to top edge
             
             const cp1Y = startY + 40;
@@ -153,7 +157,7 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
               }}
               style={{ 
                 position: 'absolute', 
-                left: `${600 + pos.x}px`, 
+                left: `calc(50% + ${pos.x}px)`, 
                 top: pos.y,
                 transform: 'translate(-50%, -50%)',
                 touchAction: 'none',

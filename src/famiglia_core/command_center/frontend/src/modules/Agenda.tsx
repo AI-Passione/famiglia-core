@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import type { FamigliaAgent, ActionLog, RecurringTask, ScheduleConfig, Task } from '../types';
@@ -445,10 +445,12 @@ function MonthlyView({
   entries,
   referenceDate,
   onEventClick,
+  now,
 }: {
   entries: AgendaEntry[];
   referenceDate: Date;
   onEventClick: (entry: AgendaEntry) => void;
+  now: Date;
 }) {
   const gridStart = startOfWeek(startOfMonth(referenceDate));
   const cells = Array.from({ length: 42 }, (_, index) => addDays(gridStart, index));
@@ -489,9 +491,14 @@ function MonthlyView({
                 </span>
               </div>
               <div className="space-y-2">
-                {dayEntries.map((entry) => (
-                  <AgendaEntryBadge key={entry.id} entry={entry} onClick={() => onEventClick(entry)} />
-                ))}
+                {dayEntries.map((entry) => {
+                  const isPast = entry.end < now;
+                  return (
+                    <div key={entry.id} className={isPast ? 'opacity-40 grayscale-[0.5]' : ''}>
+                      <AgendaEntryBadge entry={entry} onClick={() => onEventClick(entry)} />
+                    </div>
+                  );
+                })}
                 {remaining > 0 && (
                   <p className="px-1 font-label text-[10px] uppercase tracking-[0.22em] text-[#8f8582]">
                     +{remaining} more
@@ -510,10 +517,12 @@ function WeeklyView({
   entries,
   referenceDate,
   onEventClick,
+  now,
 }: {
   entries: AgendaEntry[];
   referenceDate: Date;
   onEventClick: (entry: AgendaEntry) => void;
+  now: Date;
 }) {
   const weekStart = startOfWeek(referenceDate);
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
@@ -564,6 +573,27 @@ function WeeklyView({
                     style={{ top: `${index * WEEK_HOUR_HEIGHT}px` }}
                   ></div>
                 ))}
+                
+                {/* Current Time Indicator */}
+                {isToday(day) && (
+                  (() => {
+                    const nowMinutes = (now.getHours() * 60 + now.getMinutes()) - (WEEK_HOUR_START * 60);
+                    const nowPos = (nowMinutes / 60) * WEEK_HOUR_HEIGHT;
+                    if (nowPos >= 0 && nowPos <= totalHeight) {
+                      return (
+                        <div 
+                          className="absolute inset-x-0 z-20 flex items-center" 
+                          style={{ top: `${nowPos}px` }}
+                        >
+                          <div className="h-[2px] flex-1 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
+                          <div className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] -ml-1" />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()
+                )}
+
                 {dayEntries.map((entry) => {
                   const priority = priorityStyles[entry.priority] || priorityStyles.medium;
                   const eventStart = clamp(
@@ -583,11 +613,13 @@ function WeeklyView({
                     return null;
                   }
 
+                  const isPast = entry.end < now;
+
                   return (
                     <div
                       key={entry.id}
                       onClick={() => onEventClick(entry)}
-                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] cursor-pointer hover:bg-[#222222] transition-colors overflow-hidden`}
+                      className={`absolute left-2 right-2 rounded-xl border-l-4 ${priority.border} bg-[#1a1a1a]/95 px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.2)] cursor-pointer hover:bg-[#222222] transition-colors overflow-hidden ${isPast ? 'opacity-40 grayscale-[0.5]' : ''}`}
                       style={{ top: `${top}px`, height: `${height}px` }}
                     >
                       <p className="truncate font-label text-[10px] uppercase tracking-[0.18em] text-[#8f8582]">
@@ -607,7 +639,7 @@ function WeeklyView({
   );
 }
 
-function ScheduleView({ entries, onEventClick }: { entries: AgendaEntry[]; onEventClick: (entry: AgendaEntry) => void }) {
+function ScheduleView({ entries, onEventClick, now }: { entries: AgendaEntry[]; onEventClick: (entry: AgendaEntry) => void; now: Date }) {
   const groups = groupEntriesByDay(entries);
 
   return (
@@ -636,11 +668,12 @@ function ScheduleView({ entries, onEventClick }: { entries: AgendaEntry[]; onEve
                 const priority = priorityStyles[entry.priority] || priorityStyles.medium;
                 const statusClass = statusStyles[entry.status] || statusStyles.queued;
 
+                const isPast = entry.end < now;
                 return (
                   <article
                     key={entry.id}
                     onClick={() => onEventClick(entry)}
-                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors`}
+                    className={`rounded-2xl border-l-4 ${priority.border} bg-[#181818]/90 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.18)] cursor-pointer hover:bg-[#222222] transition-colors ${isPast ? 'opacity-40 grayscale-[0.5]' : ''}`}
                   >
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="font-headline text-lg text-[#f4efee]">{formatTime(entry.start)}</span>
@@ -698,6 +731,14 @@ export function Agenda({
   const [view, setView] = useState<AgendaView>('month');
   const [referenceDate, setReferenceDate] = useState(() => new Date());
   const [selectedEntry, setSelectedEntry] = useState<AgendaEntry | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 30000); // Update every 30s for smoothness
+    return () => clearInterval(timer);
+  }, []);
 
   const handleEventClick = (entry: AgendaEntry) => {
     console.log("[Agenda] Event clicked:", entry);
@@ -807,9 +848,9 @@ export function Agenda({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div>
-          {view === 'month' && <MonthlyView entries={entries} referenceDate={referenceDate} onEventClick={handleEventClick} />}
-          {view === 'week' && <WeeklyView entries={entries} referenceDate={referenceDate} onEventClick={handleEventClick} />}
-          {view === 'schedule' && <ScheduleView entries={entries} onEventClick={handleEventClick} />}
+          {view === 'month' && <MonthlyView entries={entries} referenceDate={referenceDate} onEventClick={handleEventClick} now={now} />}
+          {view === 'week' && <WeeklyView entries={entries} referenceDate={referenceDate} onEventClick={handleEventClick} now={now} />}
+          {view === 'schedule' && <ScheduleView entries={entries} onEventClick={handleEventClick} now={now} />}
         </div>
 
         <aside className="space-y-5">

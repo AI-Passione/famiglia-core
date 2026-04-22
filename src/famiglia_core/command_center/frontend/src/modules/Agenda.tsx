@@ -138,6 +138,10 @@ function isToday(date: Date): boolean {
   return isSameDay(date, new Date());
 }
 
+function isBefore(left: Date, right: Date): boolean {
+  return left.getTime() < right.getTime();
+}
+
 function formatDayKey(date: Date): string {
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
   const day = `${date.getDate()}`.padStart(2, '0');

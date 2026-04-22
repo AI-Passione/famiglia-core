@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import type { TaskExecutionDetail as DetailType, TaskMessage, TaskNotification } from '../types';
+import { motion } from 'framer-motion';
+import type { TaskExecutionDetail as DetailType } from '../types';
 import { API_BASE } from '../config';
 
 export function TaskExecutionDetail() {

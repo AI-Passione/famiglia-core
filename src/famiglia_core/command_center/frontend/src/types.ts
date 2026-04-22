@@ -41,6 +41,7 @@ export interface Task {
   result_summary?: string | null;
   recurring_task_id?: number | null;
   metadata?: Record<string, unknown> | null;
+  error_details?: string | null;
 }
 
 export interface ActionLog {

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useState, useMemo } from 'react';
 import type { GraphDefinition } from '../../types';
 
 interface ExecutionGraphProps {
@@ -9,6 +10,8 @@ interface ExecutionGraphProps {
 }
 
 export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeClick }: ExecutionGraphProps) {
+  const [offsets, setOffsets] = useState<Record<string, { x: number, y: number }>>({});
+
   // Simple vertical layout for now: nodes are arranged in columns based on their dependencies
   // We'll calculate simple levels
   const levels: Record<string, number> = {};
@@ -44,18 +47,24 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
   const LEVEL_GAP = 60;
   const NODE_WIDTH = 180;
   
-  const positions: Record<string, { x: number, y: number }> = {};
-  const levels_arr = Object.entries(nodesByLevel).sort(([a], [b]) => Number(a) - Number(b));
-  
-  levels_arr.forEach(([_, nodeIds], lIdx) => {
-    const totalWidth = nodeIds.length * NODE_WIDTH;
-    nodeIds.forEach((nodeId, nIdx) => {
-      positions[nodeId] = {
-        x: (nIdx * NODE_WIDTH) - (totalWidth / 2) + (NODE_WIDTH / 2),
-        y: lIdx * (LEVEL_HEIGHT + LEVEL_GAP) + 50
-      };
+  const positions = useMemo(() => {
+    const pos: Record<string, { x: number, y: number }> = {};
+    const levels_arr = Object.entries(nodesByLevel).sort(([a], [b]) => Number(a) - Number(b));
+    
+    levels_arr.forEach(([_, nodeIds], lIdx) => {
+      const totalWidth = nodeIds.length * NODE_WIDTH;
+      nodeIds.forEach((nodeId, nIdx) => {
+        const offset = offsets[nodeId] || { x: 0, y: 0 };
+        pos[nodeId] = {
+          x: (nIdx * NODE_WIDTH) - (totalWidth / 2) + (NODE_WIDTH / 2) + offset.x,
+          y: lIdx * (LEVEL_HEIGHT + LEVEL_GAP) + 50 + offset.y
+        };
+      });
     });
-  });
+    return pos;
+  }, [graph, nodesByLevel, offsets]);
+
+  const levels_arr = Object.entries(nodesByLevel).sort(([a], [b]) => Number(a) - Number(b));
 
   return (
     <div className="relative w-full overflow-x-auto py-10 min-h-[500px] flex flex-col items-center">
@@ -109,6 +118,17 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
           return (
             <motion.div
               key={node.id}
+              drag
+              dragMomentum={false}
+              onDrag={(_, info) => {
+                setOffsets(prev => ({
+                  ...prev,
+                  [node.id]: {
+                    x: (prev[node.id]?.x || 0) + info.delta.x,
+                    y: (prev[node.id]?.y || 0) + info.delta.y
+                  }
+                }));
+              }}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               onClick={() => onNodeClick(selectedNodeId === node.id ? null : node.id)}
@@ -116,7 +136,8 @@ export function ExecutionGraph({ graph, activeNodeIds, selectedNodeId, onNodeCli
                 position: 'absolute', 
                 left: `calc(50% + ${pos.x}px)`, 
                 top: pos.y,
-                transform: 'translate(-50%, -50%)'
+                transform: 'translate(-50%, -50%)',
+                touchAction: 'none'
               }}
               className={`
                 z-20 p-4 rounded-xl border text-center transition-all cursor-pointer group

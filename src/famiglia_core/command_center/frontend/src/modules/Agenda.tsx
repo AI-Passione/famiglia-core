@@ -457,14 +457,15 @@ function MonthlyView({
           </div>
         ))}
         {cells.map((day) => {
-          const dayEntries = entries.filter((entry) => isSameDay(entry.start, day)).slice(0, 3);
-          const remaining = entries.filter((entry) => isSameDay(entry.start, day)).length - dayEntries.length;
+          const allDayEntries = entries.filter((entry) => isSameDay(entry.start, day));
+          const dayEntries = allDayEntries.slice(0, 6);
+          const remaining = allDayEntries.length - dayEntries.length;
 
           return (
             <div
               key={day.toISOString()}
               onClick={() => onCreateEvent(day)}
-              className={`min-h-[152px] rounded-2xl border p-3 transition-colors cursor-pointer group ${
+              className={`min-h-[152px] flex flex-col rounded-2xl border p-3 transition-colors cursor-pointer group ${
                 isToday(day)
                   ? 'border-[#6e373c] bg-[#241618]/90'
                   : isSameMonth(day, referenceDate)
@@ -472,7 +473,7 @@ function MonthlyView({
                     : 'border-white/5 bg-[#111111]/65'
               }`}
             >
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-3 flex items-center justify-between shrink-0">
                 <span className="font-label text-[10px] uppercase tracking-[0.24em] text-[#786f6c]">
                   {formatCompactDate(day)}
                 </span>
@@ -484,7 +485,7 @@ function MonthlyView({
                   {day.getDate()}
                 </span>
               </div>
-              <div className="space-y-2">
+              <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1">
                 {dayEntries.map((entry) => {
                   const isPast = entry.end.getTime() < now.getTime() && !isSameDay(entry.end, now);
                   return (
@@ -494,8 +495,8 @@ function MonthlyView({
                   );
                 })}
                 {remaining > 0 && (
-                  <p className="px-1 font-label text-[10px] uppercase tracking-[0.22em] text-[#8f8582]">
-                    +{remaining} more
+                  <p className="px-1 py-1 font-label text-[9px] uppercase tracking-[0.22em] text-[#8f8582] bg-white/5 rounded-md text-center">
+                    +{remaining} more directives
                   </p>
                 )}
               </div>

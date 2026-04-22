@@ -324,7 +324,8 @@ class BaseAgent(CommonSkills, TaskTools, OnDemandMasterSupervisor):
             if callback:
                 try:
                     if hasattr(callback, "langfuse"): callback.langfuse.flush()
-                except Exception: pass
+                except Exception as e:
+                    print(f"[{self.name}] Non-fatal error while flushing callback langfuse client: {e}")
             langfuse_manager.flush()
 
         # 3. Finalize response using the same master logic

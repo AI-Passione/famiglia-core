@@ -42,6 +42,7 @@ export interface Task {
   recurring_task_id?: number | null;
   metadata?: Record<string, unknown> | null;
   error_details?: string | null;
+  is_scheduled?: boolean;
 }
 
 export type AgendaEntryKind = 'task' | 'recurring';

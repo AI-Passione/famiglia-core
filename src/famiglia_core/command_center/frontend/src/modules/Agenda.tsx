@@ -178,6 +178,7 @@ function buildTaskEntries(tasks: Task[], rangeStart: Date, rangeEnd: Date): Agen
     const start = getTaskStart(task);
     if (!start) return collection;
     if (start < rangeStart || start > rangeEnd) return collection;
+    if (!task.is_scheduled) return collection;
 
     collection.push({
       id: `task-${task.id}`,

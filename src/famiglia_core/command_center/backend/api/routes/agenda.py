@@ -19,6 +19,7 @@ class AgendaEvent(BaseModel):
     priority: str
     expected_agent: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    is_scheduled: bool = False
 
     # Adding user-friendly aliases for Google Calendar style consumption if needed
     @property
@@ -92,7 +93,8 @@ async def create_agenda_event(request: AgendaCreateRequest):
         expected_agent=request.agent_id,
         eta_pickup_at=request.start,
         eta_completion_at=request.end,
-        metadata=metadata
+        metadata=metadata,
+        is_scheduled=True
     )
     
     if not task:
